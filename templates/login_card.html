@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 مركز سرعة إنجاز — تسجيل الدخول</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold:    #f5c518;
+            --gold2:   #ffd700;
+            --purple:  #7c3aed;
+            --blue:    #2563eb;
+            --cyan:    #06b6d4;
+            --green:   #10b981;
+            --pink:    #ec4899;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0015 0%, #0d0730 40%, #050d1f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cairo', 'Segoe UI', sans-serif;
+            padding: 16px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* نجوم الخلفية */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 10% 20%, rgba(255,215,0,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 25% 60%, rgba(99,102,241,0.7) 0%, transparent 100%),
+                radial-gradient(1px 1px at 40% 10%, rgba(6,182,212,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 55% 80%, rgba(245,197,24,0.5) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 35%, rgba(124,58,237,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 85% 70%, rgba(6,182,212,0.5) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 15% 90%, rgba(255,215,0,0.4) 0%, transparent 100%),
+                radial-gradient(1px 1px at 90% 15%, rgba(245,197,24,0.7) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-wrap {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        /* ═══ بطاقة الدخول ═══ */
+        .login-card {
+            background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border: 1px solid rgba(124,58,237,0.4);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(245,197,24,0.15),
+                0 30px 80px rgba(0,0,0,0.7),
+                0 0 60px rgba(124,58,237,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+
+        /* ═══ الهيدر ═══ */
+        .login-header {
+            background: linear-gradient(135deg, #1e1150 0%, #3b0764 50%, #1e1150 100%);
+            padding: 32px 28px 26px;
+            text-align: center;
+            border-bottom: 1px solid rgba(245,197,24,0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: -40px; left: 50%;
+            transform: translateX(-50%);
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(245,197,24,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .logo-ring {
+            width: 90px; height: 90px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+        .logo-ring::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #f5c518, #7c3aed, #06b6d4, #f5c518);
+            animation: spin 3s linear infinite;
+        }
+        .logo-inner {
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e1150, #3b0764);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem;
+            z-index: 1;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .header-title {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 900;
+            margin-bottom: 4px;
+            text-shadow: 0 0 20px rgba(245,197,24,0.5);
+        }
+        .header-sub {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.82rem;
+        }
+        .header-sub strong { color: var(--gold); }
+
+        /* ═══ ترحيب ═══ */
+        .welcome-banner {
+            background: linear-gradient(90deg, rgba(245,197,24,0.08), rgba(124,58,237,0.12), rgba(6,182,212,0.08));
+            border-bottom: 1px solid rgba(245,197,24,0.15);
+            padding: 14px 24px;
+            text-align: center;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.6;
+        }
+        .welcome-banner .hl { color: var(--gold); font-weight: 700; }
+
+        /* ═══ جسم البطاقة ═══ */
+        .login-body { padding: 28px 28px 24px; }
+
+        .form-label {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .form-control {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(124,58,237,0.4);
+            color: #fff;
+            border-radius: 14px;
+            padding: 14px 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            width: 100%;
+            transition: all 0.3s;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--gold);
+            background: rgba(245,197,24,0.07);
+            box-shadow: 0 0 0 3px rgba(245,197,24,0.2), 0 0 20px rgba(245,197,24,0.1);
+            color: #fff;
+        }
+        .form-control::placeholder { color: rgba(255,255,255,0.2); letter-spacing: 2px; font-size: 0.9rem; }
+
+        .btn-login {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%);
+            border: none;
+            border-radius: 14px;
+            padding: 14px 20px;
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.05rem;
+            font-family: 'Cairo', sans-serif;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+            box-shadow: 0 8px 25px rgba(124,58,237,0.4);
+        }
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-login:hover:not(:disabled)::before { opacity: 1; }
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 35px rgba(124,58,237,0.55);
+        }
+        .btn-login:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+        #msgArea {
+            border-radius: 12px;
+            font-size: 0.88rem;
+            padding: 11px 16px;
+            margin-bottom: 16px;
+            border: none;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+        }
+        #msgArea.alert-success { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+        #msgArea.alert-danger  { background: rgba(239,68,68,0.15);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        #msgArea.alert-warning { background: rgba(245,197,24,0.12); color: var(--gold); border: 1px solid rgba(245,197,24,0.3); }
+        #msgArea.d-none { display: none !important; }
+
+        /* ═══ قسم الأسعار ═══ */
+        .prices-section {
+            margin-top: 28px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(6,182,212,0.08));
+            border: 1px solid rgba(245,197,24,0.2);
+            border-radius: 18px;
+        }
+        .prices-title {
+            text-align: center;
+            color: var(--gold);
+            font-weight: 800;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
+        }
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .price-row:nth-child(1) { background: rgba(6,182,212,0.12); border: 1px solid rgba(6,182,212,0.2); }
+        .price-row:nth-child(2) { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); }
+        .price-row:nth-child(3) { background: rgba(245,197,24,0.10); border: 1px solid rgba(245,197,24,0.25); }
+        .price-label { color: rgba(255,255,255,0.8); font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+        .price-val   { color: #fff; font-size: 1rem; font-weight: 900; }
+        .price-val span { color: var(--gold); font-size: 0.75rem; margin-right: 2px; }
+
+        /* ═══ البطاقة الترويجية ═══ */
+        .promo-card {
+            margin-top: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            height: 110px;
+            background: linear-gradient(135deg,
+                #4c1d95 0%,
+                #7c3aed 20%,
+                #2563eb 45%,
+                #0891b2 65%,
+                #059669 85%,
+                #d97706 100%
+            );
+            box-shadow: 0 8px 30px rgba(124,58,237,0.5);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+        }
+        .promo-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,215,0,0.15) 0%, transparent 40%);
+        }
+        .promo-card::after {
+            content: '';
+            position: absolute;
+            top: -20px; right: -20px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .promo-logo {
+            font-size: 2.8rem;
+            z-index: 1;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.6));
+            flex-shrink: 0;
+        }
+        .promo-text { z-index: 1; }
+        .promo-text h5 {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 900;
+            margin: 0 0 4px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .promo-text p {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.75rem;
+            margin: 0;
+        }
+        .promo-badge {
+            position: absolute;
+            left: 14px; top: 10px;
+            background: var(--gold);
+            color: #000;
+            font-size: 0.6rem;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 20px;
+            z-index: 1;
+        }
+        /* شرائط لامعة */
+        .promo-shine {
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            animation: shine 3s ease-in-out infinite;
+            z-index: 1;
+        }
+        @keyframes shine { 0%,100% { left: -100%; } 50% { left: 150%; } }
+
+        /* خطوط ذهبية زخرفية */
+        .card-lines {
+            position: absolute;
+            bottom: 10px; left: 20px;
+            z-index: 1;
+            display: flex; gap: 4px;
+        }
+        .card-line { width: 28px; height: 3px; border-radius: 2px; }
+        .card-line:nth-child(1) { background: rgba(255,215,0,0.7); }
+        .card-line:nth-child(2) { background: rgba(255,255,255,0.3); width: 18px; }
+        .card-line:nth-child(3) { background: rgba(255,215,0,0.4); width: 12px; }
+
+        /* ═══ زر واتساب ═══ */
+        .wa-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, #128c7e, #25d366);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin-top: 10px;
+            box-shadow: 0 6px 20px rgba(37,211,102,0.35);
+        }
+        .wa-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(37,211,102,0.5);
+            color: #fff;
+            text-decoration: none;
+        }
+        .wa-icon { font-size: 1.3rem; }
+
+        /* ═══ فوتر ═══ */
+        .card-footer-custom {
+            text-align: center;
+            padding: 14px 28px 20px;
+            border-top: 1px solid rgba(124,58,237,0.2);
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.3);
+        }
+        .card-footer-custom strong { color: rgba(245,197,24,0.6); }
+
+        /* ═══ تأثير الظهور ═══ */
+        .login-card {
+            animation: cardIn 0.5s ease-out both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <div class="login-card">
+
+        <!-- الهيدر -->
+        <div class="login-header">
+            <div class="logo-ring">
+                <div class="logo-inner">🎓</div>
+            </div>
+            <h4 class="header-title">مركز سرعة إنجاز</h4>
+            <p class="header-sub">منصة الخدمات الطلابية والأكاديمية <strong>المتميزة</strong></p>
+        </div>
+
+        <!-- بانر الترحيب -->
+        <div class="welcome-banner">
+            🌟 أهلاً وسهلاً بك في مركز <span class="hl">سرعة إنجاز</span> —
+            ندعمك في كل خطوة من رحلتك الأكاديمية بكفاءة واحترافية عالية.
+        </div>
+
+        <!-- جسم البطاقة -->
+        <div class="login-body">
+            <div id="msgArea" class="d-none"></div>
+
+            <label class="form-label">
+                <i class="fas fa-key me-2" style="color:var(--gold);"></i>
+                رمز البطاقة أو كلمة المرور
+            </label>
+            <input type="text" class="form-control" id="cardCode"
+                   placeholder="أدخل الرمز هنا"
+                   autofocus maxlength="30" autocomplete="off" spellcheck="false">
+            <div style="color:rgba(255,255,255,0.3);font-size:0.72rem;text-align:center;margin-top:8px;">
+                <i class="fas fa-shield-halved me-1" style="color:var(--cyan);"></i>
+                رمز البطاقة مطبوع بصيغة XXXX-XXXX-XXXX
+            </div>
+
+            <!-- ════ قسم الأسعار (تحت خانة الإدخال مباشرةً) ════ -->
+            <div class="prices-section">
+                <div class="prices-title">
+                    <i class="fas fa-tags me-2"></i>أسعار الاشتراك
+                </div>
+
+                <div class="price-row">
+                    <div class="price-label">
+                        <i class="fas fa-sun" style="color:var(--cyan);"></i>
+                        يومي
+                    </div>
+                    <div class="price-val">3 <span>ريال</span></div>
+                </div>
+                <div class="price-row">
+                    <div class="price-label">
+                        <i class="fas fa-calendar-week" style="color:#a78bfa;"></i>
+                        أسبوعي
+                    </div>
+                    <div class="price-val">20 <span>ريال</span></div>
+                </div>
+                <div class="price-row">
+                    <div class="price-label">
+                        <i class="fas fa-calendar-alt" style="color:var(--gold);"></i>
+                        شهري
+                    </div>
+                    <div class="price-val">75 <span>ريال</span></div>
+                </div>
+
+                <!-- البطاقة الترويجية -->
+                <div class="promo-card">
+                    <div class="promo-shine"></div>
+                    <div class="promo-logo">🎓</div>
+                    <div class="promo-text">
+                        <h5>بطاقة سرعة إنجاز</h5>
+                        <p>خدمات أكاديمية متميزة • دعم مستمر</p>
+                    </div>
+                    <div class="promo-badge">✦ حصري</div>
+                    <div class="card-lines">
+                        <div class="card-line"></div>
+                        <div class="card-line"></div>
+                        <div class="card-line"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- زر طلب البطاقة عبر واتساب -->
+            <a href="https://wa.me/966510349663?text=السلام+عليكم%2C+أريد+الاشتراك+في+مركز+سرعة+إنجاز"
+               target="_blank" class="wa-btn">
+                <i class="fab fa-whatsapp wa-icon"></i>
+                اطلب بطاقتك الآن — واتساب
+            </a>
+
+            <button class="btn-login" id="loginBtn" onclick="doCardLogin()">
+                <i class="fas fa-sign-in-alt" id="loginIcon"></i>
+                <span id="btnText">دخول الآن</span>
+            </button>
+        </div>
+
+        <!-- فوتر -->
+        <div class="card-footer-custom">
+            <i class="fas fa-graduation-cap me-1"></i>
+            مركز <strong>سرعة إنجاز</strong> © 2025 — جميع الحقوق محفوظة
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const input = document.getElementById('cardCode');
+    const btn   = document.getElementById('loginBtn');
+    const btnTx = document.getElementById('btnText');
+    const icon  = document.getElementById('loginIcon');
+    const msg   = document.getElementById('msgArea');
+
+    function fmt(v) {
+        // إذا بدت كلمة مرور عادية (تحتوي على * أو طويلة بدون مسافات) — لا تُنسّق
+        if (v.includes('*') || v.length > 16) return v;
+        const c = v.replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,12);
+        return c.match(/.{1,4}/g)?.join('-') || c;
+    }
+
+    input.addEventListener('input', function() {
+        const pos = this.selectionStart;
+        const old = this.value;
+        // تطبيق التنسيق فقط للرموز القصيرة التي لا تحتوي على *
+        if (!this.value.includes('*') && this.value.replace(/[^a-zA-Z0-9\-]/g,'').length <= 16) {
+            this.value = fmt(this.value);
+            const diff = this.value.length - old.length;
+            try { this.setSelectionRange(pos + diff, pos + diff); } catch(e){}
+        }
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doCardLogin();
+    });
+
+    function showMsg(text, type) {
+        msg.textContent = text;
+        msg.className = 'alert-' + type;
+        msg.style.display = 'block';
+    }
+
+    function resetBtn() {
+        btn.disabled = false;
+        btnTx.textContent = 'دخول الآن';
+        icon.className = 'fas fa-sign-in-alt';
+    }
+
+    window.doCardLogin = async function() {
+        const raw = input.value.trim();
+        if (raw.length < 4) {
+            showMsg('⚠️ أدخل الرمز كاملاً', 'warning');
+            input.focus();
+            return;
+        }
+        // إرسال كما هو (بدون إزالة الشرطات كي يصل ADMIN_PASSWORD كما هو)
+        const codeToSend = raw.replace(/-/g, '').trim();
+
+        btn.disabled = true;
+        btnTx.textContent = 'جاري التحقق...';
+        icon.className = 'fas fa-spinner fa-spin';
+        try {
+            const r = await fetch('/api/login_card', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({code: codeToSend})
+            });
+            const d = await r.json();
+            if (d.success) {
+                showMsg('✅ ' + (d.message || 'تم الدخول بنجاح'), 'success');
+                setTimeout(() => { window.location.href = d.redirect || '/'; }, 700);
+            } else {
+                showMsg('❌ ' + (d.message || 'رمز غير صحيح'), 'danger');
+                resetBtn();
+                input.focus(); input.select();
+            }
+        } catch (e) {
+            showMsg('⚠️ خطأ في الاتصال، حاول مرة أخرى', 'danger');
+            resetBtn();
+        }
+    };
+
+    window.addEventListener('load', () => setTimeout(() => input.focus(), 200));
+})();
+</script>
+</body>
+</html>

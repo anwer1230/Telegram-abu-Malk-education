@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>احصاء 1208 - الاختبار العملي | الحل النهائي الكامل | 5 تمارين</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #d0e0c4;
+            font-family: 'Segoe UI', 'Calibri', 'Tahoma', sans-serif;
+            padding: 20px;
+            direction: rtl;
+        }
+        .excel-workbook {
+            max-width: 1350px;
+            margin: 0 auto;
+            background: #1e4a2f;
+            border-radius: 14px 14px 10px 10px;
+            box-shadow: 0 18px 32px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .excel-ribbon {
+            background: #2d6b41;
+            padding: 6px 20px;
+            display: flex;
+            gap: 12px;
+            border-bottom: 1px solid #58a06e;
+            align-items: center;
+        }
+        .ribbon-btn {
+            background: #428a57;
+            color: white;
+            padding: 5px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ribbon-title {
+            margin-right: auto;
+            color: #d0f0d8;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .sheet-tabs {
+            display: flex;
+            background: #235f36;
+            padding: 6px 12px 0;
+            gap: 3px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: #3a7a52;
+            border: none;
+            color: white;
+            padding: 10px 22px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .tab-btn:hover { background: #4e9968; }
+        .tab-btn.active {
+            background: #fefae6;
+            color: #1e4a2f;
+            border-bottom: 3px solid #ffa726;
+        }
+        .sheet-page {
+            background: #fefef5;
+            padding: 28px 30px;
+            display: none;
+        }
+        .sheet-page.active { display: block; }
+
+        h3 {
+            font-size: 1.1rem;
+            color: #1e4a2f;
+            margin-bottom: 16px;
+            padding: 10px 16px;
+            background: #eaf5e2;
+            border-right: 5px solid #2d6b41;
+            border-radius: 8px;
+        }
+        h3 i { margin-left: 10px; color: #347a3e; }
+
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border: 2px solid #a8c990;
+            font-size: 0.88rem;
+            margin: 16px 0;
+        }
+        .excel-table th {
+            background: #e0f0d4;
+            border: 1px solid #b2d498;
+            padding: 9px 14px;
+            font-weight: bold;
+            color: #1e4a2f;
+        }
+        .excel-table td {
+            border: 1px solid #c2daae;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        .excel-table tr:nth-child(even) td { background: #f8fdf4; }
+        .row-sum { background: #d6efc6 !important; font-weight: bold; }
+        .row-avg { background: #e8f5fb !important; }
+        .row-max { background: #e6fde6 !important; color: #1a6b1a; font-weight: bold; }
+        .row-min { background: #fff2f0 !important; color: #b03030; font-weight: bold; }
+        .formula-row td { background: #fff9e6 !important; font-style: italic; }
+
+        .formula-note {
+            background: #f0f7ea;
+            border: 1px solid #c5e0ae;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Consolas', monospace;
+            margin: 10px 0 18px;
+            color: #2a5a30;
+        }
+        .chart-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .chart-box {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #d4e8c4;
+            flex: 1;
+            min-width: 280px;
+            max-width: 420px;
+        }
+        .chart-box .chart-title {
+            text-align: center;
+            font-weight: bold;
+            color: #2a5a30;
+            margin-bottom: 10px;
+            font-size: 13px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #d4e8c4;
+        }
+        canvas { max-height: 280px; width: 100% !important; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: white;
+            border-right: 5px solid #2d6b41;
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+        .stat-card .stat-label {
+            font-size: 11px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+        .stat-card .stat-val {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1e4a2f;
+        }
+        .stat-card .stat-formula {
+            font-size: 10px;
+            color: #999;
+            font-family: monospace;
+            margin-top: 3px;
+        }
+
+        .pearson-box {
+            text-align: center;
+            padding: 20px;
+        }
+        .pearson-val {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #256f2a;
+            margin: 10px 0;
+        }
+        .pearson-desc {
+            font-size: 14px;
+            color: #444;
+            margin-top: 8px;
+            padding: 10px;
+            background: #f0f9f0;
+            border-radius: 8px;
+        }
+
+        .footer-note {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 24px;
+            color: #4b6e46;
+            border-top: 2px dashed #bdd8b0;
+            padding-top: 12px;
+        }
+        .badge {
+            background: #e8f4e0;
+            border: 1px solid #b2d498;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+            margin: 2px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+<div class="excel-workbook">
+    <div class="excel-ribbon">
+        <span class="ribbon-btn"><i class="fas fa-file-excel"></i> ملف</span>
+        <span class="ribbon-btn"><i class="fas fa-chart-bar"></i> إدراج</span>
+        <span class="ribbon-btn"><i class="fas fa-calculator"></i> الصيغ</span>
+        <span class="ribbon-btn"><i class="fas fa-table"></i> بيانات</span>
+        <span class="ribbon-title">📊 احصاء 1208 – الاختبار العملي – الحل الكامل</span>
+    </div>
+    <div class="sheet-tabs">
+        <button class="tab-btn active" data-sheet="ex1">📊 السؤال الأول</button>
+        <button class="tab-btn" data-sheet="ex2">📈 السؤال الثاني</button>
+        <button class="tab-btn" data-sheet="ex3">🌾 السؤال الثالث</button>
+        <button class="tab-btn" data-sheet="ex4">💰 السؤال الرابع</button>
+        <button class="tab-btn" data-sheet="ex5">📉 السؤال الخامس</button>
+    </div>
+
+    <!-- ══════════════════ السؤال الأول ══════════════════ -->
+    <div id="ex1" class="sheet-page active">
+        <h3><i class="fas fa-graduation-cap"></i> السؤال الأول: المؤهلات العلمية – عينة من 70 موظف بمدينة الرياض</h3>
+
+        <div class="formula-note">
+            <i class="fas fa-info-circle"></i>
+            <strong>المطلوب:</strong>
+            1) تصميم الجدول &nbsp;|&nbsp;
+            2) رسم الأعمدة البيانية مع عناوين المحاور &nbsp;|&nbsp;
+            3) الدائرة النسبية مع التكرار النسبي (الرقم الجامعي كعنوان)
+        </div>
+
+        <table class="excel-table">
+            <thead>
+                <tr>
+                    <th>نوع المؤهل العلمي</th>
+                    <th>عدد الموظفين (التكرار)</th>
+                    <th>التكرار النسبي</th>
+                    <th>التكرار النسبي %</th>
+                    <th>صيغة Excel</th>
+                </tr>
+            </thead>
+            <tbody id="q1body"></tbody>
+        </table>
+
+        <div class="formula-note">
+            <i class="fas fa-code"></i>
+            <strong>صيغ Excel:</strong>
+            <span class="badge">=SUM(B2:B6) → المجموع = 70</span>
+            <span class="badge">=B2/$B$7 → التكرار النسبي</span>
+            <span class="badge">=B2/$B$7*100 → النسبة المئوية</span>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <div class="chart-title">📊 الأعمدة البيانية – عدد الموظفين حسب المؤهل</div>
+                <canvas id="barEx1"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:6px;">
+                    المحور الأفقي: نوع المؤهل | المحور العمودي: عدد الموظفين
+                </div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">🥧 الدائرة النسبية – التكرار النسبي % (رقم الجامعي: 202310055)</div>
+                <canvas id="pieEx1"></canvas>
+            </div>
+        </div>
+        <div class="footer-note">✅ تم: تصميم الجدول + الأعمدة البيانية + الدائرة النسبية مع التكرار النسبي</div>
+    </div>
+
+    <!-- ══════════════════ السؤال الثاني ══════════════════ -->
+    <div id="ex2" class="sheet-page">
+        <h3><i class="fas fa-chart-bar"></i> السؤال الثاني: درجات 100 طالب في مقرر أساسيات الإحصاء</h3>
+
+        <div class="formula-note">
+            <i class="fas fa-info-circle"></i>
+            <strong>المطلوب:</strong>
+            1) الجدول مع المجموع في نهاية العمود الثاني &nbsp;|&nbsp;
+            2) المدرج التكراري &nbsp;|&nbsp;
+            3) المضلع التكراري &nbsp;|&nbsp;
+            4) المنحنى التكراري النسبي التراكمي – مع عناوين المحاور
+        </div>
+
+        <table class="excel-table">
+            <thead>
+                <tr>
+                    <th>فئات الدرجات</th>
+                    <th>عدد الطلاب (ت)</th>
+                    <th>التكرار التراكمي</th>
+                    <th>التكرار النسبي</th>
+                    <th>التكرار النسبي %</th>
+                    <th>التكرار النسبي التراكمي %</th>
+                    <th>صيغة Excel</th>
+                </tr>
+            </thead>
+            <tbody id="q2body"></tbody>
+        </table>
+
+        <div class="formula-note">
+            <i class="fas fa-code"></i>
+            <strong>صيغ Excel:</strong>
+            <span class="badge">=SUM(B2:B7) → المجموع = 100</span>
+            <span class="badge">=SUM($B$2:B2) → التراكمي (يُنسخ لأسفل)</span>
+            <span class="badge">=B2/100 → النسبي</span>
+            <span class="badge">=SUM($D$2:D2)*100 → النسبي التراكمي %</span>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box">
+                <div class="chart-title">📊 المدرج التكراري – درجات الطلاب</div>
+                <canvas id="histEx2"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:4px;">المحور الأفقي: فئات الدرجات | المحور العمودي: عدد الطلاب</div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">📈 المضلع التكراري – درجات الطلاب</div>
+                <canvas id="polyEx2"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:4px;">المحور الأفقي: مراكز الفئات | المحور العمودي: التكرار</div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">📉 المنحنى التراكمي النسبي (Ogive)</div>
+                <canvas id="ogiveEx2"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:4px;">المحور الأفقي: الدرجات | المحور العمودي: التراكمي النسبي %</div>
+            </div>
+        </div>
+        <div class="footer-note">✅ تم: الجدول الكامل + المجموع=100 + المدرج + المضلع + المنحنى التراكمي</div>
+    </div>
+
+    <!-- ══════════════════ السؤال الثالث ══════════════════ -->
+    <div id="ex3" class="sheet-page">
+        <h3><i class="fas fa-tractor"></i> السؤال الثالث: مبيعات الشركة الزراعية المتحدة بالطن</h3>
+
+        <div class="formula-note">
+            <i class="fas fa-info-circle"></i>
+            <strong>المطلوب:</strong> إكمال البيانات الناقصة: مجموع كل محصول (صف) + مجموع كل شهر (عمود) + المتوسط + أعلى قيمة + أدنى قيمة
+        </div>
+
+        <table class="excel-table" id="q3table">
+            <thead>
+                <tr>
+                    <th>النوع</th>
+                    <th>يناير</th>
+                    <th>فبراير</th>
+                    <th>مارس</th>
+                    <th>أبريل</th>
+                    <th style="background:#d6f0c6; color:#1a5a1a;">المجموع (كل محصول)</th>
+                    <th>صيغة Excel</th>
+                </tr>
+            </thead>
+            <tbody id="q3body"></tbody>
+            <tfoot id="q3foot"></tfoot>
+        </table>
+
+        <div class="formula-note">
+            <i class="fas fa-code"></i>
+            <strong>صيغ Excel:</strong>
+            <span class="badge">=SUM(B2:E2) → مجموع الصف</span>
+            <span class="badge">=SUM(B2:B6) → مجموع العمود</span>
+            <span class="badge">=AVERAGE(B2:B6)</span>
+            <span class="badge">=MAX(B2:B6)</span>
+            <span class="badge">=MIN(B2:B6)</span>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box" style="max-width:620px; flex:2;">
+                <div class="chart-title">📊 مبيعات الشركة الزراعية بالطن – مقارنة شهرية بين المحاصيل</div>
+                <canvas id="barEx3"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:4px;">المحور الأفقي: المحاصيل | المحور العمودي: الكمية (طن)</div>
+            </div>
+        </div>
+        <div class="footer-note">✅ تم: الجدول الكامل بمجاميع الصفوف والأعمدة + المتوسط + أعلى وأدنى قيمة</div>
+    </div>
+
+    <!-- ══════════════════ السؤال الرابع ══════════════════ -->
+    <div id="ex4" class="sheet-page">
+        <h3><i class="fas fa-chart-line"></i> السؤال الرابع: الرواتب الشهرية – المقاييس الإحصائية الوصفية</h3>
+
+        <div class="formula-note">
+            <i class="fas fa-database"></i>
+            <strong>بيانات الرواتب الشهرية بالريال (16 موظفاً):</strong><br>
+            <span id="salaryDisplay" style="font-family:monospace; font-size:11px;"></span>
+        </div>
+
+        <table class="excel-table">
+            <thead>
+                <tr>
+                    <th>رقم الموظف</th>
+                    <th>الراتب الشهري (ريال)</th>
+                    <th>رقم الموظف</th>
+                    <th>الراتب الشهري (ريال)</th>
+                </tr>
+            </thead>
+            <tbody id="salaryTable"></tbody>
+        </table>
+
+        <h3 style="margin-top:20px;"><i class="fas fa-calculator"></i> جدول المقاييس الإحصائية – Descriptive Statistics</h3>
+
+        <table class="excel-table" id="statsTable">
+            <thead>
+                <tr>
+                    <th>المقياس الإحصائي</th>
+                    <th>القيمة المحسوبة</th>
+                    <th>صيغة Excel</th>
+                    <th>المقياس الإحصائي</th>
+                    <th>القيمة المحسوبة</th>
+                    <th>صيغة Excel</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody"></tbody>
+        </table>
+
+        <div class="formula-note">
+            <i class="fas fa-code"></i>
+            <strong>صيغ Excel الأصلية:</strong>
+            <span class="badge">=AVERAGE(B2:B17)</span>
+            <span class="badge">=MEDIAN(B2:B17)</span>
+            <span class="badge">=STDEV(B2:B17)</span>
+            <span class="badge">=VAR(B2:B17)</span>
+            <span class="badge">=MODE(B2:B17)</span>
+            <span class="badge">=SKEW(B2:B17)</span>
+            <span class="badge">=MAX(B2:B17)-MIN(B2:B17)</span>
+            <span class="badge">=STDEV(B2:B17)/AVERAGE(B2:B17)*100</span>
+        </div>
+        <div class="footer-note">✅ تم: حساب جميع المقاييس الإحصائية بصيغ Excel الأصلية</div>
+    </div>
+
+    <!-- ══════════════════ السؤال الخامس ══════════════════ -->
+    <div id="ex5" class="sheet-page">
+        <h3><i class="fas fa-heartbeat"></i> السؤال الخامس: معامل الارتباط بيرسون – Scatter Diagram</h3>
+
+        <div class="formula-note">
+            <i class="fas fa-info-circle"></i>
+            <strong>المطلوب:</strong>
+            1) إدخال البيانات &nbsp;|&nbsp;
+            2) رسم مخطط الانتشار (Scatter) &nbsp;|&nbsp;
+            3) حساب معامل ارتباط بيرسون r
+        </div>
+
+        <table class="excel-table" style="width:auto; min-width:60%; margin:auto;">
+            <thead>
+                <tr>
+                    <th>رقم الطالب</th>
+                    <th>1</th><th>2</th><th>3</th><th>4</th>
+                    <th>5</th><th>6</th><th>7</th><th>8</th>
+                    <th style="background:#d6f0c6;">المتوسط</th>
+                    <th style="background:#dde8ff;">الانحراف المعياري</th>
+                </tr>
+            </thead>
+            <tbody id="q5body"></tbody>
+        </table>
+
+        <div class="formula-note">
+            <i class="fas fa-code"></i>
+            <strong>صيغة Excel:</strong>
+            <span class="badge">=CORREL(B2:I2, B3:I3) → معامل الارتباط r</span>
+            <span class="badge">=AVERAGE(B2:I2) → المتوسط</span>
+            <span class="badge">=STDEV(B2:I2) → الانحراف المعياري</span>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box" style="max-width:420px; flex:1.5;">
+                <div class="chart-title">📉 مخطط الانتشار (Scatter Diagram) – الطول مقابل الوزن</div>
+                <canvas id="scatterEx5"></canvas>
+                <div style="text-align:center; font-size:11px; color:#888; margin-top:4px;">المحور الأفقي: طول الطالب X (سم) | المحور العمودي: وزن الطالب Y (كجم)</div>
+            </div>
+            <div class="chart-box" style="max-width:350px;">
+                <div class="chart-title pearson-box">
+                    <div><i class="fas fa-calculator"></i> معامل ارتباط بيرسون r</div>
+                    <div class="pearson-val" id="pearsonResult">—</div>
+                    <div id="pearsonInterpret" class="pearson-desc"></div>
+                    <br>
+                    <code style="font-size:13px; background:#f0f8f0; padding:6px 14px; border-radius:8px; display:block;">
+                        =CORREL(B2:I2, B3:I3)
+                    </code>
+                    <div style="margin-top:10px; font-size:11px;" id="r2box"></div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-note">✅ تم: جدول البيانات + مخطط الانتشار + معامل الارتباط + التفسير</div>
+    </div>
+</div><!-- .excel-workbook -->
+
+<script>
+(function(){
+'use strict';
+
+const COLORS = ['#4f9a66','#7cb56e','#a8d08d','#c5e0ae','#e2f0d9','#2d6b41'];
+
+// ══════════════════════════════════════════════════
+// السؤال الأول
+// ══════════════════════════════════════════════════
+const quals  = ['ابتدائي','متوسط','ثانوي','جامعي','دكتوراه'];
+const qfreqs = [2, 6, 32, 26, 4];
+const qTotal = qfreqs.reduce((a,b)=>a+b, 0); // 70
+
+const q1body = document.getElementById('q1body');
+qfreqs.forEach((f, i)=>{
+    const rel  = (f/qTotal).toFixed(3);
+    const pct  = (f/qTotal*100).toFixed(1);
+    const row  = q1body.insertRow();
+    row.innerHTML = `
+        <td><strong>${quals[i]}</strong></td>
+        <td>${f}</td>
+        <td>${rel}</td>
+        <td><strong>${pct}%</strong></td>
+        <td style="font-family:monospace; font-size:11px; color:#777;">=B${i+2}/$B$7</td>
+    `;
+});
+// صف المجموع
+const sumRow = q1body.insertRow();
+sumRow.className = 'formula-row';
+sumRow.innerHTML = `
+    <td><strong>المجموع</strong></td>
+    <td><strong>${qTotal}</strong></td>
+    <td><strong>1.000</strong></td>
+    <td><strong>100%</strong></td>
+    <td style="font-family:monospace; font-size:11px; color:#777;">=SUM(B2:B6)</td>
+`;
+
+// الرسوم
+new Chart(document.getElementById('barEx1'), {
+    type: 'bar',
+    data: {
+        labels: quals,
+        datasets: [{
+            label: 'عدد الموظفين',
+            data: qfreqs,
+            backgroundColor: COLORS,
+            borderColor: '#1e4a2f',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'توزيع المؤهلات العلمية', font:{size:13} }
+        },
+        scales: {
+            x: { title: { display: true, text: 'نوع المؤهل العلمي' } },
+            y: { title: { display: true, text: 'عدد الموظفين' }, beginAtZero: true }
+        }
+    }
+});
+
+new Chart(document.getElementById('pieEx1'), {
+    type: 'pie',
+    data: {
+        labels: quals.map((q,i)=> `${q} (${(qfreqs[i]/qTotal*100).toFixed(1)}%)`),
+        datasets: [{
+            data: qfreqs,
+            backgroundColor: COLORS,
+            borderColor: '#fff',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'الدائرة النسبية – 202310055',
+                font: { size:13 }
+            },
+            legend: { position: 'bottom', labels:{ font:{size:10} } },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ` ${ctx.label} → ${ctx.raw} موظف`
+                }
+            }
+        }
+    }
+});
+
+// ══════════════════════════════════════════════════
+// السؤال الثاني
+// ══════════════════════════════════════════════════
+const grades = ['0 – 50','50 – 60','60 – 70','70 – 80','80 – 90','90 – 100'];
+const mids   = [25, 55, 65, 75, 85, 95];
+const gfreqs = [10, 17, 12, 23, 28, 10];
+const gTotal = gfreqs.reduce((a,b)=>a+b, 0); // 100
+
+const q2body = document.getElementById('q2body');
+let cumFreq = 0, cumRelPct = 0;
+gfreqs.forEach((f, i)=>{
+    cumFreq    += f;
+    const rel   = (f/gTotal);
+    cumRelPct  += rel*100;
+    const row   = q2body.insertRow();
+    row.innerHTML = `
+        <td>${grades[i]}</td>
+        <td><strong>${f}</strong></td>
+        <td>${cumFreq}</td>
+        <td>${rel.toFixed(3)}</td>
+        <td>${(rel*100).toFixed(1)}%</td>
+        <td><strong>${cumRelPct.toFixed(1)}%</strong></td>
+        <td style="font-family:monospace; font-size:10px; color:#777;">${i===0?'=B2':('=C'+(i+1)+'+B'+(i+2))}</td>
+    `;
+});
+// صف المجموع
+const g2sum = q2body.insertRow();
+g2sum.className = 'formula-row';
+g2sum.innerHTML = `
+    <td><strong>المجموع</strong></td>
+    <td><strong>${gTotal}</strong></td>
+    <td>—</td>
+    <td><strong>1.000</strong></td>
+    <td><strong>100%</strong></td>
+    <td><strong>100%</strong></td>
+    <td style="font-family:monospace; font-size:10px; color:#777;">=SUM(B2:B7)</td>
+`;
+
+// ── المدرج التكراري
+new Chart(document.getElementById('histEx2'), {
+    type: 'bar',
+    data: {
+        labels: grades,
+        datasets: [{
+            label: 'التكرار (عدد الطلاب)',
+            data: gfreqs,
+            backgroundColor: '#4f9a66',
+            borderColor: '#1e4a2f',
+            borderWidth: 1,
+            barPercentage: 1.0,
+            categoryPercentage: 1.0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: { display: true, text: 'المدرج التكراري', font:{size:12} },
+            legend: { display: false }
+        },
+        scales: {
+            x: { title:{ display:true, text:'فئات الدرجات' } },
+            y: { title:{ display:true, text:'عدد الطلاب' }, beginAtZero:true }
+        }
+    }
+});
+
+// ── المضلع التكراري
+new Chart(document.getElementById('polyEx2'), {
+    type: 'line',
+    data: {
+        labels: mids,
+        datasets: [{
+            label: 'المضلع التكراري',
+            data: gfreqs,
+            borderColor: '#c97a2e',
+            backgroundColor: 'rgba(201,122,46,0.12)',
+            fill: true,
+            tension: 0.2,
+            pointRadius: 6,
+            pointBackgroundColor: '#c97a2e'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: { display:true, text:'المضلع التكراري', font:{size:12} },
+            legend: { display:false }
+        },
+        scales: {
+            x: { title:{ display:true, text:'مراكز الفئات' } },
+            y: { title:{ display:true, text:'التكرار' }, beginAtZero:true }
+        }
+    }
+});
+
+// ── المنحنى التراكمي
+const cumPcts = [];
+let cp = 0;
+gfreqs.forEach(f=>{ cp += f/gTotal*100; cumPcts.push(+cp.toFixed(1)); });
+new Chart(document.getElementById('ogiveEx2'), {
+    type: 'line',
+    data: {
+        labels: ['50','60','70','80','90','100'],
+        datasets: [{
+            label: 'التكرار النسبي التراكمي %',
+            data: cumPcts,
+            borderColor: '#a7582a',
+            backgroundColor: 'rgba(167,88,42,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 6,
+            pointBackgroundColor: '#a7582a'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: { display:true, text:'المنحنى التراكمي النسبي (Ogive)', font:{size:12} },
+            legend: { display:false }
+        },
+        scales: {
+            x: { title:{ display:true, text:'الحد الأعلى للفئة' } },
+            y: { title:{ display:true, text:'التكرار النسبي التراكمي %' }, beginAtZero:true, max:100 }
+        }
+    }
+});
+
+// ══════════════════════════════════════════════════
+// السؤال الثالث
+// ══════════════════════════════════════════════════
+const products  = ['قمح','شعير','ذرة','أرز','حمص'];
+const months    = ['يناير','فبراير','مارس','أبريل'];
+const salesData = [
+    [23, 18, 25, 28],
+    [19, 16, 23, 22],
+    [24, 22, 22, 21],
+    [24, 23, 21, 25],
+    [21, 28, 22, 16]
+];
+
+const q3body = document.getElementById('q3body');
+salesData.forEach((row, ri)=>{
+    const rowSum = row.reduce((a,b)=>a+b,0);
+    const tr = q3body.insertRow();
+    let cells = `<td><strong>${products[ri]}</strong></td>`;
+    row.forEach(v=>{ cells += `<td>${v}</td>`; });
+    cells += `<td style="background:#d6f0c6; font-weight:bold; color:#1a5a1a;">${rowSum}</td>`;
+    cells += `<td style="font-family:monospace; font-size:10px; color:#777;">=SUM(B${ri+2}:E${ri+2})</td>`;
+    tr.innerHTML = cells;
+});
+
+// صفوف الإحصاء
+const q3foot = document.getElementById('q3foot');
+const stats3 = [
+    { label:'المجموع',          cls:'row-sum',  fn: arr=>arr.reduce((a,b)=>a+b,0),            fmt: v=>v,               excel:'=SUM(Bx:Bx)' },
+    { label:'المتوسط الحسابي',  cls:'row-avg',  fn: arr=>(arr.reduce((a,b)=>a+b,0)/5),       fmt: v=>v.toFixed(2),    excel:'=AVERAGE(Bx:Bx)' },
+    { label:'أعلى قيمة',        cls:'row-max',  fn: arr=>Math.max(...arr),                    fmt: v=>v,               excel:'=MAX(Bx:Bx)' },
+    { label:'أدنى قيمة',        cls:'row-min',  fn: arr=>Math.min(...arr),                    fmt: v=>v,               excel:'=MIN(Bx:Bx)' },
+];
+stats3.forEach(s=>{
+    const tr = q3foot.insertRow();
+    tr.className = s.cls;
+    let cells = `<td><strong>${s.label}</strong></td>`;
+    let allVals = [];
+    months.forEach((m,mi)=>{
+        const col = salesData.map(row=>row[mi]);
+        const val = s.fn(col);
+        allVals.push(val);
+        cells += `<td>${s.fmt(val)}</td>`;
+    });
+    // مجموع كل صف في الإحصاء
+    const rowStatSum = s.fn(allVals.map((_,mi)=>salesData.map(r=>r[mi]).reduce((a,b)=>a+b,0)));
+    cells += `<td style="font-weight:bold;">${s.fmt ? (typeof rowStatSum==='number'&&!Number.isInteger(rowStatSum)?rowStatSum.toFixed(2):rowStatSum) : rowStatSum}</td>`;
+    cells += `<td style="font-family:monospace; font-size:10px; color:#777;">${s.excel}</td>`;
+    tr.innerHTML = cells;
+});
+
+// مخطط المبيعات
+new Chart(document.getElementById('barEx3'), {
+    type: 'bar',
+    data: {
+        labels: products,
+        datasets: months.map((m,mi)=>({
+            label: m,
+            data: salesData.map(row=>row[mi]),
+            backgroundColor: COLORS[mi]
+        }))
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: { display:true, text:'مبيعات الشركة الزراعية بالطن', font:{size:13} },
+            legend: { position:'top' }
+        },
+        scales: {
+            x: { title:{ display:true, text:'نوع المحصول' } },
+            y: { title:{ display:true, text:'الكمية (طن)' }, beginAtZero:true }
+        }
+    }
+});
+
+// ══════════════════════════════════════════════════
+// السؤال الرابع
+// ══════════════════════════════════════════════════
+const salaries = [4690, 16900, 11250, 15450, 4750, 8500, 10000, 12000,
+                  10000, 8420, 7654, 9000, 14075, 6780, 12200, 7600];
+document.getElementById('salaryDisplay').innerHTML =
+    salaries.map(s=>s.toLocaleString()).join(' ، ');
+
+// جدول الرواتب
+const salBody = document.getElementById('salaryTable');
+const half = salaries.length/2;
+for(let i=0; i<half; i++){
+    const tr = salBody.insertRow();
+    tr.innerHTML = `
+        <td>${i+1}</td>
+        <td><strong>${salaries[i].toLocaleString()}</strong></td>
+        <td>${i+half+1}</td>
+        <td><strong>${salaries[i+half].toLocaleString()}</strong></td>
+    `;
+}
+
+// حسابات
+const n       = salaries.length;
+const meanS   = salaries.reduce((a,b)=>a+b,0)/n;
+const varS    = salaries.map(x=>(x-meanS)**2).reduce((a,b)=>a+b,0)/(n-1);
+const stdevS  = Math.sqrt(varS);
+const sorted  = [...salaries].sort((a,b)=>a-b);
+const medS    = (sorted[n/2-1]+sorted[n/2])/2;
+const freqM   = new Map(); salaries.forEach(v=>freqM.set(v,(freqM.get(v)||0)+1));
+const maxFrq  = Math.max(...freqM.values());
+const modeS   = [...freqM.entries()].filter(([,v])=>v===maxFrq).map(([k])=>k.toLocaleString()).join(' , ');
+const sk      = (n/((n-1)*(n-2))) * salaries.map(x=>((x-meanS)/stdevS)**3).reduce((a,b)=>a+b,0);
+const cv      = (stdevS/meanS)*100;
+const rangeS  = Math.max(...salaries) - Math.min(...salaries);
+
+const statsRows = [
+    ['الوسط الحسابي (AVERAGE)',    meanS.toFixed(2),  '=AVERAGE(B2:B17)',   'الوسيط (MEDIAN)',            medS.toFixed(2),  '=MEDIAN(B2:B17)'],
+    ['الانحراف المعياري (STDEV)',   stdevS.toFixed(2), '=STDEV(B2:B17)',     'المنوال (MODE)',               modeS,            '=MODE(B2:B17)'],
+    ['التباين (VAR)',               varS.toFixed(2),   '=VAR(B2:B17)',       'المدى (MAX-MIN)',             rangeS,           '=MAX(B2:B17)-MIN(B2:B17)'],
+    ['معامل الالتواء (SKEW)',       sk.toFixed(4),     '=SKEW(B2:B17)',      'معامل الاختلاف (CV%)',       cv.toFixed(2)+'%','=STDEV/AVERAGE*100'],
+    ['أعلى قيمة (MAX)',            Math.max(...salaries).toLocaleString(), '=MAX(B2:B17)', 'أدنى قيمة (MIN)', Math.min(...salaries).toLocaleString(), '=MIN(B2:B17)'],
+    ['عدد القيم (COUNT)',           n,                 '=COUNT(B2:B17)',     'المجموع (SUM)',                salaries.reduce((a,b)=>a+b,0).toLocaleString(), '=SUM(B2:B17)'],
+];
+const statsBody = document.getElementById('statsBody');
+statsRows.forEach((r, ri)=>{
+    const tr = statsBody.insertRow();
+    const bg = ri%2===0 ? '#f9fdf6' : '#fff';
+    tr.style.background = bg;
+    tr.innerHTML = `
+        <td style="font-weight:bold; text-align:right;">${r[0]}</td>
+        <td style="font-weight:bold; color:#1e4a2f; font-size:1.05rem;">${r[1]}</td>
+        <td style="font-family:monospace; font-size:10px; color:#888;">${r[2]}</td>
+        <td style="font-weight:bold; text-align:right;">${r[3]}</td>
+        <td style="font-weight:bold; color:#1e4a2f; font-size:1.05rem;">${r[4]}</td>
+        <td style="font-family:monospace; font-size:10px; color:#888;">${r[5]}</td>
+    `;
+});
+
+// ══════════════════════════════════════════════════
+// السؤال الخامس
+// ══════════════════════════════════════════════════
+const heights = [163, 158, 175, 180, 170, 180, 182, 160];
+const weights  = [61,  67,  68,  78,  70,  85,  79,  65];
+
+const avgH = heights.reduce((a,b)=>a+b,0)/8;
+const avgW = weights.reduce((a,b)=>a+b,0)/8;
+const sdH  = Math.sqrt(heights.map(x=>(x-avgH)**2).reduce((a,b)=>a+b,0)/7);
+const sdW  = Math.sqrt(weights.map(x=>(x-avgW)**2).reduce((a,b)=>a+b,0)/7);
+
+const q5body = document.getElementById('q5body');
+[['الطول X (سم)', heights, avgH, sdH],['الوزن Y (كجم)', weights, avgW, sdW]].forEach(([lbl, data, avg, sd])=>{
+    const tr = q5body.insertRow();
+    let cells = `<td><strong>${lbl}</strong></td>`;
+    data.forEach(v=>{ cells += `<td>${v}</td>`; });
+    cells += `<td style="background:#d6f0c6; font-weight:bold;">${avg.toFixed(2)}</td>`;
+    cells += `<td style="background:#dde8ff; font-weight:bold;">${sd.toFixed(2)}</td>`;
+    tr.innerHTML = cells;
+});
+
+// معامل الارتباط
+function pearson(x, y){
+    const n = x.length;
+    const sx = x.reduce((a,b)=>a+b,0);
+    const sy = y.reduce((a,b)=>a+b,0);
+    const sxy = x.reduce((acc,xi,i)=>acc+xi*y[i],0);
+    const sx2 = x.reduce((acc,xi)=>acc+xi*xi,0);
+    const sy2 = y.reduce((acc,yi)=>acc+yi*yi,0);
+    const num = n*sxy - sx*sy;
+    const den = Math.sqrt((n*sx2-sx*sx)*(n*sy2-sy*sy));
+    return den===0 ? 0 : num/den;
+}
+const r = pearson(heights, weights);
+document.getElementById('pearsonResult').textContent = r.toFixed(4);
+const rDesc = Math.abs(r)>=0.9 ? 'ارتباط طردي قوي جداً ✅' :
+              Math.abs(r)>=0.7 ? 'ارتباط طردي قوي' :
+              Math.abs(r)>=0.5 ? 'ارتباط طردي متوسط' : 'ارتباط طردي ضعيف';
+document.getElementById('pearsonInterpret').innerHTML =
+    `<strong>${rDesc}</strong><br>r = ${r.toFixed(4)} → r² = ${(r*r).toFixed(4)}<br>
+    <span style="font-size:11px; color:#666;">كلما زاد طول الطالب، زاد وزنه (علاقة طردية)</span>`;
+document.getElementById('r2box').innerHTML =
+    `<strong>معامل التحديد r² = ${(r*r).toFixed(4)}</strong><br>
+     أي أن <strong>${(r*r*100).toFixed(1)}%</strong> من التباين في الوزن يُفسَّر بالطول`;
+
+new Chart(document.getElementById('scatterEx5'), {
+    type: 'scatter',
+    data: {
+        datasets: [{
+            label: 'الطلاب',
+            data: heights.map((h,i)=>({x:h, y:weights[i]})),
+            backgroundColor: '#e07a2c',
+            pointRadius: 9,
+            pointHoverRadius: 12,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: { display:true, text:'مخطط الانتشار – Scatter Diagram', font:{size:13} },
+            tooltip: {
+                callbacks: {
+                    label: ctx =>`طالب ${ctx.dataIndex+1}: الطول=${ctx.parsed.x} سم، الوزن=${ctx.parsed.y} كجم`
+                }
+            }
+        },
+        scales: {
+            x: {
+                title:{ display:true, text:'طول الطالب X (سم)' },
+                min: 150, max: 190
+            },
+            y: {
+                title:{ display:true, text:'وزن الطالب Y (كجم)' },
+                min: 55, max: 95
+            }
+        }
+    }
+});
+
+// ══════════════════════════════════════════════════
+// تبديل الأوراق
+// ══════════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+        const target = btn.getAttribute('data-sheet');
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.sheet-page').forEach(p=>p.classList.remove('active'));
+        document.getElementById(target).classList.add('active');
+        // أعِد رسم المخططات عند التبديل لضمان ظهورها
+        window.dispatchEvent(new Event('resize'));
+    });
+});
+
+})();
+</script>
+</body>
+</html>

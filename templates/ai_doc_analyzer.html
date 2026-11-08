@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحلل والمستكشف الذكي للملفات والصور (AI Document & Image Q&A)</title>
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #1e3c78 0%, #2a5298 100%);
+            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            --ai-glow: 0 0 25px rgba(59, 130, 246, 0.25);
+            --bg-body: #f8fafc;
+            --surface-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #0f172a;
+        }
+        body {
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-custom {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .glass-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            transition: all 0.25s ease;
+        }
+        .dropzone-box {
+            border: 2px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.03);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .dropzone-box:hover, .dropzone-box.dragover {
+            border-color: #2563eb;
+            background: rgba(59, 130, 246, 0.08);
+            transform: translateY(-2px);
+        }
+        .file-item-card {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            border: 1px solid #e2e8f0;
+        }
+        .file-item-card:hover {
+            background: #e2e8f0;
+        }
+        .chat-container {
+            height: 480px;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+        .chat-bubble {
+            max-width: 88%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            position: relative;
+            word-break: break-word;
+        }
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            align-self: flex-start;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        }
+        .chat-bubble-ai {
+            background: #ffffff;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+            align-self: flex-end;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        .quick-prompt-btn {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .quick-prompt-btn:hover {
+            background: #e0f2fe;
+            border-color: #38bdf8;
+            color: #0369a1;
+        }
+        .key-slot-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+        /* Markdown table styling in chat */
+        .chat-bubble-ai table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.85rem;
+        }
+        .chat-bubble-ai th, .chat-bubble-ai td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: right;
+        }
+        .chat-bubble-ai th {
+            background: #f1f5f9;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-3">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
+                <span class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-circle" style="width: 42px; height: 42px;">
+                    <i class="fas fa-brain text-warning fa-lg"></i>
+                </span>
+                <div>
+                    <div class="fs-5 mb-0 text-white">المستكشف والمحلل الذكي للملفات والصور</div>
+                    <small class="text-white-50" style="font-size: 0.75rem;">AI Document & Image Q&A · رفع سريع · 5 مفاتيح متتالية</small>
+                </div>
+            </a>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="btn btn-warning btn-sm fw-bold px-3 py-2 shadow-sm rounded-pill d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#keysModal" onclick="loadKeysStatus()">
+                    <i class="fas fa-key"></i>
+                    <span>إدارة مفاتيح الذكاء (5 مفاتيح)</span>
+                    <span id="activeKeysBadge" class="badge bg-dark rounded-pill">5 جاهزة</span>
+                </button>
+                <a href="/" class="btn btn-outline-light btn-sm rounded-pill px-3 py-2">
+                    <i class="fas fa-arrow-right me-1"></i> العودة للرئيسية
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-lg-4 my-4 flex-grow-1">
+        <div class="row g-4">
+
+            <!-- القائمة الجانبية: رفع وإدارة الملفات -->
+            <div class="col-12 col-lg-5">
+                <div class="glass-card p-4 h-100 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-3">
+                                <i class="fas fa-cloud-arrow-up fa-lg"></i>
+                            </span>
+                            <h5 class="fw-bold mb-0">رفع الملفات والمستندات</h5>
+                        </div>
+                        <span class="badge bg-success rounded-pill px-3 py-1" style="font-size: 0.72rem;">
+                            <i class="fas fa-bolt me-1"></i> رفع فائق السرعة
+                        </span>
+                    </div>
+
+                    <!-- Dropzone Box -->
+                    <div class="dropzone-box mb-3" id="dropzoneBox" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" multiple style="display: none;" 
+                               accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.txt,.md,.json,.html,.xml">
+                        <div class="mb-2">
+                            <i class="fas fa-file-arrow-up fa-3x text-primary"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1">اسحب وأفلت الملفات هنا، أو اضغط للاختيار</h6>
+                        <p class="text-muted small mb-2">يدعم المستندات الضخمة والصور حتى 100 ميغابايت</p>
+                        <div class="d-flex justify-content-center gap-1 flex-wrap">
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">PDF</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">صور (PNG, JPG, WEBP)</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">Word (DOCX)</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">Excel (XLSX, CSV)</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">PowerPoint (PPTX)</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-dark">ملفات نصية</span>
+                        </div>
+                    </div>
+
+                    <!-- Upload Progress Bar -->
+                    <div id="uploadProgressContainer" class="mb-3" style="display: none;">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span id="uploadProgressText">جارٍ الرفع والمعالجة الفائقة...</span>
+                            <span id="uploadProgressPercent">0%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Uploaded Files Section -->
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold small text-muted">
+                            الملفات المرفوعة في هذه الجلسة (<span id="filesCount">0</span>)
+                        </span>
+                        <button type="button" class="btn btn-link text-danger btn-sm text-decoration-none p-0" id="btnClearFiles" onclick="clearAllFiles()" style="display: none;">
+                            <i class="fas fa-trash-can me-1"></i> مسح الكل
+                        </button>
+                    </div>
+
+                    <!-- Files List Container -->
+                    <div id="filesListContainer" class="flex-grow-1 overflow-auto" style="max-height: 380px;">
+                        <div class="text-center py-5 text-muted" id="noFilesMsg">
+                            <i class="fas fa-folder-open fa-3x mb-2 text-secondary opacity-50"></i>
+                            <p class="small mb-0">لم يتم رفع أي ملفات حتى الآن.<br>قم برفع صورة أو كتاب أو عقد أو جدول بيانات لبدء السؤال والتحليل.</p>
+                        </div>
+                    </div>
+
+                    <!-- Fast Rotation Footer Notice -->
+                    <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between small text-muted">
+                        <span><i class="fas fa-shield-alt text-success me-1"></i> حماية وتدوير متتالي على 5 مفاتيح</span>
+                        <span class="badge bg-primary rounded-pill">Gemini Flash (Latest)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الجانب الرئيسي: واجهة المحادثة وطرح الأسئلة -->
+            <div class="col-12 col-lg-7">
+                <div class="glass-card p-4 h-100 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-info bg-opacity-10 text-info p-2 rounded-3">
+                                <i class="fas fa-comments fa-lg"></i>
+                            </span>
+                            <h5 class="fw-bold mb-0">طرح الأسئلة واستنطاق المحتوى بدقة</h5>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="activeKeyIndicator" class="badge bg-dark text-warning border border-secondary px-2 py-1" style="font-size: 0.72rem;">
+                                <i class="fas fa-circle text-success me-1"></i> المفاتيح: جاهزة
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Prompt Suggestions -->
+                    <div class="mb-3 d-flex gap-2 flex-wrap">
+                        <span class="small fw-bold text-muted align-self-center">اقتراحات سريعة:</span>
+                        <button type="button" class="quick-prompt-btn" onclick="setQuickPrompt('لخّص لي هذا المستند بالكامل في نقاط واضحة واذكر أهم ما ورد فيه.')">
+                            📄 تلخيص المستند بالكامل
+                        </button>
+                        <button type="button" class="quick-prompt-btn" onclick="setQuickPrompt('استخرج جميع الجداول، الأرقام، النسب المئوية، والتواريخ الهامة.')">
+                            📊 استخراج الجداول والأرقام
+                        </button>
+                        <button type="button" class="quick-prompt-btn" onclick="setQuickPrompt('ما هي أهم القرارات والتوصيات الواردة في الملف؟')">
+                            💡 أهم التوصيات والقرارات
+                        </button>
+                        <button type="button" class="quick-prompt-btn" onclick="setQuickPrompt('قم بعمل تدقيق شامل واستخرج أي أخطاء أو ملاحظات هامة.')">
+                            🔍 تدقيق واستخراج ملاحظات
+                        </button>
+                    </div>
+
+                    <!-- Chat Container -->
+                    <div class="chat-container border rounded-3 mb-3 bg-light" id="chatContainer">
+                        <!-- Welcome message -->
+                        <div class="chat-bubble chat-bubble-ai">
+                            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
+                                <i class="fas fa-robot text-primary"></i>
+                                <strong class="small">المساعد الذكي لقراءة المستندات</strong>
+                                <span class="badge bg-primary bg-opacity-10 text-primary ms-auto" style="font-size:0.65rem;">Gemini AI</span>
+                            </div>
+                            <p class="mb-0">
+                                مرحباً بك! أنا جاهز لقراءة وتحليل أي ملفات أو صور ترفعها بدقة متناهية.
+                                <br>ارفع أي ملف (PDF، صور، وورد، إكسل، باوربوينت) واطرح أي سؤال وسأجيبك مباشرة من واقع المحتوى المرفوع باستخدام 5 مفاتيح ذكاء تعمل بالتتابع دون توقف!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Input Bar -->
+                    <div class="mt-auto">
+                        <form id="askForm" onsubmit="handleAskSubmit(event)" class="d-flex gap-2 align-items-center">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg border-2" id="questionInput" 
+                                       placeholder="اكتب سؤالك أو استفسارك هنا حول محتوى الملفات المرفوعة..." 
+                                       autocomplete="off" required>
+                                <button type="submit" class="btn btn-primary px-4 fw-bold d-flex align-items-center gap-2" id="btnSubmitAsk">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span>إرسال</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- نافذة إدارة مفاتيح الذكاء الخمسة الدائمة -->
+    <div class="modal fade" id="keysModal" tabindex="-1" aria-labelledby="keysModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-dark text-white border-0 py-3" style="border-radius: 16px 16px 0 0;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="d-inline-flex align-items-center justify-content-center bg-warning text-dark rounded-circle" style="width: 36px; height: 36px;">
+                            <i class="fas fa-key"></i>
+                        </span>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="keysModalLabel">إدارة مفاتيح Gemini الدائمة (5 مفاتيح متتالية)</h5>
+                            <small class="text-white-50">تعمل بالتتابع المستمر دون توقف، مع انتقال فوري لأي مفتاح ينتهي رصيده</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    
+                    <div class="alert alert-info d-flex align-items-center gap-2 mb-3 py-2">
+                        <i class="fas fa-info-circle fa-lg"></i>
+                        <div class="small">
+                            <strong>آلية العمل:</strong> يتم استدعاء المفاتيح بالتناوب (Round-Robin). إذا واجه أي مفتاح حداً مؤقتاً (429 Rate Limit)، ينتقل النظام تلقائياً وبأجزاء من الثانية إلى المفتاح التالي دون إيقاف طلبك.
+                        </div>
+                    </div>
+
+                    <div id="keysSlotsContainer">
+                        <!-- يتم ملء فتحات المفاتيح الخمسة عبر JavaScript -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="small text-muted mt-2">جارٍ جلب إحصائيات المفاتيح...</div>
+                        </div>
+                    </div>
+
+                    <!-- إشعار حالة الاختبار -->
+                    <div id="testKeysResult" class="mt-3" style="display: none;"></div>
+
+                </div>
+                <div class="modal-footer border-top bg-white d-flex justify-content-between py-3">
+                    <button type="button" class="btn btn-outline-info rounded-pill px-3" onclick="testKeysConnectivity()">
+                        <i class="fas fa-vial me-1"></i> اختبار فوري للمفاتيح الآن
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="saveKeysConfiguration()">
+                            <i class="fas fa-save me-1"></i> حفظ دائم للمفاتيح
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const SESSION_ID = 'ai_docs_' + Math.random().toString(36).substring(2, 10);
+        let uploadedFiles = [];
+
+        // 1. إدارة السحب والإفلات والرفع
+        const dropzone = document.getElementById('dropzoneBox');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover'].forEach(evtName => {
+            dropzone.addEventListener(evtName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evtName => {
+            dropzone.addEventListener(evtName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                handleFileUpload(files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileUpload(e.target.files);
+            }
+        });
+
+        async function handleFileUpload(files) {
+            const formData = new FormData();
+            formData.append('session_id', SESSION_ID);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            const pContainer = document.getElementById('uploadProgressContainer');
+            const pBar = document.getElementById('uploadProgressBar');
+            const pText = document.getElementById('uploadProgressText');
+            const pPercent = document.getElementById('uploadProgressPercent');
+
+            pContainer.style.display = 'block';
+            pBar.style.width = '35%';
+            pPercent.innerText = '35%';
+            pText.innerText = `جارٍ معالجة ${files.length} ملف...`;
+
+            try {
+                const response = await fetch('/api/ai_docs/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                pBar.style.width = '100%';
+                pPercent.innerText = '100%';
+
+                const result = await response.json();
+                if (result.success) {
+                    setTimeout(() => { pContainer.style.display = 'none'; }, 800);
+                    loadSessionData();
+                    appendAiMessage(`✅ تم بنجاح استيعاب وقراءة **${result.files.length} ملف جديد**! يمكنك الآن سؤالي أي شيء حول محتواها.`);
+                } else {
+                    alert('خطأ أثناء رفع الملفات: ' + (result.error || 'غير معروف'));
+                    pContainer.style.display = 'none';
+                }
+            } catch (err) {
+                alert('فشل الاتصال بالخادم: ' + err.message);
+                pContainer.style.display = 'none';
+            }
+        }
+
+        async function loadSessionData() {
+            try {
+                const res = await fetch(`/api/ai_docs/session?session_id=${SESSION_ID}`);
+                const data = await res.json();
+                if (data.success) {
+                    uploadedFiles = data.documents || [];
+                    renderFilesList();
+                }
+            } catch (e) {
+                console.error("Error loading session:", e);
+            }
+        }
+
+        function renderFilesList() {
+            const container = document.getElementById('filesListContainer');
+            const countEl = document.getElementById('filesCount');
+            const clearBtn = document.getElementById('btnClearFiles');
+
+            countEl.innerText = uploadedFiles.length;
+            if (uploadedFiles.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5 text-muted" id="noFilesMsg">
+                        <i class="fas fa-folder-open fa-3x mb-2 text-secondary opacity-50"></i>
+                        <p class="small mb-0">لم يتم رفع أي ملفات حتى الآن.<br>قم برفع صورة أو كتاب أو عقد أو جدول بيانات لبدء السؤال والتحليل.</p>
+                    </div>`;
+                clearBtn.style.display = 'none';
+                return;
+            }
+
+            clearBtn.style.display = 'inline-block';
+            let html = '';
+            uploadedFiles.forEach(f => {
+                let iconClass = 'fa-file-alt text-primary';
+                if (f.is_image) iconClass = 'fa-file-image text-success';
+                else if (f.filename.endsWith('.pdf')) iconClass = 'fa-file-pdf text-danger';
+                else if (f.filename.endsWith('.xlsx') || f.filename.endsWith('.csv')) iconClass = 'fa-file-excel text-success';
+                else if (f.filename.endsWith('.pptx')) iconClass = 'fa-file-powerpoint text-warning';
+                else if (f.filename.endsWith('.docx')) iconClass = 'fa-file-word text-info';
+
+                html += `
+                    <div class="file-item-card">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden">
+                            <i class="fas ${iconClass} fa-lg"></i>
+                            <div class="overflow-hidden">
+                                <strong class="d-block text-truncate small" style="max-width: 210px;" title="${f.filename}">${f.filename}</strong>
+                                <span class="badge bg-white text-muted border" style="font-size:0.65rem;">${f.size_human}</span>
+                                ${f.word_count ? `<span class="badge bg-primary bg-opacity-10 text-primary border" style="font-size:0.65rem;">${f.word_count} كلمة</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="badge bg-success rounded-pill" style="font-size:0.65rem;"><i class="fas fa-check"></i> جاهز</span>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function clearAllFiles() {
+            if (!confirm('هل تريد مسح جميع الملفات المرفوعة وبدء جلسة جديدة؟')) return;
+            try {
+                await fetch('/api/ai_docs/clear', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: SESSION_ID})
+                });
+                uploadedFiles = [];
+                renderFilesList();
+                appendAiMessage('🧹 تم مسح الجلسة بنجاح. يمكنك الآن رفع مستندات جديدة.');
+            } catch (e) {
+                alert('حدث خطأ: ' + e.message);
+            }
+        }
+
+        // 2. إدارة الأسئلة والأجوبة
+        function setQuickPrompt(promptText) {
+            document.getElementById('questionInput').value = promptText;
+            document.getElementById('questionInput').focus();
+        }
+
+        async function handleAskSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            if (uploadedFiles.length === 0) {
+                alert('يرجى رفع ملف واحد على الأقل قبل طرح السؤال!');
+                return;
+            }
+
+            // عرض سؤال المستخدم
+            appendUserMessage(question);
+            input.value = '';
+
+            const btnSubmit = document.getElementById('btnSubmitAsk');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري التحليل...';
+
+            // فقاعة تحميل ذكية
+            const loadingBubbleId = 'loadingBubble_' + Date.now();
+            appendLoadingMessage(loadingBubbleId);
+
+            try {
+                const response = await fetch('/api/ai_docs/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: SESSION_ID,
+                        question: question
+                    })
+                });
+                const res = await response.json();
+                removeLoadingMessage(loadingBubbleId);
+
+                if (res.success) {
+                    appendAiMessage(res.text, {
+                        keyHint: res.key_hint,
+                        keyName: res.key_name,
+                        model: res.model,
+                        elapsed: res.elapsed_seconds
+                    });
+                } else {
+                    appendAiMessage(`⚠️ **تنبيه:** ${res.error || 'تعذر الحصول على إجابة. تحقق من حالة المفاتيح.'}`);
+                }
+            } catch (err) {
+                removeLoadingMessage(loadingBubbleId);
+                appendAiMessage(`❌ **خطأ في الاتصال:** ${err.message}`);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fas fa-paper-plane"></i><span>إرسال</span>';
+            }
+        }
+
+        function appendUserMessage(text) {
+            const chat = document.getElementById('chatContainer');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble chat-bubble-user';
+            bubble.innerHTML = `<strong>أنت:</strong><div class="mt-1">${escapeHtml(text)}</div>`;
+            chat.appendChild(bubble);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function appendAiMessage(rawText, meta = null) {
+            const chat = document.getElementById('chatContainer');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble chat-bubble-ai';
+
+            let metaHtml = '';
+            if (meta) {
+                metaHtml = `
+                    <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom text-muted" style="font-size:0.72rem;">
+                        <span><i class="fas fa-key text-warning me-1"></i>المفتاح: <strong>${escapeHtml(meta.keyName || '')} [${escapeHtml(meta.keyHint || '')}]</strong></span>
+                        <span><i class="fas fa-microchip text-primary me-1"></i>${escapeHtml(meta.model || '')} (${meta.elapsed || 0}ث)</span>
+                    </div>`;
+            }
+
+            const formattedText = formatMarkdown(rawText);
+            bubble.innerHTML = `
+                ${metaHtml}
+                <div class="ai-content">${formattedText}</div>
+                <div class="mt-2 pt-2 border-top d-flex justify-content-end">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.7rem;" onclick="copyAiAnswer(this)">
+                        <i class="fas fa-copy me-1"></i> نسخ الإجابة
+                    </button>
+                </div>`;
+            chat.appendChild(bubble);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function appendLoadingMessage(id) {
+            const chat = document.getElementById('chatContainer');
+            const bubble = document.createElement('div');
+            bubble.id = id;
+            bubble.className = 'chat-bubble chat-bubble-ai';
+            bubble.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
+                    <span class="small text-muted">جارٍ قراءة الملفات وتحليل الإجابة بدقة فائقة عبر مفاتيح الذكاء...</span>
+                </div>`;
+            chat.appendChild(bubble);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function removeLoadingMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function copyAiAnswer(btn) {
+            const content = btn.closest('.chat-bubble-ai').querySelector('.ai-content').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-success me-1"></i> تم النسخ!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag));
+        }
+
+        // تنسيق ماركداون بسيط للخطوط والجداول والقوائم
+        function formatMarkdown(text) {
+            if (!text) return '';
+            let html = escapeHtml(text);
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Lines
+            html = html.replace(/\n/g, '<br>');
+            return html;
+        }
+
+        // 3. إدارة واختبار مفاتيح الذكاء الاصطناعي
+        async function loadKeysStatus() {
+            const container = document.getElementById('keysSlotsContainer');
+            try {
+                const res = await fetch('/api/ai_docs/keys');
+                const data = await res.json();
+                if (data.success) {
+                    renderKeysSlots(data.keys);
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="alert alert-danger">تعذر جلب حالة المفاتيح: ${e.message}</div>`;
+            }
+        }
+
+        function renderKeysSlots(keys) {
+            const container = document.getElementById('keysSlotsContainer');
+            let html = '';
+            keys.forEach((k, idx) => {
+                let badgeClass = 'bg-secondary';
+                let badgeText = 'قيد الإعداد';
+                if (k.status === 'active') {
+                    badgeClass = 'bg-success';
+                    badgeText = '🟢 نشط وجاهز';
+                } else if (k.status === 'rate_limited') {
+                    badgeClass = 'bg-warning text-dark';
+                    badgeText = `⏳ راحة (${k.cooldown_remaining}ث)`;
+                }
+
+                html += `
+                    <div class="key-slot-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                <strong class="small d-block">${k.name}</strong>
+                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">المعرف: ${k.hint || k.masked_key}</span>
+                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">المشروع: ${k.project_id}</span>
+                            </div>
+                            <span class="badge ${badgeClass} rounded-pill">${badgeText}</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white"><i class="fas fa-key text-muted"></i></span>
+                            <input type="password" class="form-control key-val-input" data-key-id="${k.id}" 
+                                   placeholder="${k.has_key ? 'المفتاح مسجل ومحمي (أدخل جديد للتعديل)' : 'ألصق المفتاح الكامل AIzaSy... هنا'}" 
+                                   value="">
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mt-1" style="font-size: 0.7rem;">
+                            <span>الطلبات الناجحة: ${k.success || 0}</span>
+                            <span>تجاوز الحصة (Rate Limits): ${k.rate_limits || 0}</span>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function saveKeysConfiguration() {
+            const inputs = document.querySelectorAll('.key-val-input');
+            const keysToUpdate = [];
+            inputs.forEach(inp => {
+                const kid = inp.dataset.keyId;
+                const val = inp.value.trim();
+                if (val) {
+                    keysToUpdate.push({ id: kid, key: val });
+                }
+            });
+
+            if (keysToUpdate.length === 0) {
+                alert('لم يتم إدخال مفاتيح جديدة لحفظها.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/ai_docs/keys', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ keys: keysToUpdate })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ تم حفظ وتثبيت المفاتيح بشكل دائم في النظام بنجاح!');
+                    loadKeysStatus();
+                } else {
+                    alert('خطأ أثناء الحفظ: ' + data.error);
+                }
+            } catch (e) {
+                alert('فشل الاتصال: ' + e.message);
+            }
+        }
+
+        async function testKeysConnectivity() {
+            const resultBox = document.getElementById('testKeysResult');
+            resultBox.style.display = 'block';
+            resultBox.className = 'alert alert-info py-2 small';
+            resultBox.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جارٍ اختبار اتصال المفاتيح بخوادم Gemini...';
+
+            try {
+                const res = await fetch('/api/ai_docs/keys/test', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resultBox.className = 'alert alert-success py-2 small';
+                    resultBox.innerHTML = `✅ **الاتصال ناجح!** تمت الاستجابة عبر المفتاح: <strong>[${data.key_name} - ${data.key_hint}]</strong> بنموذج <strong>${data.model}</strong> خلال ${data.elapsed_seconds} ثانية.`;
+                    loadKeysStatus();
+                } else {
+                    resultBox.className = 'alert alert-danger py-2 small';
+                    resultBox.innerHTML = `❌ **فشل الاختبار:** ${data.error}`;
+                }
+            } catch (e) {
+                resultBox.className = 'alert alert-danger py-2 small';
+                resultBox.innerHTML = `❌ **خطأ:** ${e.message}`;
+            }
+        }
+
+        // تحميل أولي للبيانات عند بدء الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSessionData();
+        });
+    </script>
+</body>
+</html>

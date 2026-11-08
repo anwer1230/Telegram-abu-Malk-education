@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استخراج روابط تيليجرام — مركز سرعة انجاز</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body { background: #0d0d1a; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .card { background: #1a1a2e; border: 1px solid #2d2d4e; border-radius: 12px; }
+        .card-header { background: linear-gradient(135deg,#1e1e3f,#2d2d5e); border-bottom: 1px solid #3d3d6e; border-radius: 12px 12px 0 0 !important; }
+        .form-control, .form-select { background: #0d0d1a; border: 1px solid #3d3d6e; color: #e0e0e0; }
+        .form-control:focus, .form-select:focus { background: #0d0d1a; color: #e0e0e0; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,.2); }
+        .result-item { border-bottom: 1px solid #2d2d4e; padding: 10px 6px; transition: background .15s; }
+        .result-item:hover { background: rgba(255,193,7,.05); }
+        .category-badge { background: #ffc107; color: #000; border-radius: 20px; padding: 2px 12px; font-size: 0.78rem; font-weight: 600; }
+        .link-text { word-break: break-all; font-size: 0.85rem; color: #7dd3fc; }
+        #resultsContainer { max-height: 520px; overflow-y: auto; background: #080814; border-radius: 0 0 10px 10px; }
+        .stat-box { background: #1a1a2e; border-radius: 10px; padding: 14px; text-align: center; border: 1px solid #2d2d4e; }
+        .stat-number { font-size: 2rem; font-weight: 700; color: #ffc107; }
+        .stat-label { font-size: 0.8rem; color: #aaa; }
+        .page-header { background: linear-gradient(135deg,#1a1a3e 0%,#2d1b4e 100%); border-bottom: 2px solid #ffc107; padding: 18px 24px; margin-bottom: 24px; border-radius: 0 0 16px 16px; }
+        .btn-back { background: rgba(255,193,7,.15); border: 1px solid #ffc107; color: #ffc107; }
+        .btn-back:hover { background: #ffc107; color: #000; }
+        .progress-bar-custom { height: 4px; background: linear-gradient(90deg,#ffc107,#ff8c00); border-radius: 2px; transition: width .3s; }
+        .progress-track { background: #2d2d4e; border-radius: 2px; height: 4px; overflow: hidden; display: none; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1a1a2e; } ::-webkit-scrollbar-thumb { background: #3d3d6e; border-radius: 3px; }
+        .chip { display:inline-flex; align-items:center; gap:4px; background:#1e3a5f; border-radius:20px; padding:3px 10px; font-size:.75rem; cursor:pointer; border:1px solid #2d5a8e; }
+        .chip:hover { background:#2d5a8e; }
+        #waitingMsg { padding: 40px 20px; }
+    </style>
+</head>
+<body>
+
+<!-- رأس الصفحة -->
+<div class="page-header d-flex align-items-center gap-3">
+    <a href="/" class="btn btn-back btn-sm"><i class="fas fa-arrow-right me-1"></i>العودة</a>
+    <div>
+        <h4 class="mb-0"><i class="fas fa-link me-2 text-warning"></i>استخراج وتصنيف روابط تيليجرام</h4>
+        <small class="text-muted">استخراج الروابط من النص وتصنيفها حسب المحتوى والدولة</small>
+    </div>
+</div>
+
+<div class="container-fluid px-4">
+
+    <!-- الإحصائيات -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-box"><div class="stat-number" id="statTotal">0</div><div class="stat-label">إجمالي الروابط</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-box"><div class="stat-number" id="statClassified">0</div><div class="stat-label">مصنّف</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-box"><div class="stat-number" id="statSelected">0</div><div class="stat-label">محدد</div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-box"><div class="stat-number" id="statProgress">—</div><div class="stat-label">الحالة</div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- العمود الأيمن: المدخلات -->
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="fas fa-edit me-2 text-warning"></i>النص المصدر
+                </div>
+                <div class="card-body d-flex flex-column gap-3">
+                    <textarea id="sourceText" class="form-control flex-grow-1" rows="10"
+                              placeholder="الصق النص الذي يحتوي على روابط تيليجرام هنا...&#10;&#10;مثال:&#10;https://t.me/group1&#10;https://t.me/+AbCdEfGhIj"></textarea>
+                    <div>
+                        <label class="form-label small text-muted">أو حمّل ملفاً نصياً</label>
+                        <input type="file" class="form-control form-control-sm" id="fileInput" accept=".txt,.csv">
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearAll()"><i class="fas fa-trash me-1"></i>مسح</button>
+                        <button class="btn btn-outline-info btn-sm" onclick="pasteFromClipboard()"><i class="fas fa-paste me-1"></i>لصق</button>
+                        <span class="ms-auto small text-muted mt-1" id="charCount">0 حرف</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- العمود الأيسر: الإعدادات -->
+        <div class="col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="fas fa-sliders-h me-2 text-warning"></i>إعدادات البحث
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">الدولة المستهدفة</label>
+                            <select id="countrySelect" class="form-select form-select-sm">
+                                <option value="SA">🇸🇦 السعودية</option>
+                                <option value="AE">🇦🇪 الإمارات</option>
+                                <option value="EG">🇪🇬 مصر</option>
+                                <option value="KW">🇰🇼 الكويت</option>
+                                <option value="QA">🇶🇦 قطر</option>
+                                <option value="OM">🇴🇲 عُمان</option>
+                                <option value="BH">🇧🇭 البحرين</option>
+                                <option value="JO">🇯🇴 الأردن</option>
+                                <option value="LB">🇱🇧 لبنان</option>
+                                <option value="IQ">🇮🇶 العراق</option>
+                                <option value="YE">🇾🇪 اليمن</option>
+                                <option value="SY">🇸🇾 سوريا</option>
+                                <option value="PS">🇵🇸 فلسطين</option>
+                                <option value="SD">🇸🇩 السودان</option>
+                                <option value="LY">🇱🇾 ليبيا</option>
+                                <option value="TN">🇹🇳 تونس</option>
+                                <option value="MA">🇲🇦 المغرب</option>
+                                <option value="DZ">🇩🇿 الجزائر</option>
+                                <option value="MR">🇲🇷 موريتانيا</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex flex-column gap-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="useAI" checked>
+                                <label class="form-check-label small" for="useAI">تصنيف بالذكاء الاصطناعي (دقة أعلى)</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="skipCountry">
+                                <label class="form-check-label small" for="skipCountry">عرض جميع الروابط (بدون تصفية الدولة)</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="progress-track" id="progressTrack">
+                                <div class="progress-bar-custom" id="progressBar" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-warning w-100 fw-bold" id="startBtn" onclick="startSearch()">
+                                <i class="fas fa-search me-2"></i>بدء البحث والتصنيف
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تصفية الفئات -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2 text-warning"></i>تصفية حسب الفئة
+                </div>
+                <div class="card-body d-flex flex-wrap gap-2" id="categoryFilters">
+                    <span class="chip active-chip" data-cat="all" onclick="filterCategory('all')">📋 الكل</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- منطقة النتائج -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fas fa-list me-2 text-warning"></i>النتائج المباشرة</span>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-light btn-sm" onclick="selectAll()"><i class="fas fa-check-double me-1"></i>تحديد الكل</button>
+                <button class="btn btn-outline-light btn-sm" onclick="deselectAll()"><i class="fas fa-times me-1"></i>إلغاء الكل</button>
+                <button class="btn btn-outline-info btn-sm" onclick="copyAllLinks()"><i class="fas fa-copy me-1"></i>نسخ</button>
+                <button class="btn btn-outline-success btn-sm" onclick="exportLinks('txt')"><i class="fas fa-file-alt me-1"></i>TXT</button>
+                <button class="btn btn-outline-warning btn-sm" onclick="exportLinks('excel')"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="sendToAutoJoin()"><i class="fas fa-paper-plane me-1"></i>إرسال للانضمام</button>
+            </div>
+        </div>
+        <div id="resultsContainer">
+            <div class="text-muted text-center" id="waitingMsg">
+                <i class="fas fa-search fa-2x mb-3 opacity-25"></i><br>
+                أدخل النص وابدأ البحث لعرض النتائج هنا
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const socket = io();
+let allResults = [];
+let currentFilter = 'all';
+let totalExpected = 0;
+
+socket.on('connect', () => {
+    console.log('Socket connected');
+});
+
+socket.on('link_classified', (data) => {
+    allResults.push(data);
+    document.getElementById('statClassified').textContent = allResults.length;
+    updateProgress();
+    addCategoryChip(data.category);
+    if (currentFilter === 'all' || currentFilter === data.category) {
+        renderResult(data);
+    }
+});
+
+socket.on('link_finder_done', (data) => {
+    resetBtn();
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('statProgress').textContent = '✅';
+    if (data.total === 0) {
+        showEmpty(data.message || 'لم يُعثر على روابط');
+    }
+    setTimeout(() => {
+        document.getElementById('progressTrack').style.display = 'none';
+    }, 2000);
+});
+
+socket.on('link_finder_error', (data) => {
+    resetBtn();
+    document.getElementById('statProgress').textContent = '❌';
+    alert('❌ خطأ: ' + data.error);
+});
+
+function renderResult(item) {
+    const container = document.getElementById('resultsContainer');
+    const waiting = document.getElementById('waitingMsg');
+    if (waiting) waiting.style.display = 'none';
+
+    const div = document.createElement('div');
+    div.className = 'result-item d-flex align-items-start gap-2 px-3';
+    div.dataset.cat = item.category;
+    div.innerHTML = `
+        <input type="checkbox" class="form-check-input mt-1 link-check" data-link="${escHtml(item.link)}" onchange="updateSelected()">
+        <div class="flex-grow-1 overflow-hidden">
+            <a href="${escHtml(item.link)}" target="_blank" rel="noopener" class="link-text d-block text-truncate">${escHtml(item.link)}</a>
+            <div class="mt-1 d-flex gap-2 align-items-center flex-wrap">
+                <span class="category-badge">${item.category}</span>
+                <span class="text-muted" style="font-size:.75rem;">ثقة: ${(item.score*100).toFixed(0)}%</span>
+                <span class="text-muted" style="font-size:.72rem;">${item.country || ''}</span>
+            </div>
+            ${item.context ? `<div class="text-muted mt-1" style="font-size:.72rem;">${escHtml(item.context.substring(0,120))}…</div>` : ''}
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function showEmpty(msg) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = `<div class="text-muted text-center" id="waitingMsg"><i class="fas fa-info-circle me-2"></i>${msg}</div>`;
+}
+
+function updateProgress() {
+    if (totalExpected > 0) {
+        const pct = Math.min(100, (allResults.length / totalExpected) * 100);
+        document.getElementById('progressBar').style.width = pct + '%';
+    }
+}
+
+function updateSelected() {
+    const checked = document.querySelectorAll('.link-check:checked').length;
+    document.getElementById('statSelected').textContent = checked;
+}
+
+function addCategoryChip(cat) {
+    const filtersDiv = document.getElementById('categoryFilters');
+    if (filtersDiv.querySelector(`[data-cat="${CSS.escape(cat)}"]`)) return;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.dataset.cat = cat;
+    chip.textContent = cat;
+    chip.onclick = () => filterCategory(cat);
+    filtersDiv.appendChild(chip);
+}
+
+function filterCategory(cat) {
+    currentFilter = cat;
+    document.querySelectorAll('#categoryFilters .chip').forEach(c => c.classList.toggle('active-chip', c.dataset.cat === cat));
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
+    const waiting = document.createElement('div');
+    waiting.id = 'waitingMsg';
+    waiting.className = 'text-muted text-center';
+    waiting.style.display = 'none';
+    container.appendChild(waiting);
+
+    const filtered = cat === 'all' ? allResults : allResults.filter(r => r.category === cat);
+    if (filtered.length === 0) {
+        waiting.style.display = '';
+        waiting.textContent = 'لا توجد نتائج في هذه الفئة';
+        return;
+    }
+    filtered.forEach(r => renderResult(r));
+    document.getElementById('statTotal').textContent = allResults.length;
+}
+
+function startSearch() {
+    const text = document.getElementById('sourceText').value.trim();
+    if (!text) { alert('الرجاء إدخال النص أو تحميل ملف'); return; }
+
+    allResults = [];
+    totalExpected = 0;
+    document.getElementById('statTotal').textContent = '…';
+    document.getElementById('statClassified').textContent = '0';
+    document.getElementById('statSelected').textContent = '0';
+    document.getElementById('statProgress').textContent = '⏳';
+    document.getElementById('resultsContainer').innerHTML = '<div class="text-muted text-center" id="waitingMsg"><i class="fas fa-spinner fa-spin fa-2x mb-3"></i><br>جاري البحث والتصنيف…</div>';
+    document.getElementById('categoryFilters').innerHTML = '<span class="chip active-chip" data-cat="all" onclick="filterCategory(\'all\')">📋 الكل</span>';
+    document.getElementById('progressTrack').style.display = 'block';
+    document.getElementById('progressBar').style.width = '5%';
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري…';
+
+    fetch('/api/link_finder/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            text,
+            country: document.getElementById('countrySelect').value,
+            use_ai: document.getElementById('useAI').checked,
+            skip_country_filter: document.getElementById('skipCountry').checked
+        })
+    }).then(r => r.json()).then(data => {
+        if (!data.success) {
+            resetBtn();
+            alert('❌ ' + data.message);
+        }
+    }).catch(e => { resetBtn(); alert('❌ خطأ في الاتصال: ' + e); });
+}
+
+function resetBtn() {
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('startBtn').innerHTML = '<i class="fas fa-search me-2"></i>بدء البحث والتصنيف';
+}
+
+function getSelectedLinks() {
+    return Array.from(document.querySelectorAll('.link-check:checked')).map(cb => cb.dataset.link);
+}
+
+function copyAllLinks() {
+    const selected = getSelectedLinks();
+    const links = selected.length ? selected : allResults.map(r => r.link);
+    if (!links.length) { alert('لا توجد روابط'); return; }
+    navigator.clipboard.writeText(links.join('\n')).then(() => alert(`✅ تم نسخ ${links.length} رابط`));
+}
+
+function exportLinks(format) {
+    const selected = getSelectedLinks();
+    const data = selected.length ? allResults.filter(r => selected.includes(r.link)) : allResults;
+    if (!data.length) { alert('لا توجد روابط للتصدير'); return; }
+
+    if (format === 'txt') {
+        const blob = new Blob([data.map(r => r.link).join('\n')], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(blob, 'links.txt');
+    } else if (format === 'excel') {
+        fetch('/api/link_finder/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ links: data })
+        }).then(r => r.blob()).then(blob => downloadBlob(blob, 'links_classified.xlsx'));
+    }
+}
+
+function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function sendToAutoJoin() {
+    const selected = getSelectedLinks();
+    if (!selected.length) { alert('الرجاء تحديد روابط أولاً'); return; }
+    if (!confirm(`إرسال ${selected.length} رابط إلى نظام الانضمام التلقائي؟`)) return;
+    fetch('/api/auto_join/links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ links: selected })
+    }).then(r => r.json()).then(d => {
+        alert(d.success ? `✅ ${d.message}` : '❌ ' + d.message);
+    });
+}
+
+function selectAll() {
+    document.querySelectorAll('.link-check').forEach(cb => cb.checked = true);
+    updateSelected();
+}
+function deselectAll() {
+    document.querySelectorAll('.link-check').forEach(cb => cb.checked = false);
+    updateSelected();
+}
+function clearAll() {
+    document.getElementById('sourceText').value = '';
+    document.getElementById('charCount').textContent = '0 حرف';
+}
+function pasteFromClipboard() {
+    navigator.clipboard.readText().then(t => {
+        document.getElementById('sourceText').value = t;
+        document.getElementById('charCount').textContent = t.length + ' حرف';
+    }).catch(() => alert('تعذّر الوصول إلى الحافظة — الصق يدوياً'));
+}
+
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('sourceText').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length + ' حرف';
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        document.getElementById('sourceText').value = ev.target.result;
+        document.getElementById('charCount').textContent = ev.target.result.length + ' حرف';
+    };
+    reader.readAsText(file, 'utf-8');
+});
+</script>
+</body>
+</html>

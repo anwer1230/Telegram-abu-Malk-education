@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛰️ رادار الروابط والانضمام الذكي | مركز سرعة إنجاز</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #111827;
+            --border-card: #1f2937;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-gold: #f59e0b;
+        }
+        body {
+            background: var(--bg-main);
+            color: #f3f4f6;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .container-fluid {
+            max-width: 1440px;
+            padding: 24px;
+        }
+        /* Header Box */
+        .radar-header {
+            background: linear-gradient(135deg, #132238 0%, #0f172a 100%);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 18px;
+            padding: 22px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .radar-header::after {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        /* Pulse Badge */
+        .pulse-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 1.8s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 9px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        /* Permanent Live Stat Cards */
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .stat-card.whatsapp {
+            border-top: 4px solid var(--accent-green);
+        }
+        .stat-card.tg-public {
+            border-top: 4px solid var(--accent-blue);
+        }
+        .stat-card.tg-private {
+            border-top: 4px solid var(--accent-purple);
+        }
+        .stat-card.total {
+            border-top: 4px solid var(--accent-gold);
+        }
+        .stat-number {
+            font-size: 2.3rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin: 8px 0;
+            font-family: monospace, 'Courier New', Courier;
+        }
+        .stat-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        /* Action buttons */
+        .btn-custom {
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .table-custom {
+            color: #e5e7eb;
+            margin-bottom: 0;
+        }
+        .table-custom thead {
+            background: #1e293b;
+        }
+        .table-custom th {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-card);
+        }
+        .table-custom td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: middle;
+            font-size: 0.87rem;
+        }
+        .table-custom tbody tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+        .link-text {
+            color: #60a5fa;
+            text-decoration: none;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.83rem;
+        }
+        .link-text:hover {
+            text-decoration: underline;
+            color: #93c5fd;
+        }
+        .badge-type {
+            font-size: 0.72rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+        .test-box {
+            background: #131b2e;
+            border: 1px dashed rgba(59, 130, 246, 0.4);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+        .filter-btn {
+            background: #1f2937;
+            color: #9ca3af;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: #374151;
+            color: #fff;
+            border-color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+
+    <!-- رأس الصفحة والشعار وحالة الرادار -->
+    <div class="radar-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width: 54px; height: 54px; background: linear-gradient(135deg, #10b981, #047857); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                    <i class="fas fa-satellite-dish text-white" style="font-size: 1.6rem;"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h4 class="mb-0 text-white fw-bold">رادار الروابط والإنضمام التلقائي الذكي</h4>
+                        <div class="pulse-indicator" id="radarStatusBadge">
+                            <span class="pulse-dot"></span>
+                            <span id="radarStatusText">نشط وشغال دائماً بوضع افتراضي</span>
+                        </div>
+                    </div>
+                    <small class="text-secondary mt-1 d-block" style="color: #94a3b8 !important;">
+                        <i class="fas fa-shield-alt text-success me-1"></i> يراقب كامل الحساب ودردشاته · يتعرف على روابط الواتساب والتيليجرام العامة والخاصة · انضمام آلي للمجموعات العامة · حفظ دائم في قاعدة البيانات
+                    </small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-outline-light btn-custom" id="btnToggleRadar" onclick="toggleRadar()">
+                    <i class="fas fa-power-off"></i>
+                    <span id="btnToggleRadarText">إيقاف مؤقت</span>
+                </button>
+                <a href="/saved_links" target="_blank" class="btn btn-outline-info btn-custom">
+                    <i class="fas fa-database"></i>
+                    <span>روابطي المحفوظة</span>
+                </a>
+                <a href="/" class="btn btn-outline-secondary btn-custom">
+                    <i class="fas fa-home"></i>
+                    <span>الرئيسية</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- شبكة الإحصائيات الفورية الثابتة والدائمة -->
+    <div class="row g-3 mb-4">
+        <!-- 1. روابط الواتس آب -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="stat-card whatsapp">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">روابط الواتس آب</span>
+                        <div class="stat-number text-success" id="statWhatsappCount">0</div>
+                        <small class="text-secondary" style="font-size: 0.72rem;">إشعار فوري للرسائل المحفوظة</small>
+                    </div>
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. تليجرام العامة -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="stat-card tg-public">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">تليجرام العامة (مجموعات وقنوات)</span>
+                        <div class="stat-number text-primary" id="statTgPublicCount">0</div>
+                        <small class="text-secondary" style="font-size: 0.72rem;">انضمام آلي تلقائي وفحص الصلاحية</small>
+                    </div>
+                    <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                        <i class="fab fa-telegram-plane"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. تليجرام الخاصة -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="stat-card tg-private">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">تليجرام الخاصة (قنوات ودعوات)</span>
+                        <div class="stat-number" style="color: #a78bfa;" id="statTgPrivateCount">0</div>
+                        <small class="text-secondary" style="font-size: 0.72rem;">تمييز أصلي عبر Telethon كقناة خاصة</small>
+                    </div>
+                    <div class="stat-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. إجمالي الروابط المرصودة -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="stat-card total">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">إجمالي الروابط المرصودة</span>
+                        <div class="stat-number text-warning" id="statTotalLinks">0</div>
+                        <small class="text-secondary" style="font-size: 0.72rem;">محفوظة في قاعدة البيانات الخارجية</small>
+                    </div>
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                        <i class="fas fa-link"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مؤشرات إضافية: نجاح الانضمام وقيد الانتظار -->
+    <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="p-2 px-3 rounded-3" style="background: #131b2e; border: 1px solid rgba(16,185,129,0.3);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="small text-secondary">انضمامات ناجحة:</span>
+                    <strong class="text-success" id="statJoinedSuccess">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-2 px-3 rounded-3" style="background: #131b2e; border: 1px solid rgba(245,158,11,0.3);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="small text-secondary">بانتظار موافقة المشرف:</span>
+                    <strong class="text-warning" id="statPendingApproval">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-2 px-3 rounded-3" style="background: #131b2e; border: 1px solid rgba(59,130,246,0.3);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="small text-secondary">منضم مسبقاً:</span>
+                    <strong class="text-info" id="statJoinedAlready">0</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-2 px-3 rounded-3" style="background: #131b2e; border: 1px solid rgba(239,68,68,0.3);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="small text-secondary">منتهية أو غير صالحة:</span>
+                    <strong class="text-danger" id="statFailedExpired">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- صندوق فحص وتجربة رابط يدوي فوري -->
+    <div class="test-box">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <strong class="small text-info"><i class="fas fa-vial me-1"></i> فحص واختبار رابط فوري يدوي:</strong>
+            <small class="text-secondary">يمكنك فحص أي رابط لاختبار التمييز الفوري والانضمام الآلي والإشعار</small>
+        </div>
+        <div class="input-group">
+            <input type="text" id="manualLinkInput" class="form-control" style="background:#0d1117; border-color:#374151; color:#fff;" placeholder="ضع رابط تيليجرام أو واتساب هنا (مثل: https://t.me/group_name أو https://chat.whatsapp.com/...)">
+            <button class="btn btn-primary px-4 fw-bold" id="btnTestLink" onclick="testManualLink()">
+                <i class="fas fa-play me-1"></i> فحص ومعالجة فورية
+            </button>
+        </div>
+        <div id="testResultBox" class="mt-2" style="display: none;"></div>
+    </div>
+
+    <!-- جدول الروابط المرصودة مباشرة -->
+    <div class="table-container">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-color: var(--border-card) !important;">
+            <div class="d-flex align-items-center gap-2">
+                <h6 class="mb-0 fw-bold text-white"><i class="fas fa-stream text-primary me-2"></i>سجل الروابط الملتقطة مباشرة</h6>
+                <span class="badge bg-secondary" id="feedCountBadge">0 روابط</span>
+            </div>
+
+            <!-- أزرار الفلترة -->
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="filter-btn active" onclick="filterEvents('all', this)">الكل</button>
+                <button class="filter-btn" onclick="filterEvents('whatsapp', this)">🟢 واتساب</button>
+                <button class="filter-btn" onclick="filterEvents('tg_public', this)">🌐 تليجرام عامة</button>
+                <button class="filter-btn" onclick="filterEvents('tg_private', this)">🔒 تليجرام خاصة</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearRadarEvents()" title="مسح السجل">
+                    <i class="fas fa-trash-alt me-1"></i> مسح السجل
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 560px; overflow-y: auto;">
+            <table class="table table-custom">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">الوقت</th>
+                        <th style="width: 130px;">النوع</th>
+                        <th>الرابط المكتشف</th>
+                        <th style="width: 170px;">المصدر / الدردشة</th>
+                        <th style="width: 200px;">نتيجة الفحص والانضمام</th>
+                        <th style="width: 120px;">الحفظ بقاعدة البيانات</th>
+                        <th style="width: 90px; text-align: center;">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="radarEventsBody">
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i> جاري تحميل سجل الروابط المرصودة...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Socket.IO & Logic Script -->
+<script>
+    let _allEvents = [];
+    let _currentFilter = 'all';
+
+    // اتصال Socket.IO
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log('✅ متصل بخادم رادار الروابط عبر WebSocket');
+    });
+
+    // استماع للتحديث الفوري للإحصائيات
+    socket.on('link_radar_stats', (data) => {
+        if (data && data.stats) {
+            updateStatsDisplay(data);
+        }
+    });
+
+    // استماع لوصول رابط جديد
+    socket.on('link_radar_update', (eventRecord) => {
+        if (eventRecord) {
+            _allEvents.unshift(eventRecord);
+            if (_allEvents.length > 200) _allEvents.pop();
+            renderEventsTable();
+        }
+    });
+
+    // جلب الإحصائيات والأحداث فور فتح الصفحة
+    async function fetchRadarData() {
+        try {
+            const res = await fetch('/api/link_radar/stats');
+            const data = await res.json();
+            if (data.success) {
+                updateStatsDisplay(data);
+                _allEvents = data.recent_events || [];
+                renderEventsTable();
+            }
+        } catch (e) {
+            console.error('خطأ في جلب بيانات الرادار:', e);
+        }
+    }
+
+    function updateStatsDisplay(data) {
+        const stats = data.stats || {};
+        document.getElementById('statWhatsappCount').textContent = stats.whatsapp_count || 0;
+        document.getElementById('statTgPublicCount').textContent = stats.tg_public_count || 0;
+        document.getElementById('statTgPrivateCount').textContent = stats.tg_private_count || 0;
+        document.getElementById('statTotalLinks').textContent = stats.total_links || 0;
+
+        document.getElementById('statJoinedSuccess').textContent = stats.joined_success_count || 0;
+        document.getElementById('statPendingApproval').textContent = stats.joined_pending_approval || 0;
+        document.getElementById('statJoinedAlready').textContent = stats.joined_already || 0;
+        document.getElementById('statFailedExpired').textContent = stats.failed_or_expired || 0;
+
+        // تحديث حالة التشغيل
+        const enabled = data.enabled !== false;
+        const statusBadge = document.getElementById('radarStatusBadge');
+        const statusText = document.getElementById('radarStatusText');
+        const btnToggleText = document.getElementById('btnToggleRadarText');
+
+        if (enabled) {
+            statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            statusBadge.style.color = '#34d399';
+            statusText.textContent = 'نشط وشغال دائماً بوضع افتراضي';
+            btnToggleText.textContent = 'إيقاف مؤقت';
+        } else {
+            statusBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+            statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            statusBadge.style.color = '#f87171';
+            statusText.textContent = 'متوقف مؤقتاً';
+            btnToggleText.textContent = 'تشغيل الرادار';
+        }
+    }
+
+    function renderEventsTable() {
+        const tbody = document.getElementById('radarEventsBody');
+        const countBadge = document.getElementById('feedCountBadge');
+
+        const filtered = _allEvents.filter(ev => {
+            if (_currentFilter === 'all') return true;
+            return ev.type === _currentFilter;
+        });
+
+        countBadge.textContent = `${filtered.length} رابط`;
+
+        if (!filtered.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-secondary">
+                        <i class="fas fa-radar fa-2x mb-2 d-block opacity-25"></i>
+                        الرادار في وضع الاستماع الفوري لجميع المحادثات والدردشات... لم يتم التقاط روابط مطابقة بعد.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(ev => {
+            let badgeClass = 'bg-secondary';
+            if (ev.type === 'whatsapp') badgeClass = 'bg-success';
+            else if (ev.type === 'tg_public') badgeClass = 'bg-primary';
+            else if (ev.type === 'tg_private') badgeClass = 'bg-purple" style="background:#8b5cf6;';
+
+            let statusColor = '#9ca3af';
+            if (ev.join_status && ev.join_status.includes('تم الانضمام')) statusColor = '#34d399';
+            else if (ev.join_status && ev.join_status.includes('موافقة المشرف')) statusColor = '#f59e0b';
+            else if (ev.join_status && ev.join_status.includes('خاصة')) statusColor = '#a78bfa';
+            else if (ev.join_status && ev.join_status.includes('انتهت')) statusColor = '#f87171';
+
+            return `
+                <tr>
+                    <td><small class="text-secondary">${ev.time_display || ev.timestamp.split('T')[1].substring(0,8)}</small></td>
+                    <td><span class="badge ${badgeClass} badge-type">${ev.type_label}</span></td>
+                    <td>
+                        <a href="${ev.link}" target="_blank" class="link-text" title="${ev.link}">
+                            ${ev.link}
+                        </a>
+                    </td>
+                    <td>
+                        <strong class="d-block text-truncate" style="max-width: 160px;">${ev.chat_name}</strong>
+                        <small class="text-muted d-block text-truncate" style="max-width: 160px;">${ev.sender_name}</small>
+                    </td>
+                    <td>
+                        <span style="color: ${statusColor}; font-weight: 600;">
+                            ${ev.join_status}
+                        </span>
+                        ${!ev.is_valid ? '<span class="badge bg-danger ms-1" style="font-size:0.6rem;">منتهي/غير صالح</span>' : ''}
+                    </td>
+                    <td>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success" style="font-size:0.68rem;">
+                            <i class="fas fa-check-circle me-1"></i> دائم ومحفوظ
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-light" style="padding: 2px 7px; font-size: 0.72rem;" onclick="copyLink('${ev.link}')" title="نسخ الرابط">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <a href="${ev.link}" target="_blank" class="btn btn-sm btn-outline-primary" style="padding: 2px 7px; font-size: 0.72rem;" title="فتح الرابط">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function filterEvents(type, btn) {
+        _currentFilter = type;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        renderEventsTable();
+    }
+
+    function copyLink(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('✅ تم نسخ الرابط بنجاح');
+        });
+    }
+
+    async function toggleRadar() {
+        try {
+            const res = await fetch('/api/link_radar/toggle', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                fetchRadarData();
+            }
+        } catch (e) {
+            alert('حدث خطأ في تغيير الحالة');
+        }
+    }
+
+    async function clearRadarEvents() {
+        if (!confirm('هل تريد مسح سجل الأحداث الأخيرة؟ (العدادات التراكمية ستبقى محفوظة)')) return;
+        try {
+            const res = await fetch('/api/link_radar/clear_history', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                _allEvents = [];
+                renderEventsTable();
+            }
+        } catch (e) {
+            alert('خطأ في مسح السجل');
+        }
+    }
+
+    async function testManualLink() {
+        const inp = document.getElementById('manualLinkInput');
+        const link = inp.value.trim();
+        const resBox = document.getElementById('testResultBox');
+        const btn = document.getElementById('btnTestLink');
+
+        if (!link) {
+            alert('يرجى إدخال الرابط أولاً');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري الفحص والمعالجة...';
+        resBox.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/link_radar/test_link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ link: link })
+            });
+            const data = await res.json();
+
+            resBox.style.display = 'block';
+            if (data.success) {
+                const ev = data.event;
+                resBox.innerHTML = `
+                    <div class="alert alert-success py-2 px-3 mb-0" style="background:#064e3b; border-color:#059669; color:#a7f3d0; font-size:0.85rem;">
+                        <strong>✅ نتيجة الفحص والمعالجة:</strong>
+                        <div class="mt-1">
+                            النوع: <b>${ev.type_label}</b> | 
+                            النتيجة: <b>${ev.join_status}</b> | 
+                            الصلاحية: <b>${ev.is_valid ? 'صالح ✅' : 'غير صالح/منتهي ❌'}</b>
+                        </div>
+                        <div class="mt-1 small text-white opacity-75">
+                            تم إرسال الإشعار الفوري للرسائل المحفوظة وحفظ الرابط في قاعدة البيانات.
+                        </div>
+                    </div>
+                `;
+                fetchRadarData();
+            } else {
+                resBox.innerHTML = `
+                    <div class="alert alert-danger py-2 px-3 mb-0" style="background:#450a0a; border-color:#991b1b; color:#fca5a5; font-size:0.85rem;">
+                        ❌ ${data.message || 'حدث خطأ في معالجة الرابط'}
+                    </div>
+                `;
+            }
+        } catch (e) {
+            resBox.style.display = 'block';
+            resBox.innerHTML = `<div class="alert alert-danger py-2 px-3 mb-0">خطأ في الاتصال بالخادم</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play me-1"></i> فحص ومعالجة فورية';
+        }
+    }
+
+    // تشغيل عند التحميل مع تكرار دوري كاحتياط
+    fetchRadarData();
+    setInterval(fetchRadarData, 5000);
+</script>
+
+</body>
+</html>

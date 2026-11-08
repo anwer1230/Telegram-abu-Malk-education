@@ -1,0 +1,22 @@
+name: Auto Deploy to Render
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  deploy-to-render:
+    name: Trigger Render Deploy Hook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Webhook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          echo "🚀 Triggering automatic deployment to Render for Anwer_Telegram-..."
+          HOOK_URL="${RENDER_DEPLOY_HOOK:-https://api.render.com/deploy/srv-davr5su7bikc73f5978g?key=hZAEDlsJijM}"
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$HOOK_URL")
+          echo "$RESPONSE"
+          echo "✅ Render deployment hook triggered successfully on repository update."

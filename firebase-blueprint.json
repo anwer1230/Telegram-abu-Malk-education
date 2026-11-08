@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "SavedLink": {
+      "title": "Saved Link",
+      "description": "A permanently saved Telegram group or channel link",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the saved link"
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the Telegram group or channel"
+        },
+        "title": {
+          "type": "string",
+          "description": "The display title or group name"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for organizing links"
+        },
+        "date_saved": {
+          "type": "string",
+          "description": "ISO timestamp when the link was saved"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source of extraction or manual entry"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes for the link"
+        }
+      },
+      "required": ["id", "url"]
+    }
+  },
+  "firestore": {
+    "/saved_links/{linkId}": {
+      "schema": "SavedLink",
+      "description": "Collection of permanently saved links"
+    }
+  }
+}

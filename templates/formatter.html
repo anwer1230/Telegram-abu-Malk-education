@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منسّق المستندات الاحترافي</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f7ea;font-family:'Segoe UI',Tahoma,sans-serif;direction:rtl;min-height:100vh}
+.top-bar{background:linear-gradient(135deg,#1cc88a,#13855c);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 12px rgba(0,0,0,.2)}
+.top-bar h1{font-size:1.2rem;margin:0}
+.main{max-width:960px;margin:24px auto;padding:0 16px}
+.card-tool{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:24px;overflow:hidden}
+.card-tool .ct-head{padding:16px 20px;font-weight:bold;font-size:1rem;display:flex;align-items:center;gap:10px;color:#fff}
+.ct-pdf{background:linear-gradient(135deg,#e74c3c,#c0392b)}
+.ct-html{background:linear-gradient(135deg,#1e4a2f,#2d6b41)}
+.ct-body{padding:20px}
+
+/* Drop zone */
+.drop-zone{border:3px dashed #b2d498;border-radius:14px;padding:32px;text-align:center;cursor:pointer;transition:.2s;background:#f8fdf4;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#1cc88a;background:#edfbf4}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-zone i{font-size:2.5rem;color:#4f9a66;margin-bottom:10px}
+.drop-zone .dz-label{color:#2d6b41;font-weight:bold;font-size:1.05rem}
+.drop-zone .dz-sub{color:#888;font-size:.85rem;margin-top:4px}
+.drop-zone.has-file{border-color:#1cc88a;background:#e8faf0}
+
+/* Options */
+.option-row{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+.option-check{display:flex;align-items:center;gap:8px;background:#f0f9f0;padding:8px 16px;border-radius:30px;cursor:pointer;border:1px solid #c3e8c3;transition:.15s}
+.option-check:hover{background:#e0f5e0;border-color:#1cc88a}
+.option-check input{width:18px;height:18px;accent-color:#1cc88a}
+
+/* Convert btn */
+.btn-convert{background:linear-gradient(135deg,#1cc88a,#13855c);color:#fff;border:none;padding:12px 32px;border-radius:30px;font-weight:bold;font-size:1rem;width:100%;cursor:pointer;transition:.2s;box-shadow:0 4px 15px rgba(28,200,138,.35)}
+.btn-convert:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(28,200,138,.5)}
+.btn-convert:disabled{opacity:.6;cursor:not-allowed}
+.btn-convert-red{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 15px rgba(231,76,60,.35)}
+.btn-convert-red:hover:not(:disabled){box-shadow:0 6px 20px rgba(231,76,60,.5)}
+
+/* Progress */
+.progress-area{display:none;margin-top:16px}
+.prog-step{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:.9rem;background:#f8f8f8;border:1px solid #e8e8e8}
+.prog-step.active{background:#edfbf4;border-color:#b2f0d0;color:#1a5c3a}
+.prog-step.done{background:#e8f5e9;border-color:#81c784;color:#2e7d32}
+.prog-step.err{background:#fdecea;border-color:#ef9a9a;color:#c62828}
+.prog-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
+.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Result */
+.result-box{display:none;margin-top:20px;padding:20px;background:#edfbf4;border:2px solid #b2f0d0;border-radius:14px;text-align:center}
+.result-box .big-icon{font-size:3rem;margin-bottom:10px}
+.btn-dl{background:linear-gradient(135deg,#1cc88a,#13855c);color:#fff;border:none;padding:11px 28px;border-radius:25px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:.95rem}
+.btn-dl:hover{color:#fff;filter:brightness(1.1)}
+
+/* HTML textarea */
+.html-textarea{font-family:'Consolas','Courier New',monospace;font-size:.8rem;border:2px solid #c5e0ae;border-radius:10px;padding:12px;min-height:180px;background:#fafffe;resize:vertical;width:100%;direction:ltr;text-align:left}
+.html-textarea:focus{outline:none;border-color:#1cc88a}
+
+/* File name pill */
+.file-pill{display:inline-flex;align-items:center;gap:8px;background:#e8f5e9;border:1px solid #a5d6a7;padding:6px 16px;border-radius:25px;font-size:.85rem;color:#2e7d32;margin-top:10px}
+.file-pill .rm-file{cursor:pointer;color:#c62828;font-weight:bold;margin-right:4px}
+
+/* Smart draw badge */
+.ai-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#764ba2,#667eea);color:#fff;padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:bold}
+
+/* Info boxes */
+.info-tip{background:#fff8e8;border-right:4px solid #f6c90e;padding:10px 16px;border-radius:8px;font-size:.85rem;color:#5a4a00;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <i class="fas fa-file-word fa-lg"></i>
+  <h1>منسّق المستندات الاحترافي</h1>
+  <span class="ai-badge ms-auto"><i class="fas fa-robot"></i> رسم ذكي بالذكاء الاصطناعي</span>
+</div>
+
+<div class="main">
+
+  <!-- ══ PDF → Word ══ -->
+  <div class="card-tool" id="cardPdf">
+    <div class="ct-head ct-pdf">
+      <i class="fas fa-file-pdf fa-lg"></i>
+      <span>تحويل PDF إلى Word مع الصور والجداول</span>
+    </div>
+    <div class="ct-body">
+      <div class="drop-zone" id="pdfDropZone">
+        <input type="file" id="pdfFileInput" accept=".pdf" onchange="handlePdfFile(this)">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <div class="dz-label">اسحب ملف PDF هنا أو انقر للاختيار</div>
+        <div class="dz-sub">يدعم أي ملف PDF — سيتم استخراج النص والصور والجداول</div>
+      </div>
+      <div id="pdfFilePill" style="display:none">
+        <div class="file-pill">
+          <i class="fas fa-file-pdf" style="color:#c0392b"></i>
+          <span id="pdfFileName"></span>
+          <span class="rm-file" onclick="clearPdf()">✕</span>
+        </div>
+      </div>
+
+      <div class="option-row">
+        <label class="option-check">
+          <input type="checkbox" id="pdfSmartDraw" checked>
+          <i class="fas fa-chart-bar" style="color:#764ba2"></i>
+          رسم ذكي — تحليل البيانات وإضافة مخططات تلقائياً
+        </label>
+        <label class="option-check">
+          <input type="checkbox" id="pdfKeepImages" checked>
+          <i class="fas fa-image" style="color:#1e90ff"></i>
+          تضمين الصور من PDF
+        </label>
+        <label class="option-check">
+          <input type="checkbox" id="pdfKeepTables" checked>
+          <i class="fas fa-table" style="color:#1cc88a"></i>
+          تحويل الجداول بتنسيق كامل
+        </label>
+      </div>
+
+      <div class="info-tip">
+        <i class="fas fa-lightbulb me-1"></i>
+        <strong>الرسم الذكي:</strong> يحلل الذكاء الاصطناعي النصوص والأرقام في PDF ويضيف مخططاً بيانياً مناسباً (عمودي، دائري، خطي) بألوان وعناوين تلقائية.
+      </div>
+
+      <div id="pdfProgress" class="progress-area">
+        <div class="prog-step" id="pdfStep1"><div class="prog-icon">⬆️</div><span>رفع الملف وتحليله...</span></div>
+        <div class="prog-step" id="pdfStep2"><div class="prog-icon">📄</div><span>استخراج النصوص بتنسيق كامل...</span></div>
+        <div class="prog-step" id="pdfStep3"><div class="prog-icon">🖼️</div><span>استخراج الصور وتضمينها...</span></div>
+        <div class="prog-step" id="pdfStep4"><div class="prog-icon">📊</div><span>تحويل الجداول إلى تنسيق Word...</span></div>
+        <div class="prog-step" id="pdfStep5"><div class="prog-icon">🤖</div><span>تحليل البيانات ورسم المخططات الذكية...</span></div>
+        <div class="prog-step" id="pdfStep6"><div class="prog-icon">💾</div><span>حفظ ملف Word النهائي...</span></div>
+      </div>
+
+      <div id="pdfResult" class="result-box">
+        <div class="big-icon">📄✅</div>
+        <h5 class="fw-bold text-success">تم التحويل بنجاح!</h5>
+        <div class="text-muted small" id="pdfResultInfo"></div>
+        <a id="pdfDownloadLink" href="#" class="btn-dl" download>
+          <i class="fas fa-download"></i> تحميل ملف Word
+        </a>
+      </div>
+
+      <div id="pdfError" class="alert alert-danger mt-3" style="display:none;border-radius:10px"></div>
+
+      <button class="btn-convert btn-convert-red mt-3" id="pdfConvertBtn" onclick="convertPdf()" disabled>
+        <i class="fas fa-sync-alt me-2"></i>تحويل إلى Word مع الصور والجداول
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ HTML → Word ══ -->
+  <div class="card-tool" id="cardHtml">
+    <div class="ct-head ct-html">
+      <i class="fas fa-code fa-lg"></i>
+      <span>تحويل HTML / كود إلى Word</span>
+      <a href="/html_to_word" onclick="if(window.parent && window.parent.openHtmlToWordStudio){event.preventDefault(); window.parent.openHtmlToWordStudio(); var m = window.parent.document.getElementById('htmlToWordStudioModal'); if(m){ new window.parent.bootstrap.Modal(m).show(); } }" class="btn btn-sm btn-light ms-auto fw-bold" style="border-radius:20px; font-size:0.8rem; color:#1e4a2f;">
+        <i class="fas fa-file-word me-1"></i> فتح الاستوديو المتكامل (معاينة حية + ذكاء اصطناعي)
+      </a>
+    </div>
+    <div class="ct-body">
+
+      <ul class="nav nav-tabs mb-3" id="htmlTabs">
+        <li class="nav-item">
+          <button class="nav-link active" id="tabPasteBtn" onclick="switchHtmlTab('paste')">
+            <i class="fas fa-paste me-1"></i>الصق HTML
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" id="tabFileBtn" onclick="switchHtmlTab('file')">
+            <i class="fas fa-file-upload me-1"></i>ارفع ملف HTML
+          </button>
+        </li>
+      </ul>
+
+      <!-- Paste HTML -->
+      <div id="htmlPasteArea">
+        <label class="fw-bold small mb-1">الصق كود HTML أو محتوى الصفحة:</label>
+        <textarea id="htmlInput" class="html-textarea"
+          placeholder="<html>...</html>  أو الصق المحتوى الخام هنا..."></textarea>
+        <div class="info-tip mt-2">
+          <i class="fas fa-info-circle me-1"></i>
+          يدعم: جداول كاملة بالألوان، صور base64، عناوين، قوائم، نصوص منسّقة.
+        </div>
+      </div>
+
+      <!-- Upload HTML file -->
+      <div id="htmlFileArea" style="display:none">
+        <div class="drop-zone" id="htmlDropZone">
+          <input type="file" id="htmlFileInput" accept=".html,.htm" onchange="handleHtmlFile(this)">
+          <i class="fas fa-file-code" style="color:#2d6b41"></i>
+          <div class="dz-label">ارفع ملف HTML هنا</div>
+          <div class="dz-sub">سيتم قراءته واستخراج كامل المحتوى</div>
+        </div>
+        <div id="htmlFilePill" style="display:none">
+          <div class="file-pill">
+            <i class="fas fa-file-code" style="color:#2d6b41"></i>
+            <span id="htmlFileName"></span>
+            <span class="rm-file" onclick="clearHtmlFile()">✕</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="fw-bold small mb-1">اسم الملف الناتج:</label>
+        <input type="text" id="htmlDocName" class="form-control form-control-sm"
+               placeholder="document" style="border-radius:8px;max-width:300px" dir="ltr">
+      </div>
+
+      <div class="option-row mt-3">
+        <label class="option-check">
+          <input type="checkbox" id="htmlSmartDraw" checked>
+          <i class="fas fa-chart-bar" style="color:#764ba2"></i>
+          رسم ذكي — إضافة مخططات بيانية تلقائياً
+        </label>
+        <label class="option-check">
+          <input type="checkbox" id="htmlKeepImages" checked>
+          <i class="fas fa-image" style="color:#1e90ff"></i>
+          تضمين الصور (base64 / روابط)
+        </label>
+      </div>
+
+      <div id="htmlProgress" class="progress-area">
+        <div class="prog-step" id="htmlStep1"><div class="prog-icon">📊</div><span>تشغيل الرسوم البيانية واستخراج الصور...</span></div>
+        <div class="prog-step" id="htmlStep2"><div class="prog-icon">📝</div><span>تحليل بنية HTML وتحويل النصوص...</span></div>
+        <div class="prog-step" id="htmlStep3"><div class="prog-icon">🎨</div><span>تحويل الجداول مع الألوان الكاملة...</span></div>
+        <div class="prog-step" id="htmlStep4"><div class="prog-icon">🖼️</div><span>تضمين الصور ومعالجة الصفحات...</span></div>
+        <div class="prog-step" id="htmlStep5"><div class="prog-icon">🤖</div><span>الرسم الذكي بالذكاء الاصطناعي...</span></div>
+        <div class="prog-step" id="htmlStep6"><div class="prog-icon">💾</div><span>حفظ ملف Word النهائي...</span></div>
+      </div>
+
+      <div id="htmlResult" class="result-box">
+        <div class="big-icon">📝✅</div>
+        <h5 class="fw-bold text-success">تم التحويل بنجاح!</h5>
+        <a id="htmlDownloadLink" href="#" class="btn-dl" download>
+          <i class="fas fa-download"></i> تحميل ملف Word
+        </a>
+        <a id="htmlExcelDownloadLink" href="#" class="btn-dl mt-2" download style="background:linear-gradient(135deg,#1a7a3c,#27a95a);display:none;">
+          <i class="fas fa-file-excel"></i> تحميل ملف Excel
+        </a>
+      </div>
+
+      <div id="htmlError" class="alert alert-danger mt-3" style="display:none;border-radius:10px"></div>
+
+      <button class="btn-convert mt-3" id="htmlConvertBtn" onclick="convertHtml()">
+        <i class="fas fa-sync-alt me-2"></i>تحويل إلى Word
+      </button>
+      <button class="btn-convert mt-2" id="htmlExcelBtn" onclick="convertHtmlToExcel()" style="background:linear-gradient(135deg,#1a7a3c,#27a95a);">
+        <i class="fas fa-file-excel me-2"></i>تحويل إلى Excel
+      </button>
+    </div>
+  </div>
+
+</div><!-- .main -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ══════════════════ PDF ══════════════════
+let pdfFile = null;
+
+function handlePdfFile(input) {
+  const f = input.files[0];
+  if (!f) return;
+  pdfFile = f;
+  document.getElementById('pdfFileName').textContent = f.name;
+  document.getElementById('pdfFilePill').style.display = 'block';
+  document.getElementById('pdfDropZone').classList.add('has-file');
+  document.getElementById('pdfConvertBtn').disabled = false;
+  resetPdfUI();
+}
+function clearPdf() {
+  pdfFile = null;
+  document.getElementById('pdfFileInput').value = '';
+  document.getElementById('pdfFilePill').style.display = 'none';
+  document.getElementById('pdfDropZone').classList.remove('has-file');
+  document.getElementById('pdfConvertBtn').disabled = true;
+  resetPdfUI();
+}
+function resetPdfUI() {
+  document.getElementById('pdfProgress').style.display = 'none';
+  document.getElementById('pdfResult').style.display = 'none';
+  document.getElementById('pdfError').style.display = 'none';
+  ['pdfStep1','pdfStep2','pdfStep3','pdfStep4','pdfStep5','pdfStep6']
+    .forEach(id => { const el = document.getElementById(id);
+      el.className = 'prog-step'; });
+}
+
+function setStep(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'prog-step ' + state;
+  if (state === 'active') {
+    el.querySelector('.prog-icon').innerHTML = '<i class="fas fa-circle-notch spin" style="color:#1cc88a"></i>';
+  } else if (state === 'done') {
+    el.querySelector('.prog-icon').innerHTML = '✅';
+  } else if (state === 'err') {
+    el.querySelector('.prog-icon').innerHTML = '❌';
+  }
+}
+
+async function convertPdf() {
+  if (!pdfFile) return;
+  const btn = document.getElementById('pdfConvertBtn');
+  btn.disabled = true;
+  document.getElementById('pdfProgress').style.display = 'block';
+  document.getElementById('pdfResult').style.display = 'none';
+  document.getElementById('pdfError').style.display = 'none';
+
+  const steps = ['pdfStep1','pdfStep2','pdfStep3','pdfStep4','pdfStep5','pdfStep6'];
+  steps.forEach(s => setStep(s, ''));
+
+  const smartDraw = document.getElementById('pdfSmartDraw').checked;
+
+  try {
+    // Animate steps while uploading
+    setStep('pdfStep1', 'active');
+    const fd = new FormData();
+    fd.append('file', pdfFile);
+    fd.append('smart_draw', smartDraw ? 'true' : 'false');
+
+    // Animate remaining steps with delays
+    const animSteps = async () => {
+      await delay(800);  setStep('pdfStep1','done'); setStep('pdfStep2','active');
+      await delay(1000); setStep('pdfStep2','done'); setStep('pdfStep3','active');
+      await delay(900);  setStep('pdfStep3','done'); setStep('pdfStep4','active');
+      await delay(800);  setStep('pdfStep4','done'); setStep('pdfStep5','active');
+      await delay(smartDraw ? 3500 : 200); setStep('pdfStep5','done'); setStep('pdfStep6','active');
+    };
+
+    const [_, resp] = await Promise.all([
+      animSteps(),
+      fetch('/tools/pdf_to_word', { method: 'POST', body: fd })
+    ]);
+
+    const data = await resp.json();
+    setStep('pdfStep6', 'done');
+
+    if (data.success) {
+      document.getElementById('pdfResult').style.display = 'block';
+      document.getElementById('pdfResultInfo').textContent =
+        `تم تحويل ${data.pages || '?'} صفحة بنجاح • ${data.filename}`;
+      document.getElementById('pdfDownloadLink').href = data.download_url;
+      document.getElementById('pdfDownloadLink').download = data.filename;
+    } else {
+      throw new Error(data.error || 'خطأ غير معروف');
+    }
+  } catch(e) {
+    steps.forEach(s => {
+      if(document.getElementById(s).classList.contains('active'))
+        setStep(s, 'err');
+    });
+    const errEl = document.getElementById('pdfError');
+    errEl.style.display = 'block';
+    errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ══════════════════ HTML ══════════════════
+let htmlFileContent = null;
+
+function switchHtmlTab(tab) {
+  document.getElementById('htmlPasteArea').style.display = tab==='paste' ? 'block' : 'none';
+  document.getElementById('htmlFileArea').style.display  = tab==='file'  ? 'block' : 'none';
+  document.getElementById('tabPasteBtn').classList.toggle('active', tab==='paste');
+  document.getElementById('tabFileBtn').classList.toggle('active', tab==='file');
+  htmlFileContent = null;
+}
+
+function handleHtmlFile(input) {
+  const f = input.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    htmlFileContent = e.target.result;
+    document.getElementById('htmlFileName').textContent = f.name;
+    document.getElementById('htmlFilePill').style.display = 'block';
+    document.getElementById('htmlDropZone').classList.add('has-file');
+    const nameWithout = f.name.replace(/\.[^.]+$/, '');
+    document.getElementById('htmlDocName').value = nameWithout;
+  };
+  reader.readAsText(f, 'utf-8');
+}
+function clearHtmlFile() {
+  htmlFileContent = null;
+  document.getElementById('htmlFileInput').value = '';
+  document.getElementById('htmlFilePill').style.display = 'none';
+  document.getElementById('htmlDropZone').classList.remove('has-file');
+}
+
+// ══════════════════════════════════════════════════════
+//  معالجة HTML مسبقة: تُشغّل Chart.js وتحوّل canvas → صور
+//  وتُطبّق CSS computed styles كـ inline styles
+// ══════════════════════════════════════════════════════
+async function prepareHtmlForConvert(rawHtml, onProgress) {
+  // إزالة أي canvas فارغة بدون بيانات أولاً (تنظيف سريع)
+  const parser = new DOMParser();
+  const tempDoc = parser.parseFromString(rawHtml, 'text/html');
+
+  // هل يحتوي HTML على Canvas أو Scripts؟
+  const hasCanvas  = tempDoc.querySelectorAll('canvas').length > 0;
+  const hasChartJs = rawHtml.includes('Chart(') || rawHtml.includes('new Chart') || rawHtml.includes('chart.js');
+
+  if (!hasCanvas && !hasChartJs) {
+    // لا يوجد canvas — فقط طبّق الأنماط الـ inline
+    return applyInlineStyles(rawHtml);
+  }
+
+  if (onProgress) onProgress('تشغيل الرسوم البيانية في المتصفح...');
+
+  return new Promise((resolve) => {
+    // إنشاء iframe خفي لتنفيذ الكود
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = [
+      'position:fixed', 'left:-9999px', 'top:0',
+      'width:1280px', 'height:8000px',
+      'opacity:0', 'pointer-events:none',
+      'border:none', 'z-index:-1'
+    ].join(';');
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    // نكتب HTML مع script إضافي يرسل إشارة عند اكتمال Chart.js
+    const signalScript = `
+<script>
+window.__chartsReady = false;
+window.__chartInstances = [];
+var _origChart = window.Chart;
+if (typeof Chart !== 'undefined') {
+  var _OrigChart = Chart;
+  window.Chart = function(ctx, cfg) {
+    var inst = new _OrigChart(ctx, cfg);
+    window.__chartInstances.push(inst);
+    return inst;
+  };
+  Object.assign(window.Chart, _OrigChart);
+}
+window.addEventListener('load', function() {
+  setTimeout(function() { window.__chartsReady = true; }, 300);
+});
+<\/script>`;
+
+    const htmlWithSignal = rawHtml.replace(/<\/head>/i, signalScript + '</head>') ||
+                           signalScript + rawHtml;
+
+    iframeDoc.open();
+    iframeDoc.write(htmlWithSignal);
+    iframeDoc.close();
+
+    // انتظار حتى تنتهي الرسوم من الرسم (3 ثوانٍ كحد أقصى)
+    let waited = 0;
+    const checkInterval = setInterval(() => {
+      waited += 200;
+      const ready = iframe.contentWindow && iframe.contentWindow.__chartsReady;
+      if (ready || waited >= 4000) {
+        clearInterval(checkInterval);
+
+        try {
+          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+          // 1) تحويل كل canvas إلى <img> بـ data URL
+          const canvases = iDoc.querySelectorAll('canvas');
+          canvases.forEach(canvas => {
+            try {
+              const dataUrl = canvas.toDataURL('image/png', 1.0);
+              if (dataUrl && dataUrl.length > 100 && dataUrl !== 'data:,') {
+                const img = iDoc.createElement('img');
+                img.src = dataUrl;
+                const w = canvas.width  || canvas.offsetWidth  || 600;
+                const h = canvas.height || canvas.offsetHeight || 400;
+                img.setAttribute('width',  Math.min(w, 900));
+                img.setAttribute('height', Math.round(h * Math.min(900/w, 1)));
+                img.style.cssText = 'max-width:100%;height:auto;display:block;margin:8px auto;';
+                canvas.parentNode && canvas.parentNode.replaceChild(img, canvas);
+              } else {
+                // canvas فارغة — أزلها
+                canvas.parentNode && canvas.parentNode.removeChild(canvas);
+              }
+            } catch(e) {
+              canvas.parentNode && canvas.parentNode.removeChild(canvas);
+            }
+          });
+
+          // 2) تطبيق computed styles على عناصر مهمة
+          const INLINE_PROPS = [
+            'color', 'background-color', 'font-size', 'font-weight',
+            'font-family', 'text-align', 'border-left-color', 'border-right-color'
+          ];
+          const SKIP_BG_TAGS = new Set(['html','body','head','script','style','meta','link']);
+
+          iDoc.querySelectorAll('*').forEach(el => {
+            try {
+              const tag = (el.tagName || '').toLowerCase();
+              if (SKIP_BG_TAGS.has(tag)) return;
+
+              const computed = iframe.contentWindow.getComputedStyle(el);
+              const existing = el.getAttribute('style') || '';
+              const additions = [];
+
+              INLINE_PROPS.forEach(prop => {
+                if (existing.includes(prop)) return; // لا تُعِد ما هو موجود
+                const val = computed.getPropertyValue(prop);
+                if (!val) return;
+                // تجاهل القيم الشفافة والافتراضية
+                if (val === 'rgba(0, 0, 0, 0)' || val === 'transparent') return;
+                if (prop === 'color' && (val === 'rgb(0, 0, 0)' || val === 'rgba(0,0,0,1)')) return;
+                if (prop === 'background-color') {
+                  if (val === 'rgba(0, 0, 0, 0)' || val === 'transparent' ||
+                      val === 'rgb(255, 255, 255)') return;
+                }
+                additions.push(`${prop}:${val}`);
+              });
+
+              if (additions.length) {
+                el.setAttribute('style',
+                  existing + (existing && !existing.endsWith(';') ? ';' : '') +
+                  additions.join(';'));
+              }
+            } catch(e) {}
+          });
+
+          // 3) إرجاع HTML المُعالج
+          const result = iDoc.documentElement.outerHTML;
+          document.body.removeChild(iframe);
+          resolve(result);
+        } catch(e) {
+          document.body.removeChild(iframe);
+          resolve(rawHtml); // fallback
+        }
+      }
+    }, 200);
+  });
+}
+
+// تطبيق inline styles على HTML بدون iframe (بديل سريع)
+function applyInlineStyles(rawHtml) {
+  return rawHtml; // الخادم يعالج CSS مباشرة
+}
+
+async function convertHtml() {
+  const isFile = document.getElementById('htmlFileArea').style.display !== 'none';
+  let htmlContent = isFile ? htmlFileContent : document.getElementById('htmlInput').value.trim();
+
+  if (!htmlContent) {
+    alert('يرجى إدخال HTML أو رفع ملف HTML');
+    return;
+  }
+
+  const btn = document.getElementById('htmlConvertBtn');
+  btn.disabled = true;
+  document.getElementById('htmlProgress').style.display = 'block';
+  document.getElementById('htmlResult').style.display = 'none';
+  document.getElementById('htmlError').style.display = 'none';
+
+  const steps = ['htmlStep1','htmlStep2','htmlStep3','htmlStep4','htmlStep5','htmlStep6'];
+  steps.forEach(s => setStep(s, ''));
+
+  const filename    = document.getElementById('htmlDocName').value.trim() || 'document';
+  const smartDraw   = document.getElementById('htmlSmartDraw').checked;
+
+  try {
+    // ── الخطوة 0: معالجة Canvas/Charts مسبقاً ──
+    setStep('htmlStep1', 'active');
+    const hasCharts = htmlContent.includes('Chart(') || htmlContent.includes('<canvas');
+    if (hasCharts) {
+      try {
+        htmlContent = await prepareHtmlForConvert(htmlContent);
+      } catch(e) {
+        // إذا فشلت المعالجة المسبقة، نُكمل بالـ HTML الأصلي
+        console.warn('Pre-process failed:', e);
+      }
+    }
+    setStep('htmlStep1', 'done');
+    setStep('htmlStep2', 'active');
+
+    const animSteps = async () => {
+      await delay(500);  setStep('htmlStep2','done'); setStep('htmlStep3','active');
+      await delay(600);  setStep('htmlStep3','done'); setStep('htmlStep4','active');
+      await delay(500);  setStep('htmlStep4','done'); setStep('htmlStep5','active');
+      await delay(smartDraw ? 3500 : 300); setStep('htmlStep5','done'); setStep('htmlStep6','active');
+    };
+
+    const [_, resp] = await Promise.all([
+      animSteps(),
+      fetch('/tools/html_to_word', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          html: htmlContent,
+          filename,
+          smart_draw: smartDraw,
+          rtl: true
+        })
+      })
+    ]);
+
+    const data = await resp.json();
+    setStep('htmlStep6', 'done');
+
+    if (data.success) {
+      document.getElementById('htmlResult').style.display = 'block';
+      document.getElementById('htmlDownloadLink').href     = data.download_url;
+      document.getElementById('htmlDownloadLink').download = data.filename;
+    } else {
+      throw new Error(data.error || 'خطأ غير معروف');
+    }
+  } catch(e) {
+    steps.forEach(s => {
+      if(document.getElementById(s).classList.contains('active'))
+        setStep(s, 'err');
+    });
+    const errEl = document.getElementById('htmlError');
+    errEl.style.display = 'block';
+    errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ══════════════════ HTML → Excel ══════════════════
+async function convertHtmlToExcel() {
+  const isFile = document.getElementById('htmlFileArea').style.display !== 'none';
+  let htmlContent = isFile ? htmlFileContent : document.getElementById('htmlInput').value.trim();
+  if (!htmlContent) { alert('يرجى إدخال HTML أو رفع ملف HTML'); return; }
+
+  const btn = document.getElementById('htmlExcelBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>جاري التحويل...';
+
+  const filename = document.getElementById('htmlDocName').value.trim() || 'document';
+  try {
+    const resp = await fetch('/tools/html_to_excel', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ html: htmlContent, filename })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const link = document.getElementById('htmlExcelDownloadLink');
+      link.href     = data.download_url;
+      link.download = data.filename;
+      link.style.display = 'inline-block';
+      document.getElementById('htmlResult').style.display = 'block';
+    } else {
+      alert('خطأ: ' + (data.error || 'خطأ غير معروف'));
+    }
+  } catch(e) {
+    alert('خطأ في الاتصال: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-file-excel me-2"></i>تحويل إلى Excel';
+}
+
+// ══════════════════ Drag & Drop ══════════════════
+function setupDrop(zoneId, inputId, handler) {
+  const zone = document.getElementById(zoneId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const dt = e.dataTransfer;
+    if (dt.files.length) {
+      const inp = document.getElementById(inputId);
+      // We can't set files directly, so create a DataTransfer
+      try {
+        const dt2 = new DataTransfer();
+        dt2.items.add(dt.files[0]);
+        inp.files = dt2.files;
+        handler(inp);
+      } catch(ex) {}
+    }
+  });
+}
+setupDrop('pdfDropZone', 'pdfFileInput', handlePdfFile);
+setupDrop('htmlDropZone', 'htmlFileInput', handleHtmlFile);
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+
+<script>
+// ━━━━ تصفية الأقسام حسب معامل section في URL ━━━━
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var section = params.get('section');
+  if (!section) return;
+
+  var cardPdf  = document.getElementById('cardPdf');
+  var cardHtml = document.getElementById('cardHtml');
+
+  if (section === 'pdf2word') {
+    if (cardHtml) cardHtml.style.display = 'none';
+  } else if (section === 'html2word') {
+    if (cardPdf) cardPdf.style.display = 'none';
+  } else if (section === 'html2excel') {
+    if (cardPdf) cardPdf.style.display = 'none';
+    // إبراز زر Excel تلقائياً
+    setTimeout(function(){
+      var excelBtn = document.getElementById('htmlExcelBtn');
+      if (excelBtn) {
+        excelBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        excelBtn.style.boxShadow = '0 0 0 5px rgba(27,122,60,0.35)';
+      }
+    }, 400);
+  } else if (section === 'html2ppt') {
+    if (cardPdf) cardPdf.style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>

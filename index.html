@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="theme-dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Telegram (DrKLO Official Build)</title>
+    <meta name="description" content="Telegram Official DrKLO Release Build - Telegram_Anwer" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2481cc" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Telegram" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+    <script>
+      // Global Environment & Buffer Polyfills (Immediate execution)
+      (function() {
+        if (typeof window !== 'undefined') {
+          window.global = window.global || window;
+          window.process = window.process || { env: {}, browser: true, nextTick: function(cb) { setTimeout(cb, 0); } };
+          if (!window.Buffer) {
+            function MockBuffer(arg) {
+              if (typeof arg === 'number') return new Uint8Array(arg);
+              if (typeof arg === 'string') return new TextEncoder().encode(arg);
+              if (Array.isArray(arg) || arg instanceof Uint8Array || arg instanceof ArrayBuffer) return new Uint8Array(arg);
+              return new Uint8Array(0);
+            }
+            MockBuffer.from = function(data, encoding) {
+              if (typeof data === 'string') {
+                if (encoding === 'hex') {
+                  var match = data.match(/.{1,2}/g) || [];
+                  return new Uint8Array(match.map(function(byte) { return parseInt(byte, 16); }));
+                }
+                if (encoding === 'base64') {
+                  var bin = atob(data);
+                  var arr = new Uint8Array(bin.length);
+                  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                  return arr;
+                }
+                return new TextEncoder().encode(data);
+              }
+              if (data instanceof ArrayBuffer) return new Uint8Array(data);
+              if (data instanceof Uint8Array) return data;
+              if (Array.isArray(data)) return new Uint8Array(data);
+              return new Uint8Array(0);
+            };
+            MockBuffer.isBuffer = function(b) {
+              return b instanceof Uint8Array;
+            };
+            MockBuffer.alloc = function(size) {
+              return new Uint8Array(size);
+            };
+            window.Buffer = MockBuffer;
+          }
+        }
+      })();
+
+      // Anti-Corrupted Cache & Emergency Reset Helper
+      (function() {
+        try {
+          // If a hard reset parameter is present, flush caches completely
+          if (window.location.search.includes('reset=')) {
+            localStorage.clear();
+            sessionStorage.clear();
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                names.forEach(function(name) { caches.delete(name); });
+              });
+            }
+          }
+          // Validate basic JSON parsability of critical local storage keys
+          var testKeys = ['tg_multi_accounts_v3', 'app_settings', 'draft_message'];
+          testKeys.forEach(function(k) {
+            var val = localStorage.getItem(k);
+            if (val && val.startsWith('{') || (val && val.startsWith('['))) {
+              try { JSON.parse(val); } catch(e) { localStorage.removeItem(k); }
+            }
+          });
+        } catch(err) {
+          console.warn('Storage validation warning:', err);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

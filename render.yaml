@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: abumalk-services
+    env: python
+    region: frankfurt
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python main.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: RENDER
+        value: "true"
+      - key: PORT
+        value: "10000"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: "Anwer"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: TELEGRAM_API_ID
+        value: "22043994"
+      - key: TELEGRAM_API_HASH
+        value: "56f64582b363d367280db96586b97801"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: "anwer1230/Telegram-abu-Malk-education"
+      - key: GITHUB_BRANCH
+        value: "main"
+      - key: RENDER_DEPLOY_HOOK
+        value: "https://api.render.com/deploy/srv-davr5su7bikc73f5978g?key=hZAEDlsJijM"
+      - key: RENDER_DEPLOY_HOOK_URL
+        value: "https://api.render.com/deploy/srv-davr5su7bikc73f5978g?key=hZAEDlsJijM"
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_CONNECT_TIMEOUT
+        value: "10"
+      - key: DB_RETRIES
+        value: "2"
+      - key: VAPID_PUBLIC_KEY
+        value: "BIkbfhrnC0MgiZk3KJ8fPTUX300SviFxsJguvQjx6q-TNMxK23yhqhyr5Q5vqad8-k3aD1J7NPWg3GbKHuJdpOc"
+      - key: VAPID_PRIVATE_B64
+        sync: false

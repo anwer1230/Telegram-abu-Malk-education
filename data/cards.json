@@ -1,0 +1,28 @@
+{
+  "card_system_enabled": false,
+  "plans": [
+    {
+      "id": 1,
+      "name": "يومية",
+      "time_limit": 86400,
+      "data_limit": 5368709120,
+      "profile_name": "daily"
+    },
+    {
+      "id": 2,
+      "name": "أسبوعية",
+      "time_limit": 604800,
+      "data_limit": 10737418240,
+      "profile_name": "weekly"
+    },
+    {
+      "id": 3,
+      "name": "شهرية",
+      "time_limit": 2592000,
+      "data_limit": 32212254720,
+      "profile_name": "monthly"
+    }
+  ],
+  "vouchers": [],
+  "active_card_sessions": []
+}

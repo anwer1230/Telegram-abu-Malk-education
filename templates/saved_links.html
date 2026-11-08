@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📂 الروابط المحفوظة</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #0d1117; color: #f0f6fc; font-family: 'Cairo', 'Segoe UI', sans-serif; }
+        .container { max-width: 1400px; padding: 20px; }
+        .page-header { background: linear-gradient(135deg, #1a1a4e, #12123a); border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; border: 1px solid rgba(99,102,241,0.3); }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; }
+        .card-header { background: #1c2333; border-bottom: 1px solid #30363d; border-radius: 12px 12px 0 0 !important; }
+        .table { color: #f0f6fc; }
+        .table thead { background: #1c2333; }
+        .table td, .table th { border-color: #21262d; vertical-align: middle; }
+        .table tbody tr:hover { background: #1c2333 !important; }
+        .badge-category { padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+        .form-control, .form-select { background: #0d1117; border: 1px solid #30363d; color: #f0f6fc; border-radius: 8px; }
+        .form-control:focus, .form-select:focus { background: #0d1117; border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,0.15); color: #f0f6fc; }
+        .form-control::placeholder { color: #6b7280; }
+        .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+        .link-url { color: #58a6ff; text-decoration: none; font-size: 0.85rem; word-break: break-all; }
+        .link-url:hover { text-decoration: underline; color: #79c0ff; }
+        .selected-row { background: #1a2a3a !important; }
+        .btn-icon { border-radius: 8px; padding: 3px 8px; font-size: 0.78rem; }
+        .stats-bar { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+        .stat-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #8b949e; }
+        .stat-item strong { color: #f0f6fc; }
+        .sort-btn { background: none; border: 1px solid #30363d; color: #8b949e; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .sort-btn:hover, .sort-btn.active { background: rgba(88,166,255,0.1); border-color: #58a6ff; color: #58a6ff; }
+        .action-bar { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .back-btn { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .back-btn:hover { background: rgba(99,102,241,0.25); color: #c7d2fe; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #4b5563; }
+        .empty-state i { font-size: 3rem; opacity: 0.3; margin-bottom: 16px; }
+        .modal-content { background: #161b22; border: 1px solid #30363d; }
+        .modal-header { background: #1c2333; border-bottom: 1px solid #30363d; }
+        .modal-footer { border-top: 1px solid #30363d; }
+        .form-label { color: #8b949e; font-size: 0.82rem; margin-bottom: 4px; }
+        .alert { border-radius: 8px; }
+        @media (max-width: 768px) { .filter-bar { gap: 6px; } .stats-bar { gap: 10px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- رأس الصفحة -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-bookmark" style="color:#fff;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0 text-white fw-bold">الروابط المحفوظة</h5>
+                    <small style="color:#38bdf8;"><i class="fas fa-database me-1"></i>تخزين سحابي دائم وأبدي عبر Firebase Firestore</small>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <a href="/" class="back-btn"><i class="fas fa-arrow-right"></i>الرئيسية</a>
+                <button class="btn btn-primary btn-sm px-3 fw-bold shadow-sm" id="btnInspectCloudLinks" onclick="inspectAndShowCloudLinks()" title="فحص واستعراض كافة الروابط المحفوظة داخل قاعدة البيانات الخارجية">
+                    <i class="fas fa-cloud-arrow-down me-1 text-warning"></i>
+                    <span>استعراض كافة روابط قاعدة البيانات</span>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="exportLinksPdf(false)" title="تصدير وتحميل تقرير PDF لجميع الروابط إلى ذاكرة الجهاز">
+                    <i class="fas fa-file-pdf me-1"></i>تصدير PDF
+                </button>
+                <button class="btn btn-outline-info btn-sm" onclick="exportLinksTxt(false)" title="تصدير وتحميل ملف TXT نصي لجميع الروابط إلى ذاكرة الجهاز">
+                    <i class="fas fa-file-alt me-1"></i>تصدير TXT
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="copyAllLinks()" title="نسخ جميع الروابط للحافظة">
+                    <i class="fas fa-copy me-1"></i>نسخ الكل
+                </button>
+                <button class="btn btn-success btn-sm" onclick="openAddModal()">
+                    <i class="fas fa-plus me-1"></i>إضافة رابط
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="openImportModal()">
+                    <i class="fas fa-file-import me-1"></i>استيراد
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="refreshLinks()">
+                    <i class="fas fa-sync me-1"></i>تحديث
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط الإشعارات والحالة الفعلية الحقيقية لقاعدة البيانات الخارجية -->
+    <div id="cloudStatusBanner" class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-3 border-0 shadow-sm" style="display:none; background:rgba(30,58,138,0.3); border:1px solid rgba(59,130,246,0.35); border-radius:12px;">
+        <div class="d-flex align-items-center gap-2">
+            <span id="cloudStatusIcon" class="spinner-border spinner-border-sm text-info" role="status"></span>
+            <div id="cloudStatusText" style="font-size:0.86rem; font-weight:600; color:#e2e8f0;">
+                جارٍ فحص قاعدة البيانات الخارجية...
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="cloudStatusBadge" class="badge bg-primary" style="font-size:0.75rem;">فحص السحابة</span>
+            <button type="button" class="btn btn-sm btn-link text-white text-decoration-none p-0 opacity-75" onclick="document.getElementById('cloudStatusBanner').style.display='none'">✕</button>
+        </div>
+    </div>
+
+    <!-- إحصائيات -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item"><i class="fas fa-link text-info"></i>إجمالي: <strong id="statTotal">0</strong></div>
+        <div class="stat-item"><i class="fas fa-check-square text-success"></i>محدد: <strong id="statSelected">0</strong></div>
+        <div class="stat-item"><i class="fas fa-tags text-warning"></i>التصنيفات: <strong id="statCats">0</strong></div>
+        <div style="margin-right:auto;display:flex;gap:6px;align-items:center;">
+            <span style="color:#6b7280;font-size:0.73rem;">ترتيب:</span>
+            <button class="sort-btn active" id="sortDate" onclick="setSortBy('date')">الأحدث</button>
+            <button class="sort-btn" id="sortCat" onclick="setSortBy('category')">التصنيف</button>
+        </div>
+    </div>
+
+    <!-- شريط التصفية -->
+    <div class="filter-bar">
+        <input type="text" class="form-control" id="searchInput" style="min-width:200px;max-width:300px;" placeholder="🔍 بحث في الروابط..." oninput="filterLinks()">
+        <select class="form-select" id="categoryFilter" style="min-width:160px;max-width:220px;" onchange="filterLinks()">
+            <option value="all">جميع التصنيفات</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" onclick="selectAll()">
+            <i class="fas fa-check-double me-1"></i>تحديد الكل
+        </button>
+    </div>
+
+    <!-- شريط إجراءات المحدد -->
+    <div class="action-bar" id="actionBar" style="display:none;">
+        <span style="color:#fbbf24;font-size:0.82rem;"><i class="fas fa-check-circle me-1"></i><span id="selectedCount">0</span> محدد</span>
+        <button class="btn btn-outline-danger btn-sm" onclick="exportLinksPdf(true)"><i class="fas fa-file-pdf me-1"></i>تصدير المحدد PDF</button>
+        <button class="btn btn-outline-success btn-sm" onclick="exportLinksTxt(true)"><i class="fas fa-file-alt me-1"></i>تصدير المحدد TXT</button>
+        <button class="btn btn-outline-info btn-sm" onclick="copySelected()"><i class="fas fa-copy me-1"></i>نسخ</button>
+        <button class="btn btn-outline-primary btn-sm" onclick="sendToAutoJoin()"><i class="fas fa-rocket me-1"></i>إرسال للانضمام</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="deleteSelected()"><i class="fas fa-trash me-1"></i>حذف</button>
+        <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="clearSelection()"><i class="fas fa-times me-1"></i>إلغاء التحديد</button>
+    </div>
+
+    <!-- جدول الروابط -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="linksTable">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;padding:10px 12px;"><input type="checkbox" id="selectAllCheck" onchange="toggleAllCheckboxes()" class="form-check-input"></th>
+                            <th style="width:40px;">#</th>
+                            <th>الرابط / العنوان</th>
+                            <th style="width:110px;">التصنيف</th>
+                            <th style="width:130px;">تاريخ الحفظ</th>
+                            <th style="width:90px;">المصدر</th>
+                            <th style="width:120px;text-align:center;">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="linksBody">
+                        <tr><td colspan="7" class="empty-state"><i class="fas fa-spinner fa-spin fa-2x"></i><div>جاري التحميل...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-2 text-muted" style="font-size:0.75rem;" id="filterStats"></div>
+</div>
+
+<!-- ══ مودال إضافة رابط ══ -->
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-plus me-2 text-success"></i>إضافة رابط جديد</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">الرابط *</label>
+                    <input type="text" class="form-control" id="newUrl" placeholder="https://t.me/group أو @username">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">العنوان (اختياري)</label>
+                    <input type="text" class="form-control" id="newTitle" placeholder="اسم المجموعة أو القناة">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">التصنيف</label>
+                    <select class="form-select" id="newCategory">
+                        <option value="تعليمي">تعليمي</option>
+                        <option value="جامعي">جامعي</option>
+                        <option value="طبي">طبي</option>
+                        <option value="ترفيهي">ترفيهي</option>
+                        <option value="أكاديمي">أكاديمي</option>
+                        <option value="تسويقي">تسويقي</option>
+                        <option value="عام" selected>عام</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات</label>
+                    <input type="text" class="form-control" id="newNotes" placeholder="ملاحظات إضافية (اختياري)">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button class="btn btn-success" onclick="saveNewLink()"><i class="fas fa-save me-1"></i>حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ مودال استيراد روابط ══ -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-file-import me-2 text-warning"></i>استيراد روابط</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs mb-3" id="importTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="tabPaste" onclick="switchImportTab('paste')">لصق روابط</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="tabFile" onclick="switchImportTab('file')">رفع ملف</button>
+                    </li>
+                </ul>
+                <div id="importPastePanel">
+                    <label class="form-label">الصق الروابط (كل رابط في سطر)</label>
+                    <textarea class="form-control" id="importUrls" rows="8" placeholder="https://t.me/group1&#10;https://t.me/group2&#10;@channel3&#10;..."></textarea>
+                </div>
+                <div id="importFilePanel" style="display:none;">
+                    <label class="form-label">اختر ملف نصي (.txt) يحتوي على روابط</label>
+                    <input type="file" class="form-control" id="importFile" accept=".txt" onchange="readImportFile()">
+                    <div id="filePreview" class="mt-2" style="color:#8b949e;font-size:0.8rem;"></div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label">التصنيف الافتراضي</label>
+                    <select class="form-select" id="importCategory" style="max-width:200px;">
+                        <option value="تعليمي">تعليمي</option>
+                        <option value="جامعي">جامعي</option>
+                        <option value="طبي">طبي</option>
+                        <option value="ترفيهي">ترفيهي</option>
+                        <option value="أكاديمي">أكاديمي</option>
+                        <option value="تسويقي">تسويقي</option>
+                        <option value="عام" selected>عام</option>
+                    </select>
+                </div>
+                <div id="importResult" class="alert mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button class="btn btn-warning" onclick="processImport()"><i class="fas fa-file-import me-1"></i>استيراد</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ مودال تعديل رابط ══ -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white"><i class="fas fa-edit me-2 text-primary"></i>تعديل الرابط</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="mb-2">
+                    <label class="form-label">الرابط</label>
+                    <input type="text" class="form-control" id="editUrl" readonly style="opacity:0.6;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">العنوان</label>
+                    <input type="text" class="form-control" id="editTitle" placeholder="عنوان الرابط">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">التصنيف</label>
+                    <select class="form-select" id="editCategory">
+                        <option value="تعليمي">تعليمي</option>
+                        <option value="جامعي">جامعي</option>
+                        <option value="طبي">طبي</option>
+                        <option value="ترفيهي">ترفيهي</option>
+                        <option value="أكاديمي">أكاديمي</option>
+                        <option value="تسويقي">تسويقي</option>
+                        <option value="عام">عام</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات</label>
+                    <input type="text" class="form-control" id="editNotes" placeholder="ملاحظات إضافية">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button class="btn btn-primary" onclick="saveEditLink()"><i class="fas fa-save me-1"></i>حفظ التعديلات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let allLinks = [];
+let filteredLinks = [];
+let selectedIds = new Set();
+let sortBy = 'date';
+let importMode = 'paste';
+
+const CATEGORY_COLORS = {
+    'تعليمي':  '#1a7a3c',
+    'جامعي':   '#1e4a6e',
+    'طبي':     '#7c1a1a',
+    'ترفيهي':  '#5a1a7a',
+    'أكاديمي': '#2c3e50',
+    'تسويقي':  '#7a5a00',
+    'عام':     '#374151'
+};
+
+function getCategoryColor(cat) {
+    return CATEGORY_COLORS[cat] || '#374151';
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    try {
+        const d = new Date(iso);
+        return d.toLocaleString('ar-EG', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    } catch { return iso.slice(0, 16); }
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── تحميل الروابط ──────────────────────────────────────────────────────────
+function refreshLinks() {
+    document.getElementById('linksBody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;padding:40px;color:#4b5563;"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>';
+    fetch('/api/saved_links')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            allLinks = data.links || [];
+            // تحديث قائمة التصنيفات
+            const filter = document.getElementById('categoryFilter');
+            const cur = filter.value;
+            filter.innerHTML = '<option value="all">جميع التصنيفات</option>';
+            (data.categories || []).forEach(cat => {
+                filter.innerHTML += `<option value="${escHtml(cat)}">${escHtml(cat)}</option>`;
+            });
+            filter.value = (data.categories || []).includes(cur) ? cur : 'all';
+            // الإحصائيات
+            document.getElementById('statTotal').textContent = allLinks.length;
+            document.getElementById('statCats').textContent = (data.categories || []).length;
+            filterLinks();
+        })
+        .catch(() => {
+            document.getElementById('linksBody').innerHTML =
+                '<tr><td colspan="7" style="text-align:center;padding:40px;color:#f87171;">❌ فشل تحميل الروابط</td></tr>';
+        });
+}
+
+// ── تصفية ──────────────────────────────────────────────────────────────────
+function filterLinks() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const cat = document.getElementById('categoryFilter').value;
+    filteredLinks = allLinks.filter(l => {
+        const matchCat = cat === 'all' || l.category === cat;
+        const matchSearch = !search ||
+            (l.url || '').toLowerCase().includes(search) ||
+            (l.title || '').toLowerCase().includes(search) ||
+            (l.notes || '').toLowerCase().includes(search);
+        return matchCat && matchSearch;
+    });
+    // ترتيب
+    if (sortBy === 'date') {
+        filteredLinks.sort((a, b) => (b.date_saved || '').localeCompare(a.date_saved || ''));
+    } else {
+        filteredLinks.sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+    }
+    renderLinks();
+    document.getElementById('filterStats').textContent =
+        filteredLinks.length < allLinks.length ? `يُعرض ${filteredLinks.length} من ${allLinks.length}` : '';
+}
+
+function setSortBy(s) {
+    sortBy = s;
+    document.getElementById('sortDate').classList.toggle('active', s === 'date');
+    document.getElementById('sortCat').classList.toggle('active', s === 'category');
+    filterLinks();
+}
+
+// ── عرض الروابط ─────────────────────────────────────────────────────────────
+function renderLinks() {
+    const tbody = document.getElementById('linksBody');
+    if (!filteredLinks.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="7">
+                <div class="empty-state">
+                    <i class="fas fa-bookmark"></i>
+                    <div style="font-size:0.9rem;margin-top:8px;">لا توجد روابط محفوظة</div>
+                    <div style="font-size:0.78rem;color:#6b7280;margin-top:4px;">أضف روابط باستخدام زر "إضافة رابط" أو "استيراد"</div>
+                </div>
+            </td></tr>`;
+        return;
+    }
+    let html = '';
+    filteredLinks.forEach((link, i) => {
+        const checked = selectedIds.has(link.id) ? 'checked' : '';
+        const rowClass = selectedIds.has(link.id) ? 'selected-row' : '';
+        const catColor = getCategoryColor(link.category);
+        const shortUrl = (link.url || '').replace('https://t.me/', 't.me/');
+        html += `
+            <tr class="${rowClass}" data-id="${escHtml(link.id)}">
+                <td style="padding:8px 12px;">
+                    <input type="checkbox" class="form-check-input link-checkbox" ${checked}
+                           onchange="toggleSelect('${escHtml(link.id)}')">
+                </td>
+                <td style="color:#6b7280;font-size:0.78rem;">${i+1}</td>
+                <td>
+                    <a href="${escHtml(link.url)}" target="_blank" class="link-url">${escHtml(shortUrl)}</a>
+                    ${link.title && link.title !== link.url ? `<div style="color:#8b949e;font-size:0.75rem;margin-top:2px;">${escHtml(link.title)}</div>` : ''}
+                    ${link.notes ? `<div style="color:#4b5563;font-size:0.72rem;">${escHtml(link.notes)}</div>` : ''}
+                </td>
+                <td>
+                    <span class="badge-category" style="background:${catColor};color:#f0f6fc;">
+                        ${escHtml(link.category)}
+                    </span>
+                </td>
+                <td style="font-size:0.75rem;color:#8b949e;">${formatDate(link.date_saved)}</td>
+                <td><span class="badge" style="background:#21262d;color:#8b949e;font-size:0.7rem;">${escHtml(link.source||'يدوي')}</span></td>
+                <td style="text-align:center;">
+                    <button class="btn btn-outline-primary btn-icon me-1" onclick="editLink('${escHtml(link.id)}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-success btn-icon me-1" onclick="copySingle('${escHtml(link.id)}')" title="نسخ">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-icon" onclick="deleteLink('${escHtml(link.id)}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+    });
+    tbody.innerHTML = html;
+    document.getElementById('selectAllCheck').checked =
+        selectedIds.size > 0 && filteredLinks.every(l => selectedIds.has(l.id));
+    updateSelectionUI();
+}
+
+// ── تحديد / إلغاء ─────────────────────────────────────────────────────────
+function toggleSelect(id) {
+    if (selectedIds.has(id)) { selectedIds.delete(id); } else { selectedIds.add(id); }
+    renderLinks();
+    updateSelectionUI();
+}
+
+function toggleAllCheckboxes() {
+    const checked = document.getElementById('selectAllCheck').checked;
+    filteredLinks.forEach(l => { if (checked) { selectedIds.add(l.id); } else { selectedIds.delete(l.id); } });
+    renderLinks();
+    updateSelectionUI();
+}
+
+function selectAll() {
+    filteredLinks.forEach(l => selectedIds.add(l.id));
+    renderLinks();
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedIds.clear();
+    renderLinks();
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const n = selectedIds.size;
+    document.getElementById('statSelected').textContent = n;
+    document.getElementById('actionBar').style.display = n > 0 ? 'flex' : 'none';
+    document.getElementById('selectedCount').textContent = n;
+}
+
+// ── حذف ────────────────────────────────────────────────────────────────────
+function deleteLink(id) {
+    if (!confirm('هل تريد حذف هذا الرابط؟')) return;
+    fetch('/api/saved_links/delete', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({id})
+    }).then(() => { selectedIds.delete(id); refreshLinks(); });
+}
+
+function deleteSelected() {
+    if (!selectedIds.size) return;
+    if (!confirm(`حذف ${selectedIds.size} رابط؟`)) return;
+    fetch('/api/saved_links/delete_batch', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ids: [...selectedIds]})
+    }).then(() => { selectedIds.clear(); refreshLinks(); });
+}
+
+// ── نسخ ────────────────────────────────────────────────────────────────────
+function copySingle(id) {
+    fetch('/api/saved_links/copy', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ids: [id]})
+    }).then(r=>r.json()).then(d => {
+        if (d.success) { navigator.clipboard.writeText(d.text); showToast('✅ تم نسخ الرابط'); }
+    });
+}
+
+function copySelected() {
+    if (!selectedIds.size) return;
+    fetch('/api/saved_links/copy', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ids: [...selectedIds]})
+    }).then(r=>r.json()).then(d => {
+        if (d.success) { navigator.clipboard.writeText(d.text); showToast(`✅ تم نسخ ${d.count} رابط`); }
+    });
+}
+
+// ── فحص واستعراض قاعدة البيانات الخارجية الحقيقية ──
+async function inspectAndShowCloudLinks() {
+    const banner = document.getElementById('cloudStatusBanner');
+    const icon = document.getElementById('cloudStatusIcon');
+    const text = document.getElementById('cloudStatusText');
+    const badge = document.getElementById('cloudStatusBadge');
+
+    if (banner) banner.style.display = 'flex';
+    if (icon) { icon.className = 'spinner-border spinner-border-sm text-info'; }
+    if (text) { text.textContent = '🔄 جارٍ استعلام قاعدة البيانات الخارجية السحابية وفحص حالة الروابط الحقيقية...'; }
+    if (badge) { badge.className = 'badge bg-info'; badge.textContent = 'جارٍ الفحص'; }
+
+    showToast('🔄 جارٍ فحص واستعراض كافة روابط قاعدة البيانات الخارجية...', 'info');
+
+    try {
+        const res = await fetch('/api/saved_links/inspect_status');
+        const data = await res.json();
+
+        if (data.success) {
+            refreshLinks();
+            if (data.total_links > 0) {
+                if (icon) { icon.className = 'fas fa-check-circle text-success fs-5'; }
+                if (text) {
+                    text.innerHTML = `🟢 <strong>قاعدة البيانات الخارجية نشطة وممتلئة:</strong> تم استعراض وفحص <strong>${data.total_links}</strong> رابط محفوظ بنجاح موزعة على <strong>${data.categories_count}</strong> تصنيف.`;
+                }
+                if (badge) { badge.className = 'badge bg-success'; badge.textContent = 'متصلة وبها روابط'; }
+                showToast(`🎉 تم استعراض ${data.total_links} رابط محفوظ من قاعدة البيانات الخارجية بنجاح!`, 'success');
+            } else {
+                if (icon) { icon.className = 'fas fa-info-circle text-warning fs-5'; }
+                if (text) {
+                    text.innerHTML = `🟡 <strong>قاعدة البيانات الخارجية متصلة وجاهزة:</strong> لا توجد أي روابط محفوظة حالياً. يمكنك إضافة روابط أو حفظ نتائج البحث لتظهر هنا فوراً.`;
+                }
+                if (badge) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'فارغة حالياً'; }
+                showToast(`ℹ️ تم فحص قاعدة البيانات: لا توجد أي روابط محفوظة حالياً`, 'warning');
+            }
+        } else {
+            throw new Error(data.message || 'فشل الفحص');
+        }
+    } catch (err) {
+        if (icon) { icon.className = 'fas fa-exclamation-triangle text-danger fs-5'; }
+        if (text) { text.textContent = '❌ تعذر فحص قاعدة البيانات: ' + err.message; }
+        if (badge) { badge.className = 'badge bg-danger'; badge.textContent = 'خطأ اتصال'; }
+        showToast('❌ تعذر استعراض قاعدة البيانات الخارجية: ' + err.message, 'error');
+    }
+}
+
+// ── تصدير PDF منظم للذاكرة ──
+async function exportLinksPdf(selectedOnly = false) {
+    if (selectedOnly && !selectedIds.size) {
+        showToast('⚠️ يرجى تحديد روابط لتصديرها أولاً', 'warning');
+        return;
+    }
+    const count = selectedOnly ? selectedIds.size : allLinks.length;
+    if (!count) {
+        showToast('⚠️ لا توجد روابط محفوظة لتصديرها كملف PDF', 'warning');
+        return;
+    }
+
+    showToast(`⏳ جارٍ إنشاء ملف PDF وتجهيزه للتحميل (${count} رابط)...`, 'info');
+    try {
+        const ids = selectedOnly ? [...selectedIds] : [];
+        const resp = await fetch('/api/saved_links/export_pdf', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids })
+        });
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({}));
+            throw new Error(errData.error || errData.message || 'فشل تصدير ملف PDF');
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `saved_links_${new Date().toISOString().slice(0,10)}_${Date.now().toString().slice(-4)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+        showToast(`✅ تم بنجاح تصدير وتحميل ملف PDF (${count} رابط) إلى ذاكرة جهازك!`, 'success');
+    } catch (e) {
+        showToast('❌ خطأ أثناء تصدير ملف PDF: ' + e.message, 'error');
+    }
+}
+
+// ── تصدير TXT نصي للذاكرة ──
+async function exportLinksTxt(selectedOnly = false) {
+    if (selectedOnly && !selectedIds.size) {
+        showToast('⚠️ يرجى تحديد روابط لتصديرها أولاً', 'warning');
+        return;
+    }
+    const count = selectedOnly ? selectedIds.size : allLinks.length;
+    if (!count) {
+        showToast('⚠️ لا توجد روابط محفوظة لتصديرها كملف TXT', 'warning');
+        return;
+    }
+
+    showToast(`⏳ جارٍ إنشاء ملف TXT وتجهيزه للتحميل (${count} رابط)...`, 'info');
+    try {
+        const ids = selectedOnly ? [...selectedIds] : [];
+        const resp = await fetch('/api/saved_links/export', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids })
+        });
+        if (!resp.ok) {
+            throw new Error('فشل تصدير ملف TXT');
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `saved_links_${new Date().toISOString().slice(0,10)}_${Date.now().toString().slice(-4)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+        showToast(`✅ تم بنجاح تصدير وتحميل ملف TXT (${count} رابط) إلى ذاكرة جهازك!`, 'success');
+    } catch (e) {
+        showToast('❌ خطأ أثناء تصدير ملف TXT: ' + e.message, 'error');
+    }
+}
+
+// ── التصدير القديم للتوافق ──
+function exportSelected() {
+    exportLinksTxt(true);
+}
+
+function exportAllLinks() {
+    exportLinksTxt(false);
+}
+
+function copyAllLinks() {
+    if (!allLinks || !allLinks.length) {
+        showToast('⚠️ لا توجد روابط لنسخها حالياً', 'warning');
+        return;
+    }
+    const text = allLinks.map(l => l.url).filter(Boolean).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(`✅ تم نسخ ${allLinks.length} رابط للحافظة بنجاح`, 'success');
+    }).catch(() => {
+        showToast('❌ تعذر النسخ للحافظة', 'error');
+    });
+}
+
+// ── إرسال للانضمام ─────────────────────────────────────────────────────────
+function sendToAutoJoin() {
+    if (!selectedIds.size) return;
+    fetch('/api/saved_links/send_to_auto_join', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ids: [...selectedIds]})
+    }).then(r=>r.json()).then(d => {
+        if (d.success) {
+            showToast(`✅ تم إرسال ${d.count} رابط للانضمام`);
+            setTimeout(() => { window.location.href = '/'; }, 800);
+        }
+    });
+}
+
+// ── إضافة رابط ─────────────────────────────────────────────────────────────
+function openAddModal() {
+    document.getElementById('newUrl').value = '';
+    document.getElementById('newTitle').value = '';
+    document.getElementById('newNotes').value = '';
+    document.getElementById('newCategory').value = 'عام';
+    new bootstrap.Modal(document.getElementById('addModal')).show();
+}
+
+function saveNewLink() {
+    const url = document.getElementById('newUrl').value.trim();
+    if (!url) { alert('الرجاء إدخال الرابط'); return; }
+    fetch('/api/saved_links/add', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+            url, title: document.getElementById('newTitle').value.trim(),
+            category: document.getElementById('newCategory').value,
+            notes: document.getElementById('newNotes').value.trim()
+        })
+    }).then(r=>r.json()).then(d => {
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+            refreshLinks();
+            showToast('✅ تم حفظ الرابط');
+        } else { alert('❌ ' + d.message); }
+    });
+}
+
+// ── تعديل رابط ─────────────────────────────────────────────────────────────
+function editLink(id) {
+    const link = allLinks.find(l => l.id === id);
+    if (!link) return;
+    document.getElementById('editId').value = link.id;
+    document.getElementById('editUrl').value = link.url;
+    document.getElementById('editTitle').value = link.title || '';
+    document.getElementById('editCategory').value = link.category || 'عام';
+    document.getElementById('editNotes').value = link.notes || '';
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function saveEditLink() {
+    const id = document.getElementById('editId').value;
+    fetch('/api/saved_links/update', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+            id, title: document.getElementById('editTitle').value.trim(),
+            category: document.getElementById('editCategory').value,
+            notes: document.getElementById('editNotes').value.trim()
+        })
+    }).then(r=>r.json()).then(d => {
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            refreshLinks();
+            showToast('✅ تم تحديث الرابط');
+        } else { alert('❌ ' + d.message); }
+    });
+}
+
+// ── استيراد روابط ──────────────────────────────────────────────────────────
+function openImportModal() {
+    document.getElementById('importUrls').value = '';
+    document.getElementById('importResult').className = 'alert mt-3 d-none';
+    new bootstrap.Modal(document.getElementById('importModal')).show();
+}
+
+function switchImportTab(mode) {
+    importMode = mode;
+    document.getElementById('importPastePanel').style.display = mode === 'paste' ? '' : 'none';
+    document.getElementById('importFilePanel').style.display = mode === 'file' ? '' : 'none';
+    document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
+    document.getElementById('tabFile').classList.toggle('active', mode === 'file');
+}
+
+function readImportFile() {
+    const file = document.getElementById('importFile').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('importUrls').value = e.target.result;
+        document.getElementById('filePreview').textContent = `تم تحميل ${file.name} (${e.target.result.split('\n').filter(l=>l.trim()).length} سطر)`;
+    };
+    reader.readAsText(file, 'utf-8');
+}
+
+function processImport() {
+    const rawText = document.getElementById('importUrls').value;
+    const urls = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (!urls.length) { alert('الرجاء إدخال روابط'); return; }
+    const category = document.getElementById('importCategory').value;
+    const resDiv = document.getElementById('importResult');
+    resDiv.className = 'alert alert-secondary mt-3';
+    resDiv.textContent = `جاري استيراد ${urls.length} رابط...`;
+    fetch('/api/saved_links/add_batch', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({urls, category, source: 'استيراد'})
+    }).then(r=>r.json()).then(d => {
+        if (d.success) {
+            resDiv.className = 'alert alert-success mt-3';
+            resDiv.textContent = `✅ تم إضافة ${d.added_count} رابط جديد، تم تخطي ${d.skipped_count} مكرر`;
+            refreshLinks();
+        } else {
+            resDiv.className = 'alert alert-danger mt-3';
+            resDiv.textContent = '❌ ' + (d.message || 'فشل الاستيراد');
+        }
+    });
+}
+
+// ── Toast التنبيهات الحقيقية ──────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const colors = {
+        'success': '#16a34a',
+        'warning': '#d97706',
+        'error': '#dc2626',
+        'info': '#2563eb'
+    };
+    const bg = colors[type] || '#16a34a';
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:${bg};color:#fff;padding:12px 24px;border-radius:12px;font-size:0.88rem;font-weight:600;z-index:99999;box-shadow:0 6px 20px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;gap:8px;max-width:90vw;text-align:center;`;
+    t.innerHTML = msg;
+    document.body.appendChild(t);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.4s';
+        setTimeout(() => t.remove(), 400);
+    }, 3200);
+}
+
+// ── تهيئة ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    refreshLinks();
+    // تفعيل Enter في حقل إضافة رابط
+    document.getElementById('newUrl').addEventListener('keydown', e => {
+        if (e.key === 'Enter') saveNewLink();
+    });
+});
+</script>
+<!-- محرك التحكم الصوتي الذاتي الشامل للتطبيق -->
+<script src="/static/js/voice_commander.js"></script>
+</body>
+</html>

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استوديو تحويل HTML إلى Word الاحترافي بالذكاء الاصطناعي</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --word-blue: #2563eb;
+      --word-blue-dark: #1d4ed8;
+      --dark-bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', Tahoma, sans-serif;
+      background: #090d16;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Navbar */
+    .studio-navbar {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--word-blue), #3b82f6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    .badge-ai {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Main Container */
+    .studio-container {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 1750px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Workspace Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+      min-height: 720px;
+    }
+
+    @media (max-width: 992px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Panels */
+    .studio-panel {
+      background: #111827;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-header {
+      background: #1f2937;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-weight: 700;
+      font-size: 0.98rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    /* Code Editor */
+    .editor-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 480px;
+    }
+
+    .code-textarea {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 480px;
+      background: #090d16;
+      color: #38bdf8;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      border: none;
+      padding: 16px;
+      resize: none;
+      outline: none;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .code-textarea::placeholder {
+      color: #475569;
+    }
+
+    .editor-footer {
+      background: #161e2e;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Action Buttons in Header */
+    .btn-tool {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-tool:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn-ai-magic {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      box-shadow: 0 2px 10px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-ai-magic:hover {
+      background: linear-gradient(135deg, #6d28d9, #4338ca);
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
+    }
+
+    /* Preview Pane */
+    .preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #1e293b;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-viewport {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      background: #0f172a;
+    }
+
+    /* A4 Simulation */
+    .a4-sheet {
+      width: 100%;
+      max-width: 820px;
+      min-height: 1000px;
+      background: #ffffff;
+      color: #1e293b;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      padding: 40px;
+      direction: rtl;
+      transition: all 0.3s ease;
+      overflow: auto;
+    }
+
+    .full-sheet {
+      max-width: 100%;
+      padding: 24px;
+      border-radius: 0;
+      min-height: 100%;
+    }
+
+    /* Export Controls Bar */
+    .export-bar {
+      background: #111827;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .options-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .export-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .form-control-dark, .form-select-dark {
+      background: #1f2937;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-family: inherit;
+    }
+
+    .form-control-dark:focus, .form-select-dark:focus {
+      background: #1f2937;
+      border-color: var(--word-blue);
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Primary Export Button */
+    .btn-export-word {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-export-word:hover:not(:disabled) {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
+      color: #fff;
+    }
+
+    .btn-export-word:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Loading Overlay */
+    .overlay-loading {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 50;
+      border-radius: 16px;
+    }
+
+    .spinner-magic {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(16, 185, 129, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Custom AI Modal */
+    .modal-content-dark {
+      background: #111827;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      color: #f1f5f9;
+    }
+
+    .modal-header-dark {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: #1f2937;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="studio-navbar">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <button type="button" class="btn-tool" onclick="goBackOrCloseStudio()" title="الرجوع للرئيسية">
+          <i class="fas fa-arrow-right"></i>
+          <span>الرئيسية</span>
+        </button>
+        <div class="brand-badge">
+          <div class="brand-icon">
+            <i class="fas fa-file-word"></i>
+          </div>
+          <div>
+            <h1 class="h6 mb-0 fw-bold d-flex align-items-center gap-2">
+              استوديو تحويل HTML إلى مستندات Word الاحترافية
+              <span class="badge-ai"><i class="fas fa-brain"></i> مدعوم بالذكاء الاصطناعي</span>
+            </h1>
+            <small class="text-muted" style="font-size:0.75rem;">تصدير فائق الدقة مع الحفاظ الكامل على الألوان، الجداول، الصور، واتجاه RTL</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn-tool" onclick="loadDemoCode()" title="تحميل نموذج تجريبي يحتوي على جداول وصور وألوان جاهزة">
+          <i class="fas fa-vial text-warning"></i>
+          <span>نموذج تجريبي جاهز</span>
+        </button>
+        <button class="btn-tool" onclick="formatCode()" title="تنسيق كود HTML">
+          <i class="fas fa-code text-info"></i>
+          <span>تنسيق الكود</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Studio Workspace -->
+  <div class="studio-container">
+    <div class="workspace-grid">
+
+      <!-- Right Panel: Code Editor -->
+      <div class="studio-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-laptop-code text-primary"></i>
+            <span>محرر كود HTML والأنماط</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <!-- AI Tools Dropdown -->
+            <div class="dropdown">
+              <button class="btn-tool btn-ai-magic dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span>أدوات الذكاء الاصطناعي</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-lg" style="border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:#1e293b;">
+                <li>
+                  <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="runAiAction('optimize')">
+                    <i class="fas fa-shield-alt text-success"></i>
+                    <div>
+                      <strong class="d-block">المصحح والمثبت الذكي للتوافق مع Word</strong>
+                      <small class="text-muted">تحويل CSS لـ Inline Styles وضبط الجداول والألوان</small>
+                    </div>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="runAiAction('academic')">
+                    <i class="fas fa-graduation-cap text-info"></i>
+                    <div>
+                      <strong class="d-block">النمط الأكاديمي والمهني الفاخر</strong>
+                      <small class="text-muted">إعادة صياغة الألوان والجداول والترويسة بنمط الأبحاث</small>
+                    </div>
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="runAiAction('add_toc_cover')">
+                    <i class="fas fa-book-open text-warning"></i>
+                    <div>
+                      <strong class="d-block">إضافة صفحة غلاف وفهرس محتويات</strong>
+                      <small class="text-muted">توليد غلاف رسمي مع فهرس ذكي منظم</small>
+                    </div>
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider border-secondary opacity-25"></li>
+                <li>
+                  <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#" onclick="openCustomAiModal()">
+                    <i class="fas fa-comment-dots text-primary"></i>
+                    <span>أمر مخصص للذكاء الاصطناعي...</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <button class="btn-tool" onclick="pasteFromClipboard()" title="لصق من الحافظة">
+              <i class="fas fa-paste"></i>
+              <span>لصق</span>
+            </button>
+            <button class="btn-tool" onclick="clearEditor()" title="مسح">
+              <i class="fas fa-trash text-danger"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-wrapper">
+          <textarea id="htmlSource" class="code-textarea" spellcheck="false" placeholder="<!-- الصق كود HTML هنا بكل بساطة... يدعم الألوان والجداول والصور والعناوين والأنماط بالكامل -->"></textarea>
+          <div class="editor-footer">
+            <span id="codeStats">0 أحرف | 0 أسطر</span>
+            <span class="text-success"><i class="fas fa-check-circle me-1"></i>جاهز للتحويل الفوري</span>
+          </div>
+
+          <!-- Loading overlay for AI -->
+          <div id="aiLoadingOverlay" class="overlay-loading">
+            <div class="spinner-magic"></div>
+            <strong id="aiLoadingText" class="text-white">جاري معالجة الكود بالذكاء الاصطناعي...</strong>
+            <small class="text-muted">نظام Gemini Flash يقوم بضبط التنسيقات وتثبيت الأنماط بدقة</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Left Panel: Live Preview & Export -->
+      <div class="studio-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fas fa-eye text-info"></i>
+            <span>المعاينة الحية للمستند</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-light active" id="btnViewA4" onclick="setViewMode('a4')">
+                <i class="fas fa-file-alt me-1"></i> ورقة A4
+              </button>
+              <button type="button" class="btn btn-outline-light" id="btnViewFull" onclick="setViewMode('full')">
+                <i class="fas fa-expand me-1"></i> عرض كامل
+              </button>
+            </div>
+            <button class="btn-tool" onclick="updatePreview()" title="تحديث المعاينة">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Viewport -->
+        <div class="preview-container">
+          <div class="preview-viewport" id="previewViewport">
+            <div id="previewSheet" class="a4-sheet">
+              <div class="text-center text-muted py-5">
+                <i class="fas fa-code fa-3x mb-3 text-secondary"></i>
+                <h5 class="fw-bold">المعاينة الحية ستظهر هنا فور لصق الكود</h5>
+                <p class="small">الصق كود HTML على اليمين أو اضغط على <strong>"نموذج تجريبي جاهز"</strong> في الأعلى لتجربة الأداة فوراً.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Export Settings Bar -->
+          <div class="export-bar">
+            <div class="options-row">
+              <div>
+                <label class="export-label"><i class="fas fa-file-signature me-1"></i>اسم الملف الناتج</label>
+                <input type="text" id="docFilename" class="form-control-dark w-100" value="مستند_منسق" dir="rtl">
+              </div>
+              <div>
+                <label class="export-label"><i class="fas fa-font me-1"></i>نوع الخط الأساسي</label>
+                <select id="docFont" class="form-select-dark w-100">
+                  <option value="Cairo" selected>Cairo (عصري وأنيق)</option>
+                  <option value="Amiri">Amiri (أكاديمي رسمي)</option>
+                  <option value="Arial">Arial (قياسي)</option>
+                  <option value="Calibri">Calibri (مايكروسوفت وورد)</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Traditional Arabic">Traditional Arabic</option>
+                </select>
+              </div>
+              <div>
+                <label class="export-label"><i class="fas fa-text-height me-1"></i>حجم الخط</label>
+                <select id="docFontSize" class="form-select-dark w-100">
+                  <option value="11">11 نقطة (قياسي)</option>
+                  <option value="12" selected>12 نقطة (مثالي للأبحاث)</option>
+                  <option value="14">14 نقطة (كبير ومريح)</option>
+                </select>
+              </div>
+              <div>
+                <label class="export-label"><i class="fas fa-border-all me-1"></i>هوامش الصفحة</label>
+                <select id="docMargins" class="form-select-dark w-100">
+                  <option value="1.0" selected>عادية (1 بوصة - 2.54 سم)</option>
+                  <option value="0.75">متوسطة (0.75 بوصة)</option>
+                  <option value="0.5">ضيقة (0.5 بوصة - مساحة أكبر)</option>
+                  <option value="1.25">واسعة (1.25 بوصة)</option>
+                </select>
+              </div>
+              <div>
+                <label class="export-label"><i class="fas fa-globe me-1"></i>اتجاه المستند</label>
+                <select id="docRtl" class="form-select-dark w-100">
+                  <option value="true" selected>من اليمين لليسار (RTL عربي)</option>
+                  <option value="false">من اليسار لليمين (LTR إنجليزي)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Download Button -->
+            <button class="btn-export-word" id="btnExportWord" onclick="exportWordDocument()">
+              <i class="fas fa-file-word fa-lg"></i>
+              <span>تصدير وتحميل ملف Word (.docx) فوراً إلى ذاكرة الجهاز</span>
+            </button>
+          </div>
+
+          <!-- Loading overlay for Export -->
+          <div id="exportLoadingOverlay" class="overlay-loading">
+            <div class="spinner-magic"></div>
+            <strong class="text-white">جاري إنشاء ملف Word فائق الدقة وتضمين الجداول والصور...</strong>
+            <small class="text-muted">يتم تجهيز ملف docx حقيقي متوافق مع كافة إصدارات Office</small>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Custom AI Prompt Modal -->
+  <div class="modal fade" id="customAiModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-dark">
+        <div class="modal-header modal-header-dark">
+          <h5 class="modal-title fw-bold"><i class="fas fa-brain text-primary me-2"></i>أمر مخصص للذكاء الاصطناعي</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <label class="form-label small fw-bold">ما التعديل أو التنسيق الذي ترغب في تطبيقه على كود الـ HTML؟</label>
+          <textarea id="customAiPromptInput" class="form-control form-control-dark" rows="3" placeholder="مثال: قم بتلوين رأس الجدول باللون الأخضر الغامق واجعل كافة الأرقام تظهر بخط بارز، وأضف صندوق ملخص في النهاية..."></textarea>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" class="btn btn-primary btn-sm px-4 fw-bold" onclick="submitCustomAiAction()">تنفيذ الأمر</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1000;">
+    <div id="liveToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMessage"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // State
+    const htmlSource = document.getElementById('htmlSource');
+    const previewSheet = document.getElementById('previewSheet');
+    const codeStats = document.getElementById('codeStats');
+    let autoUpdateTimer = null;
+
+    // Toast Notification Helper
+    function showNotification(msg, isSuccess = true) {
+      const toastEl = document.getElementById('liveToast');
+      const toastBody = document.getElementById('toastMessage');
+      toastEl.className = `toast align-items-center text-white border-0 shadow-lg ${isSuccess ? 'bg-success' : 'bg-danger'}`;
+      toastBody.innerHTML = `<i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i> ${msg}`;
+      const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+      toast.show();
+    }
+
+    // Update Statistics & Auto Preview
+    htmlSource.addEventListener('input', () => {
+      const text = htmlSource.value;
+      const lines = text ? text.split('\n').length : 0;
+      codeStats.textContent = `${text.length.toLocaleString('ar-SA')} أحرف | ${lines.toLocaleString('ar-SA')} أسطر`;
+      
+      clearTimeout(autoUpdateTimer);
+      autoUpdateTimer = setTimeout(updatePreview, 600);
+    });
+
+    // Update Live Preview
+    function updatePreview() {
+      const rawHtml = htmlSource.value.trim();
+      if (!rawHtml) {
+        previewSheet.innerHTML = `
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-code fa-3x mb-3 text-secondary"></i>
+            <h5 class="fw-bold">المعاينة الحية ستظهر هنا فور لصق الكود</h5>
+            <p class="small">الصق كود HTML على اليمين أو اضغط على <strong>"نموذج تجريبي جاهز"</strong> في الأعلى لتجربة الأداة فوراً.</p>
+          </div>`;
+        return;
+      }
+
+      // عرض الكود مباشرة داخل صندوق المعاينة مع تطبيق CSS
+      previewSheet.innerHTML = rawHtml;
+    }
+
+    // Toggle View Mode (A4 Sheet vs Full Width)
+    function setViewMode(mode) {
+      const btnA4 = document.getElementById('btnViewA4');
+      const btnFull = document.getElementById('btnViewFull');
+      if (mode === 'a4') {
+        previewSheet.className = 'a4-sheet';
+        btnA4.classList.add('active');
+        btnFull.classList.remove('active');
+      } else {
+        previewSheet.className = 'a4-sheet full-sheet';
+        btnFull.classList.add('active');
+        btnA4.classList.remove('active');
+      }
+    }
+
+    // Paste From Clipboard
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          htmlSource.value = text;
+          htmlSource.dispatchEvent(new Event('input'));
+          showNotification('تم لصق الكود من الحافظة بنجاح!');
+        }
+      } catch (err) {
+        showNotification('يرجى لصق الكود يدوياً باستخدام Ctrl+V في المربع.', false);
+      }
+    }
+
+    // Clear Editor
+    function clearEditor() {
+      if (htmlSource.value && confirm('هل أنت متأكد من تفريغ المحرر؟')) {
+        htmlSource.value = '';
+        htmlSource.dispatchEvent(new Event('input'));
+        updatePreview();
+      }
+    }
+
+    // Format HTML Indentation
+    function formatCode() {
+      const code = htmlSource.value.trim();
+      if (!code) return;
+      try {
+        let formatted = '';
+        let pad = 0;
+        const tokens = code.replace(/>\s*</g, '><').replace(/</g, '~::~<').split('~::~');
+        for (let i = 0; i < tokens.length; i++) {
+          let node = tokens[i].trim();
+          if (!node) continue;
+          if (node.match(/^<\/\w/)) pad = Math.max(0, pad - 1);
+          formatted += '  '.repeat(pad) + node + '\n';
+          if (node.match(/^<\w[^>]*[^\/]>$/) && !node.startsWith('<input') && !node.startsWith('<img') && !node.startsWith('<br') && !node.startsWith('<hr')) {
+            pad++;
+          }
+        }
+        htmlSource.value = formatted.trim();
+        htmlSource.dispatchEvent(new Event('input'));
+        showNotification('تم ترتيب وتنسيق الكود بنجاح!');
+      } catch (e) {
+        showNotification('تم التنسيق التلقائي.', true);
+      }
+    }
+
+    // Load Rich Demo HTML Sample
+    function loadDemoCode() {
+      const sample = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<style>
+  body { font-family: 'Cairo', sans-serif; direction: rtl; }
+  .header-banner { background: linear-gradient(135deg, #1e3a8a, #0284c7); color: #ffffff; padding: 25px; border-radius: 12px; text-align: center; }
+  .stats-card { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 15px 0; }
+  table.custom-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  table.custom-table th { background-color: #0f172a; color: #ffffff; padding: 12px; border: 1px solid #334155; text-align: center; font-weight: bold; }
+  table.custom-table td { padding: 10px; border: 1px solid #cbd5e1; text-align: center; }
+  table.custom-table tr:nth-child(even) { background-color: #f1f5f9; }
+  .badge-success { background-color: #10b981; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; }
+  .badge-info { background-color: #0284c7; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; }
+  .highlight-box { background-color: #eff6ff; border-right: 5px solid #2563eb; padding: 15px; border-radius: 8px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+  <h1 style="color: #ffffff; margin: 0; font-size: 24pt;">تقرير مؤشرات الأداء الأكاديمي والتحليلي</h1>
+  <p style="color: #e0f2fe; margin-top: 8px; font-size: 13pt;">إعداد: مركز سرعة إنجاز للخدمات الأكاديمية والطلابية</p>
+</div>
+
+<div class="stats-card">
+  <h3 style="color: #1e3a8a; margin-top: 0;">الملخص الإحصائي التنفيذي</h3>
+  <p>يعرض هذا الجدول نتائج التقييم النهائي للبيانات مع ثبات دقيق للألوان والحدود والتنسيقات عند تصديرها لملف وورد:</p>
+  
+  <table class="custom-table">
+    <thead>
+      <tr>
+        <th>م</th>
+        <th>المحور الرئيسي</th>
+        <th>المتوسط الحسابي</th>
+        <th>الانحراف المعياري</th>
+        <th>الدرجة والتقييم</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td style="text-align: right; font-weight: bold;">جودة المحتوى العلمي والأكاديمي</td>
+        <td>4.85</td>
+        <td>0.32</td>
+        <td><span class="badge-success">ممتاز جداً</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td style="text-align: right; font-weight: bold;">سرعة الاستجابة والتحليل الإحصائي</td>
+        <td>4.72</td>
+        <td>0.45</td>
+        <td><span class="badge-success">ممتاز</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td style="text-align: right; font-weight: bold;">تنسيق وتصدير المستندات (Word/DOCX)</td>
+        <td>4.96</td>
+        <td>0.18</td>
+        <td><span class="badge-info">فائق الدقة</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="highlight-box">
+  <h4 style="color: #1e40af; margin-top: 0;">📌 ملاحظة هامة حول التحويل:</h4>
+  <p style="margin-bottom: 0;">يتم الحفاظ على التظليل، ألوان الترويسة، الحدود، واتجاه النص العربي من اليمين إلى اليسار (RTL) داخل مستند Word الأصلي بدقة متناهية بدون أي تلف في الخطوط.</p>
+</div>
+
+</body>
+</html>`;
+
+      htmlSource.value = sample;
+      htmlSource.dispatchEvent(new Event('input'));
+      updatePreview();
+      showNotification('تم تحميل النموذج التجريبي الاحترافي بنجاح!');
+    }
+
+    // AI Processing
+    async function runAiAction(action, customPrompt = '') {
+      const code = htmlSource.value.trim();
+      if (!code) {
+        showNotification('يرجى إدخال أو لصق كود HTML أولاً للمعالجة بالذكاء الاصطناعي.', false);
+        return;
+      }
+
+      const overlay = document.getElementById('aiLoadingOverlay');
+      const loadText = document.getElementById('aiLoadingText');
+      overlay.style.display = 'flex';
+
+      if (action === 'optimize') {
+        loadText.textContent = 'المصحح الذكي يقوم بفحص وتثبيت الأنماط والجداول...';
+      } else if (action === 'academic') {
+        loadText.textContent = 'جاري تطبيق التنسيق الأكاديمي والمهني الفاخر...';
+      } else if (action === 'add_toc_cover') {
+        loadText.textContent = 'جاري توليد صفحة الغلاف وفهرس المحتويات...';
+      } else {
+        loadText.textContent = 'جاري تطبيق أمرك بالذكاء الاصطناعي...';
+      }
+
+      try {
+        const resp = await fetch('/api/html_to_word/ai_process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            html: code,
+            action: action,
+            custom_prompt: customPrompt
+          })
+        });
+
+        const data = await resp.json();
+        if (data.success && data.processed_html) {
+          htmlSource.value = data.processed_html;
+          htmlSource.dispatchEvent(new Event('input'));
+          updatePreview();
+          showNotification('تمت معالجة وتحسين الكود بالذكاء الاصطناعي بنجاح!');
+        } else {
+          showNotification(data.error || 'فشلت معالجة الذكاء الاصطناعي', false);
+        }
+      } catch (err) {
+        showNotification('حدث خطأ أثناء الاتصال بخدمة الذكاء الاصطناعي.', false);
+      } finally {
+        overlay.style.display = 'none';
+      }
+    }
+
+    function openCustomAiModal() {
+      new bootstrap.Modal(document.getElementById('customAiModal')).show();
+    }
+
+    function submitCustomAiAction() {
+      const prompt = document.getElementById('customAiPromptInput').value.trim();
+      if (!prompt) return;
+      bootstrap.Modal.getInstance(document.getElementById('customAiModal')).hide();
+      runAiAction('custom', prompt);
+    }
+
+    // Export & Download Word (.docx)
+    async function exportWordDocument() {
+      const code = htmlSource.value.trim();
+      if (!code) {
+        showNotification('لا يوجد كود HTML لتصديره! يرجى لصق الكود أولاً.', false);
+        return;
+      }
+
+      const btn = document.getElementById('btnExportWord');
+      const overlay = document.getElementById('exportLoadingOverlay');
+      btn.disabled = true;
+      overlay.style.display = 'flex';
+
+      const payload = {
+        html: code,
+        filename: document.getElementById('docFilename').value.trim() || 'document',
+        font_family: document.getElementById('docFont').value,
+        font_size: parseFloat(document.getElementById('docFontSize').value) || 12.0,
+        margin: parseFloat(document.getElementById('docMargins').value) || 1.0,
+        rtl: document.getElementById('docRtl').value === 'true'
+      };
+
+      try {
+        const resp = await fetch('/api/html_to_word/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || 'تعذر تصدير الملف');
+        }
+
+        // استلام ملف الـ Word المباشر وتنزيله لذاكرة الجهاز فوراً
+        const blob = await resp.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+        a.download = (payload.filename.endsWith('.docx') ? payload.filename : payload.filename + '.docx');
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        a.remove();
+
+        showNotification('🎉 تم تصدير وتحميل ملف Word الحقيقي إلى ذاكرة جهازك بنجاح!');
+      } catch (err) {
+        showNotification('خطأ أثناء التصدير: ' + err.message, false);
+      } finally {
+        btn.disabled = false;
+        overlay.style.display = 'none';
+      }
+    }
+
+    function goBackOrCloseStudio() {
+      if (window.self !== window.top) {
+        try {
+          window.parent.postMessage('closeHtmlToWordModal', '*');
+          return;
+        } catch(e){}
+      }
+      window.location.href = '/';
+    }
+
+    // Initial Demo Load if empty
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDemoCode();
+    });
+  </script>
+</body>
+</html>

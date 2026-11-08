@@ -1,0 +1,1 @@
+- [Python runtime alignment](python-runtime-alignment.md) — uploaded app dependencies must match the active Python minor version.

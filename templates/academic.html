@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">النظام الأكاديمي الذكي المتكامل</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --primary:#0b3b4f;--secondary:#1a5a7a;--accent:#2c7da0;
+  --success:#2d6a4f;--warn:#b45309;--danger:#991b1b;
+  --bg:#f0f4f8;--card:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;
+}
+body{background:var(--bg);font-family:'Times New Roman',Times,serif;font-size:15px;color:var(--text);padding:20px;}
+[lang="en"] body,[lang="en"] input,[lang="en"] textarea,[lang="en"] select,[lang="en"] button{font-family:'Georgia',serif;}
+.main{max-width:1600px;margin:0 auto;}
+.header{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 60%,var(--accent) 100%);color:#fff;padding:28px 35px;border-radius:20px;margin-bottom:25px;text-align:center;box-shadow:0 8px 32px rgba(11,59,79,0.18);position:relative;}
+.header h1{font-size:26px;margin-bottom:8px;}
+.header p{font-size:14px;opacity:.88;}
+.header-badges{display:flex;justify-content:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+.badge{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 14px;font-size:12px;}
+.lang-toggle{position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.5);color:#fff;border-radius:30px;padding:6px 16px;font-size:13px;font-weight:bold;cursor:pointer;transition:.2s;}
+[dir="ltr"] .lang-toggle{left:auto;right:16px;}
+.lang-toggle:hover{background:rgba(255,255,255,0.35);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+@media(max-width:1000px){.grid-2{grid-template-columns:1fr;}.grid-3{grid-template-columns:1fr 1fr;}.grid-4{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.grid-3,.grid-4{grid-template-columns:1fr;}}
+.card{background:var(--card);border-radius:18px;padding:22px;margin-bottom:22px;box-shadow:0 3px 14px rgba(0,0,0,0.07);border:1px solid var(--border);}
+.card-title{font-size:1.15rem;font-weight:bold;color:var(--primary);border-right:5px solid var(--accent);padding-right:14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+[dir="ltr"] .card-title{border-right:none;border-left:5px solid var(--accent);padding-right:0;padding-left:14px;}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tab{background:#f1f5f9;color:var(--primary);padding:8px 18px;border-radius:30px;cursor:pointer;font-size:13px;font-weight:bold;border:2px solid transparent;transition:.2s;}
+.tab.active{background:var(--primary);color:#fff;}
+.tab-content{display:none;}.tab-content.active{display:block;}
+label{display:block;margin-top:12px;margin-bottom:5px;font-weight:bold;color:var(--secondary);font-size:14px;}
+input,textarea,select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;color:var(--text);background:#fafafa;transition:.2s;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);background:#fff;}
+textarea{min-height:90px;resize:vertical;}
+.btn{display:inline-flex;align-items:center;gap:7px;border:none;padding:11px 22px;border-radius:30px;font-size:14px;font-weight:bold;cursor:pointer;transition:.2s;font-family:inherit;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.15);}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;}
+.btn-success{background:linear-gradient(135deg,var(--success),#40916c);color:#fff;}
+.btn-outline{background:transparent;border:2px solid var(--accent);color:var(--accent);}
+.btn-warn{background:linear-gradient(135deg,var(--warn),#d97706);color:#fff;}
+.btn-sm{padding:7px 15px;font-size:13px;}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+.upload-zone{border:2.5px dashed var(--border);border-radius:14px;padding:24px;text-align:center;background:#f8fafc;cursor:pointer;transition:.2s;}
+.upload-zone:hover{border-color:var(--accent);background:#f1f7fb;}
+.upload-zone .icon{font-size:36px;margin-bottom:8px;}
+.status{padding:12px 16px;border-radius:12px;margin:14px 0;font-size:14px;display:none;}
+.status-loading{background:#e6f4ff;color:#0c4a6e;border-right:4px solid var(--accent);}
+.status-success{background:#d1fae5;color:#065f46;border-right:4px solid #10b981;}
+.status-error{background:#fee2e2;color:var(--danger);border-right:4px solid #ef4444;}
+.status-warn{background:#fef3c7;color:var(--warn);border-right:4px solid #f59e0b;}
+[dir="ltr"] .status-loading{border-right:none;border-left:4px solid var(--accent);}
+[dir="ltr"] .status-success{border-right:none;border-left:4px solid #10b981;}
+[dir="ltr"] .status-error{border-right:none;border-left:4px solid #ef4444;}
+[dir="ltr"] .status-warn{border-right:none;border-left:4px solid #f59e0b;}
+.stat-card{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:14px;padding:14px;text-align:center;}
+.stat-card .val{font-size:1.6rem;font-weight:bold;color:var(--primary);}
+.stat-card .lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+.table-wrap{overflow-x:auto;max-height:240px;font-size:12px;margin-top:14px;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th,.data-table td{border:1px solid var(--border);padding:5px 8px;text-align:center;white-space:nowrap;}
+.data-table th{background:#f1f5f9;font-weight:bold;color:var(--primary);position:sticky;top:0;}
+.data-table tr:nth-child(even){background:#fafafa;}
+/* Report */
+.report{background:#fff;border-radius:20px;padding:36px;margin-top:28px;box-shadow:0 10px 40px rgba(0,0,0,0.12);display:none;}
+.report-header{text-align:center;border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:28px;}
+.report-header h1{font-size:22px;color:var(--primary);margin-bottom:8px;}
+.report-header p{color:var(--muted);font-size:13px;margin-top:4px;}
+.report-section{margin-bottom:28px;border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.section-title{background:var(--primary);color:#fff;padding:12px 20px;font-size:1.05rem;font-weight:bold;display:flex;align-items:center;gap:8px;}
+.section-body{padding:20px;}
+.report-table{width:100%;border-collapse:collapse;font-size:13px;}
+.report-table th,.report-table td{border:1px solid var(--border);padding:7px 10px;text-align:center;}
+.report-table th{background:#f1f5f9;font-weight:bold;color:var(--primary);}
+.report-table tr:nth-child(even) td{background:#f8fafc;}
+.likert-table th,.likert-table td{padding:6px 8px;font-size:12px;}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;margin-top:16px;}
+.chart-box{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:16px;}
+.chart-box canvas{max-height:280px;}
+.hypothesis-item{background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:10px;border-right:4px solid var(--accent);}
+[dir="ltr"] .hypothesis-item{border-right:none;border-left:4px solid var(--accent);}
+.hypothesis-item.accepted{border-color:#10b981;background:#f0fdf4;}
+.hypothesis-item.rejected{border-color:#ef4444;background:#fff5f5;}
+.sig-tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:bold;}
+.sig-yes{background:#d1fae5;color:#065f46;}
+.sig-no{background:#fee2e2;color:var(--danger);}
+.progress-bar-wrap{background:#e2e8f0;border-radius:20px;height:10px;margin-top:6px;}
+.progress-bar{height:10px;border-radius:20px;background:linear-gradient(90deg,var(--accent),var(--primary));}
+.ai-box{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;border-radius:14px;padding:18px;margin-top:12px;}
+.ai-box-label{font-size:11px;font-weight:bold;color:#1e40af;margin-bottom:8px;}
+.ai-box p{line-height:1.9;font-size:14px;color:#1e3a5f;}
+.gap-badge{display:inline-block;background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:bold;margin-inline-start:8px;}
+.spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.info-panel{background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:16px;margin-top:14px;font-size:13px;display:none;}
+.info-row{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e0f2fe;}
+.info-row:last-child{border-bottom:none;margin-bottom:0;}
+.section-box{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;}
+.section-box h4{color:var(--primary);margin-bottom:10px;font-size:15px;}
+.mini-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px;}
+.mini-bar-bg{flex:1;background:#e2e8f0;border-radius:10px;height:7px;}
+.mini-bar-fill{height:7px;border-radius:10px;background:var(--accent);}
+@media print{body{background:#fff;padding:0;}.main>*:not(.report){display:none!important;}.report{display:block!important;box-shadow:none;margin:0;padding:20px;}.btn-group{display:none!important;}}
+</style>
+</head>
+<body>
+
+<div class="main">
+
+<div class="header">
+  <button class="lang-toggle" onclick="toggleLang()" id="langBtn">🌐 English</button>
+  <h1 id="headerTitle">📊 النظام الأكاديمي الذكي المتكامل لتحليل الدراسات والبيانات</h1>
+  <p id="headerSub">استخراج تلقائي · تحليل إحصائي أكاديمي شامل · تقارير احترافية</p>
+  <div class="header-badges" id="headerBadges">
+    <span class="badge">🧮 إحصاء وصفي</span><span class="badge">📊 تحليل ليكرت</span>
+    <span class="badge">🔗 مصفوفة ارتباط</span><span class="badge">🔢 ألفا كرونباخ</span>
+    <span class="badge">📈 انحدار خطي</span><span class="badge">🧪 اختبارات T/ANOVA</span>
+    <span class="badge">🤖 تفسير ذكاء اصطناعي</span><span class="badge">📄 PDF/Word</span>
+  </div>
+</div>
+
+<div id="mainStatus" class="status"></div>
+
+<div class="grid-2">
+  <!-- Study Info -->
+  <div>
+    <div class="card">
+      <div class="card-title" id="col1Title">🤖 معلومات الدراسة (اختياري – يُكمل التحليل بدونه)</div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('upload',this)" id="tab-lbl-upload">📁 رفع مستند</div>
+        <div class="tab" onclick="switchTab('paste',this)" id="tab-lbl-paste">📝 لصق نص</div>
+        <div class="tab" onclick="switchTab('manual',this)" id="tab-lbl-manual">✏️ إدخال يدوي</div>
+      </div>
+      <div id="tab-upload" class="tab-content active">
+        <div class="upload-zone" onclick="document.getElementById('studyDoc').click()">
+          <div class="icon">📄</div>
+          <strong id="docZoneTitle">انقر لرفع مستند الدراسة</strong>
+          <p id="docZoneSub">PDF · Word · TXT | يستخرج الأهداف، الفرضيات، المتغيرات</p>
+        </div>
+        <input type="file" id="studyDoc" accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="handleDocUpload(this)">
+        <div id="docProgress" style="margin-top:8px;font-size:13px;color:var(--muted);"></div>
+      </div>
+      <div id="tab-paste" class="tab-content">
+        <label id="pasteLabel">الصق نص الدراسة:</label>
+        <textarea id="pastedText" rows="6" id="pastedText"></textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="extractFromText()" id="extractBtn">🔍 استخراج بالذكاء الاصطناعي</button>
+      </div>
+      <div id="tab-manual" class="tab-content">
+        <label id="lbl-mTitle">عنوان الدراسة:</label><input type="text" id="mTitle" placeholder="عنوان الدراسة...">
+        <label id="lbl-mObjectives">أهداف الدراسة:</label><textarea id="mObjectives" rows="3" placeholder="الأهداف..."></textarea>
+        <label id="lbl-mProblem">مشكلة الدراسة:</label><textarea id="mProblem" rows="2" placeholder="المشكلة..."></textarea>
+        <label id="lbl-mHypotheses">الفرضيات:</label><textarea id="mHypotheses" rows="3" placeholder="H1: ...&#10;H2: ..."></textarea>
+        <label id="lbl-mMethodology">المنهجية:</label><input type="text" id="mMethodology" placeholder="المنهج الوصفي...">
+        <label id="lbl-mIndep">المتغير المستقل:</label><input type="text" id="mIndep">
+        <label id="lbl-mDep">المتغير التابع:</label><input type="text" id="mDep">
+        <label id="lbl-mSample">مجتمع وعينة الدراسة:</label><input type="text" id="mSample">
+      </div>
+      <div id="infoPanel" class="info-panel"><div id="infoPanelContent"></div></div>
+    </div>
+  </div>
+
+  <!-- Data Upload -->
+  <div>
+    <div class="card">
+      <div class="card-title" id="col2Title">📂 رفع ملف البيانات (Excel / CSV / PDF / صورة)</div>
+      <div class="upload-zone" id="dropZone"
+           onclick="document.getElementById('anyFile').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+           ondragleave="this.style.borderColor=''"
+           ondrop="handleDrop(event)">
+        <div class="icon">📥</div>
+        <strong id="dropZoneTitle">اسحب أي ملف أو انقر للرفع</strong>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+          <span style="background:#dbeafe;color:#1e40af;border-radius:20px;padding:3px 12px;font-size:12px;">📊 Excel/CSV</span>
+          <span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:3px 12px;font-size:12px;" id="badge-img">🖼️ PNG/JPG</span>
+          <span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:3px 12px;font-size:12px;">📄 PDF</span>
+          <span style="background:#ede9fe;color:#5b21b6;border-radius:20px;padding:3px 12px;font-size:12px;">📝 Word/TXT</span>
+        </div>
+      </div>
+      <input type="file" id="anyFile" accept="*/*" multiple style="display:none" onchange="handleAnyFile(this)">
+
+      <div id="imagePreviewArea" style="display:none;margin-top:12px;">
+        <div id="imgPreviewTitle" style="font-size:13px;font-weight:bold;color:var(--primary);margin-bottom:8px;">🖼️ الصور المرفوعة:</div>
+        <div id="imageThumbs" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="extractFromImages()" id="extractImgBtn">🤖 استخراج البيانات من الصور</button>
+      </div>
+
+      <div id="visionLog" style="display:none;margin-top:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;font-size:13px;max-height:140px;overflow-y:auto;"></div>
+
+      <div id="rawTextArea" style="display:none;margin-top:12px;">
+        <label id="rawTextLabel">📋 البيانات المستخرجة (قابلة للتعديل):</label>
+        <textarea id="extractedRawText" rows="6"></textarea>
+        <button class="btn btn-success btn-sm" style="margin-top:8px;" onclick="parseTextToData()" id="parseBtn">✅ تحويل إلى بيانات وتحليل</button>
+      </div>
+
+      <div id="dataInfo" style="margin-top:14px;display:none;">
+        <div class="grid-4" id="dataStatCards"></div>
+        <div class="table-wrap" id="previewWrap"></div>
+      </div>
+
+      <div id="analysisConfig" style="margin-top:16px;display:none;">
+        <label id="lbl-colX">المتغير المستقل / المحور الأول (X):</label>
+        <select id="colX"></select>
+        <label id="lbl-colY">المتغير التابع / المحور الثاني (Y):</label>
+        <select id="colY"></select>
+        <label id="lbl-colGroup">عمود التصنيف للـ ANOVA (اختياري):</label>
+        <select id="colGroup"><option value="" id="optGroupNone">-- اختياري --</option></select>
+      </div>
+
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-success" onclick="runFullAnalysis()" id="analyzeBtn" style="display:none;">
+          🚀 تشغيل التحليل الإحصائي الشامل
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="reportContainer" class="report"></div>
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const GROQ_KEY="{{ groq_key }}";
+const GROQ_URL="https://api.groq.com/openai/v1/chat/completions";
+const MODEL="llama-3.3-70b-versatile";
+const VISION_MODEL="meta-llama/llama-4-scout-17b-16e-instruct";
+if(typeof pdfjsLib!=='undefined')
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ==================== LANGUAGE ====================
+let LANG='ar';
+const TR={
+  ar:{
+    pageTitle:'النظام الأكاديمي الذكي',headerTitle:'📊 النظام الأكاديمي الذكي المتكامل',
+    headerSub:'تحليل ليكرت · مصفوفة ارتباط · ألفا كرونباخ · انحدار · تقارير احترافية',
+    badges:['🧮 إحصاء وصفي','📊 تحليل ليكرت','🔗 مصفوفة ارتباط','🔢 ألفا كرونباخ','📈 انحدار خطي','🧪 T-Test/ANOVA','🤖 تفسير ذكاء اصطناعي','📄 PDF/Word'],
+    langBtn:'🌐 English',col1Title:'🤖 معلومات الدراسة (اختياري)',col2Title:'📂 رفع ملف البيانات',
+    tabUpload:'📁 رفع مستند',tabPaste:'📝 لصق نص',tabManual:'✏️ إدخال يدوي',
+    docZoneTitle:'انقر لرفع مستند الدراسة',docZoneSub:'PDF · Word · TXT',
+    pasteLabel:'الصق نص الدراسة:',pastePlaceholder:'الصق النص هنا...',
+    extractBtn:'🔍 استخراج',dropZoneTitle:'اسحب أي ملف أو انقر للرفع',
+    'badge-img':'🖼️ PNG/JPG','lbl-colX':'المتغير المستقل (X):','lbl-colY':'المتغير التابع (Y):',
+    'lbl-colGroup':'عمود التصنيف (ANOVA):','optGroupNone':'-- اختياري --',
+    analyzeBtn:'🚀 تشغيل التحليل الشامل',rawTextLabel:'📋 البيانات المستخرجة:',
+    parseBtn:'✅ تحويل وتحليل',extractImgBtn:'🤖 استخراج من الصور',
+    'lbl-mTitle':'عنوان الدراسة:','lbl-mObjectives':'أهداف الدراسة:',
+    'lbl-mProblem':'مشكلة الدراسة:','lbl-mHypotheses':'الفرضيات:',
+    'lbl-mMethodology':'المنهجية:','lbl-mIndep':'المتغير المستقل:','lbl-mDep':'المتغير التابع:',
+    'lbl-mSample':'مجتمع وعينة الدراسة:',
+    aiLang:'العربية الأكاديمية الفصحى',aiRole:'أستاذ دكتور متخصص في الإحصاء والبحث العلمي',
+    lbl_exportPDF:'📄 تصدير PDF',lbl_exportWord:'📝 تصدير Word',lbl_print:'🖨️ طباعة',
+  },
+  en:{
+    pageTitle:'Smart Academic System',headerTitle:'📊 Smart Academic Analysis System',
+    headerSub:'Likert Analysis · Correlation Matrix · Cronbach Alpha · Regression · Professional Reports',
+    badges:['🧮 Descriptive Stats','📊 Likert Analysis','🔗 Correlation Matrix','🔢 Cronbach Alpha','📈 Regression','🧪 T-Test/ANOVA','🤖 AI Interpretation','📄 PDF/Word'],
+    langBtn:'🌐 العربية',col1Title:'🤖 Study Information (Optional)',col2Title:'📂 Upload Data File',
+    tabUpload:'📁 Upload Document',tabPaste:'📝 Paste Text',tabManual:'✏️ Manual Entry',
+    docZoneTitle:'Click to upload study document',docZoneSub:'PDF · Word · TXT',
+    pasteLabel:'Paste study text:',pastePlaceholder:'Paste text here...',
+    extractBtn:'🔍 Extract',dropZoneTitle:'Drag any file or click to upload',
+    'badge-img':'🖼️ PNG/JPG','lbl-colX':'Independent Variable (X):','lbl-colY':'Dependent Variable (Y):',
+    'lbl-colGroup':'Grouping Column (ANOVA):','optGroupNone':'-- Optional --',
+    analyzeBtn:'🚀 Run Full Statistical Analysis',rawTextLabel:'📋 Extracted Data:',
+    parseBtn:'✅ Convert & Analyze',extractImgBtn:'🤖 Extract from Images',
+    'lbl-mTitle':'Study Title:','lbl-mObjectives':'Study Objectives:',
+    'lbl-mProblem':'Research Problem:','lbl-mHypotheses':'Hypotheses:',
+    'lbl-mMethodology':'Methodology:','lbl-mIndep':'Independent Variable:','lbl-mDep':'Dependent Variable:',
+    'lbl-mSample':'Population & Sample:',
+    aiLang:'formal academic English',aiRole:'Professor specializing in statistics and academic research',
+    lbl_exportPDF:'📄 Export PDF',lbl_exportWord:'📝 Export Word',lbl_print:'🖨️ Print',
+  }
+};
+function t(k){return(TR[LANG][k]||TR['ar'][k]||k);}
+function toggleLang(){LANG=LANG==='ar'?'en':'ar';const h=document.getElementById('htmlRoot');h.lang=LANG;h.dir=LANG==='ar'?'rtl':'ltr';applyTranslations();}
+function applyTranslations(){
+  const map={
+    'pageTitle':'pageTitle','headerTitle':'headerTitle','headerSub':'headerSub',
+    'langBtn':'langBtn','col1Title':'col1Title','col2Title':'col2Title',
+    'tab-lbl-upload':'tabUpload','tab-lbl-paste':'tabPaste','tab-lbl-manual':'tabManual',
+    'docZoneTitle':'docZoneTitle','docZoneSub':'docZoneSub','pasteLabel':'pasteLabel',
+    'extractBtn':'extractBtn','dropZoneTitle':'dropZoneTitle','badge-img':'badge-img',
+    'extractImgBtn':'extractImgBtn','rawTextLabel':'rawTextLabel','parseBtn':'parseBtn',
+    'analyzeBtn':'analyzeBtn','optGroupNone':'optGroupNone',
+    'lbl-colX':'lbl-colX','lbl-colY':'lbl-colY','lbl-colGroup':'lbl-colGroup',
+    'lbl-mTitle':'lbl-mTitle','lbl-mObjectives':'lbl-mObjectives','lbl-mProblem':'lbl-mProblem',
+    'lbl-mHypotheses':'lbl-mHypotheses','lbl-mMethodology':'lbl-mMethodology',
+    'lbl-mIndep':'lbl-mIndep','lbl-mDep':'lbl-mDep','lbl-mSample':'lbl-mSample',
+  };
+  Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.textContent=t(key);});
+  document.getElementById('headerBadges').innerHTML=t('badges').map(b=>`<span class="badge">${b}</span>`).join('');
+}
+
+// ==================== STATE ====================
+let rawData=[],colNames=[],numericCols=[],numericData={};
+let studyInfo={title:'',objectives:'',problem:'',hypotheses:'',methodology:'',independentVar:'',dependentVar:'',sample:''};
+let uploadedImages=[];
+const IMAGE_TYPES=['image/png','image/jpeg','image/jpg','image/webp','image/gif','image/bmp'];
+
+// ==================== UTILS ====================
+function showStatus(msg,type='loading'){
+  const el=document.getElementById('mainStatus');
+  el.innerHTML=msg;el.className=`status status-${type}`;el.style.display='block';
+  if(type!=='loading')setTimeout(()=>{el.style.display='none';},7000);
+}
+function switchTab(n,el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  if(el)el.classList.add('active');
+}
+function fmt(n,d=3){return(typeof n==='number'&&!isNaN(n))?n.toFixed(d):'N/A';}
+function mean(a){return a.reduce((s,v)=>s+v,0)/a.length;}
+function variance(a){const m=mean(a),n=a.length>1?a.length-1:1;return a.reduce((s,v)=>s+Math.pow(v-m,2),0)/n;}
+function stdDev(a){return Math.sqrt(variance(a));}
+function median(a){const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function pearsonR(x,y){
+  const mx=mean(x),my=mean(y);
+  const n=x.reduce((a,xi,i)=>a+(xi-mx)*(y[i]-my),0);
+  const d=Math.sqrt(x.reduce((a,xi)=>a+Math.pow(xi-mx,2),0)*y.reduce((a,yi)=>a+Math.pow(yi-my,2),0));
+  return d===0?0:n/d;
+}
+function spearmanR(x,y){
+  const rank=a=>{const s=[...a].map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);const r=new Array(a.length);s.forEach((e,i)=>r[e.i]=i+1);return r;};
+  const rx=rank(x),ry=rank(y),n=x.length,d2=rx.reduce((a,r,i)=>a+Math.pow(r-ry[i],2),0);
+  return 1-(6*d2/(n*(n*n-1)));
+}
+function cronbachAlpha(mat){
+  const k=mat.length;if(k<2)return null;
+  const n=mat[0].length;
+  const iV=mat.map(r=>variance(r));
+  const tot=Array.from({length:n},(_,i)=>mat.reduce((a,r)=>a+r[i],0));
+  const tV=variance(tot);
+  return tV===0?null:(k/(k-1))*(1-iV.reduce((a,b)=>a+b,0)/tV);
+}
+function tTestOneSample(a,mu=3){const m=mean(a),s=stdDev(a),n=a.length,tv=(m-mu)/(s/Math.sqrt(n));return{t:tv,df:n-1,mean:m,std:s,n};}
+function tTestIndependent(x,y){
+  const mx=mean(x),my=mean(y),nx=x.length,ny=y.length,sx=variance(x),sy=variance(y);
+  const sp=Math.sqrt(sx/nx+sy/ny),tv=(mx-my)/sp;
+  const df=Math.pow(sx/nx+sy/ny,2)/(Math.pow(sx/nx,2)/(nx-1)+Math.pow(sy/ny,2)/(ny-1));
+  return{t:tv,df:Math.round(df),meanX:mx,meanY:my,n1:nx,n2:ny};
+}
+function anovaSingle(gs){
+  const all=gs.flat(),gm=mean(all),N=all.length,k=gs.length;
+  const SSB=gs.reduce((a,g)=>a+g.length*Math.pow(mean(g)-gm,2),0);
+  const SSW=gs.reduce((a,g)=>a+g.reduce((b,v)=>b+Math.pow(v-mean(g),2),0),0);
+  const MSB=SSB/(k-1),MSW=SSW/(N-k)||0.0001,F=MSB/MSW;
+  return{F,df1:k-1,df2:N-k,SSB,SSW,MSB,MSW,k,N};
+}
+function linearRegression(x,y){
+  const mx=mean(x),my=mean(y);
+  const b=x.reduce((a,xi,i)=>a+(xi-mx)*(y[i]-my),0)/(x.reduce((a,xi)=>a+Math.pow(xi-mx,2),0)||1);
+  const a=my-b*mx;
+  const yP=x.map(xi=>a+b*xi);
+  const SSR=y.reduce((s,yi,i)=>s+Math.pow(yi-yP[i],2),0);
+  const SST=y.reduce((s,yi)=>s+Math.pow(yi-my,2),0)||1;
+  const r2=1-SSR/SST,r=pearsonR(x,y),n=x.length;
+  const se=Math.sqrt(SSR/(n-2)||0);
+  const seb=se/Math.sqrt(x.reduce((a,xi)=>a+Math.pow(xi-mx,2),0)||1);
+  const tv=seb===0?0:b/seb;
+  return{a,b,r,r2,se,t:tv,n};
+}
+function normalCDF(x){return 0.5*(1+erf(x/Math.SQRT2));}
+function erf(x){const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911,s=x<0?-1:1;x=Math.abs(x);const t2=1/(1+p*x);return s*(1-(((((a5*t2+a4)*t2)+a3)*t2+a2)*t2+a1)*t2*Math.exp(-x*x));}
+function tPValue(t,df){return Math.min(1,Math.max(0,2*(1-normalCDF(Math.abs(t)))));}
+function fPValue(F,df1,df2){if(F<=0)return 1;return Math.min(1,Math.max(0,Math.exp(-0.5*F*df1/(df1+df2))));}
+function getSig(p){if(p<0.001)return'***';if(p<0.01)return'**';if(p<0.05)return'*';return LANG==='ar'?'غير دال':'ns';}
+function rInterp(r){const a=Math.abs(r);if(a>=0.9)return LANG==='ar'?'قوية جداً':'Very Strong';if(a>=0.7)return LANG==='ar'?'قوية':'Strong';if(a>=0.5)return LANG==='ar'?'متوسطة':'Moderate';if(a>=0.3)return LANG==='ar'?'ضعيفة':'Weak';return LANG==='ar'?'ضعيفة جداً':'Very Weak';}
+function alphaInterp(a){if(a>=0.9)return LANG==='ar'?'ممتاز':'Excellent';if(a>=0.8)return LANG==='ar'?'جيد جداً':'Very Good';if(a>=0.7)return LANG==='ar'?'مقبول':'Acceptable';if(a>=0.6)return LANG==='ar'?'مشكوك فيه':'Questionable';return LANG==='ar'?'غير مقبول':'Unacceptable';}
+
+// ==================== LIKERT DETECTION & SECTION GROUPING ====================
+function isLikertCol(col){
+  const vals=numericData[col];if(!vals||vals.length<3)return false;
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  return mn>=1&&mx<=7&&mx-mn>=2&&vals.filter(v=>Number.isInteger(v)).length/vals.length>0.85;
+}
+
+function detectSections(){
+  // Try to group by common prefix: C1_, C2_, D_, Q1_, S1_, etc.
+  const groups={};
+  numericCols.forEach(col=>{
+    const m=col.match(/^([A-Za-zء-ي]+[0-9]*)[_\-\s\.]/);
+    const key=m?m[1].toUpperCase():'_ALL_';
+    if(!groups[key])groups[key]=[];
+    groups[key].push(col);
+  });
+  // If only one group or no prefix found, try splitting by index
+  const keys=Object.keys(groups).filter(k=>k!=='_ALL_');
+  if(keys.length>=2&&keys.every(k=>groups[k].length>=2)) return groups;
+  // Fallback: all numeric cols as one section
+  const fb={};
+  if(numericCols.length<=20){fb['ALL']=numericCols;}
+  else{
+    const half=Math.ceil(numericCols.length/2);
+    fb['S1']=numericCols.slice(0,half);
+    fb['S2']=numericCols.slice(half);
+  }
+  return fb;
+}
+
+function computeLikertItemStats(col){
+  const vals=numericData[col];
+  const n=vals.length;
+  const dist={};
+  [1,2,3,4,5,6,7].forEach(v=>{dist[v]=0;});
+  vals.forEach(v=>{const rv=Math.round(v);if(dist[rv]!==undefined)dist[rv]++;});
+  const mx=Math.max(...Object.keys(dist).filter(k=>dist[k]>0).map(Number));
+  const scaleMax=mx<=5?5:7;
+  const agreeThreshold=scaleMax===5?4:6;
+  const agreeCount=[agreeThreshold,agreeThreshold+1].reduce((a,k)=>a+(dist[k]||0),0);
+  const agreePct=agreeCount/n*100;
+  return{n,mean:mean(vals),std:stdDev(vals),dist,agreePct,scaleMax};
+}
+
+function computeSectionScore(cols){
+  // Average score per respondent across all items in section
+  const n=rawData.length;
+  return Array.from({length:n},(_,i)=>{
+    const vals=cols.map(col=>{const v=parseFloat(rawData[i][col]);return isNaN(v)?null:v;}).filter(v=>v!==null);
+    return vals.length?mean(vals):null;
+  }).filter(v=>v!==null);
+}
+
+// ==================== GROQ AI ====================
+async function callAI(prompt,maxTokens=3500){
+  const res=await fetch(GROQ_URL,{method:'POST',headers:{'Authorization':`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,messages:[{role:'user',content:prompt}],temperature:0.35,max_tokens:maxTokens})});
+  const d=await res.json();if(d.error)throw new Error(d.error.message);return d.choices?.[0]?.message?.content||'';
+}
+
+// ==================== DOCUMENT EXTRACTION ====================
+async function handleDocUpload(input){
+  const file=input.files[0];if(!file)return;
+  showStatus('⏳ '+(LANG==='ar'?'جاري قراءة المستند...':'Reading document...'),'loading');
+  let text='';
+  try{
+    if(file.name.endsWith('.txt'))text=await file.text();
+    else if(file.name.endsWith('.pdf'))text=await extractPDFText(file);
+    else text=await extractDocxText(file);
+    if(!text.trim()){showStatus(LANG==='ar'?'لم يُستخرج نص':'No text extracted','warn');return;}
+    document.getElementById('docProgress').textContent=(LANG==='ar'?`تم استخراج ${text.length} حرف. جاري التحليل...`:`Extracted ${text.length} chars. Analyzing...`);
+    await extractStudyInfo(text);
+  }catch(e){showStatus('Error: '+e.message,'error');}
+}
+async function extractPDFText(file){
+  const ab=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:new Uint8Array(ab)}).promise;
+  let t='';for(let i=1;i<=Math.min(pdf.numPages,40);i++){const pg=await pdf.getPage(i);const ct=await pg.getTextContent();t+=ct.items.map(s=>s.str).join(' ')+'\n';}return t;
+}
+async function extractDocxText(file){try{const ab=await file.arrayBuffer();const wb=XLSX.read(new Uint8Array(ab),{type:'array'});return wb.SheetNames.map(n=>XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n');}catch(e){return '';}}
+async function extractFromText(){
+  const text=document.getElementById('pastedText').value.trim();
+  if(!text){showStatus(LANG==='ar'?'الرجاء لصق النص':'Please paste text first','error');return;}
+  showStatus('⏳ '+(LANG==='ar'?'جاري التحليل...':'Analyzing...'),'loading');
+  await extractStudyInfo(text);
+}
+async function extractStudyInfo(text){
+  const prompt=LANG==='ar'
+    ?`استخرج من النص التالي المعلومات بـ JSON فقط (إن لم يوجد شيء اكتب ""):
+{"title":"","objectives":"","problem":"","hypotheses":"","methodology":"","independentVar":"","dependentVar":"","sample":""}
+النص: ${text.substring(0,12000)}`
+    :`Extract from the text below as JSON only (write "" if not found):
+{"title":"","objectives":"","problem":"","hypotheses":"","methodology":"","independentVar":"","dependentVar":"","sample":""}
+Text: ${text.substring(0,12000)}`;
+  try{
+    const resp=await callAI(prompt,1500);
+    const m=resp.match(/\{[\s\S]*\}/);
+    if(m){const info=JSON.parse(m[0]);studyInfo={...studyInfo,...info};fillManualFields(info);showInfoPanel(info);showStatus(LANG==='ar'?'✅ تم استخراج معلومات الدراسة':'✅ Study information extracted','success');}
+    else throw new Error('No JSON');
+  }catch(e){showStatus(LANG==='ar'?'⚠️ تعذر الاستخراج. يمكنك الإدخال اليدوي.':'⚠️ Extraction failed. Use manual entry.','warn');}
+}
+function fillManualFields(info){
+  ['title','objectives','problem','hypotheses','methodology'].forEach(k=>{if(info[k])document.getElementById('m'+k.charAt(0).toUpperCase()+k.slice(1)).value=info[k];});
+  if(info.independentVar)document.getElementById('mIndep').value=info.independentVar;
+  if(info.dependentVar)document.getElementById('mDep').value=info.dependentVar;
+  if(info.sample)document.getElementById('mSample').value=info.sample;
+}
+function showInfoPanel(info){
+  const rows=[
+    [LANG==='ar'?'العنوان':'Title',info.title],[LANG==='ar'?'المتغير المستقل':'Independent Var',info.independentVar],
+    [LANG==='ar'?'المتغير التابع':'Dependent Var',info.dependentVar],[LANG==='ar'?'العينة':'Sample',info.sample],
+    [LANG==='ar'?'الفرضيات':'Hypotheses',(info.hypotheses||'').substring(0,200)]
+  ].filter(r=>r[1]);
+  document.getElementById('infoPanelContent').innerHTML=rows.map(r=>`<div class="info-row"><strong>${r[0]}:</strong> ${r[1]}</div>`).join('');
+  document.getElementById('infoPanel').style.display='block';
+}
+
+// ==================== FILE HANDLING ====================
+function handleDrop(e){e.preventDefault();document.getElementById('dropZone').style.borderColor='';processFiles(Array.from(e.dataTransfer.files));}
+function handleAnyFile(input){processFiles(Array.from(input.files));input.value='';}
+async function processFiles(files){
+  if(!files.length)return;
+  const images=files.filter(f=>IMAGE_TYPES.includes(f.type)||/\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(f.name));
+  const excel=files.filter(f=>/\.(xlsx|xls|csv)$/i.test(f.name));
+  const pdfs=files.filter(f=>/\.pdf$/i.test(f.name));
+  const txts=files.filter(f=>/\.(txt|doc|docx)$/i.test(f.name));
+  for(const f of excel)await loadExcelFile(f);
+  for(const f of pdfs)await loadPDFData(f);
+  for(const f of txts)await loadTextData(f);
+  if(images.length)await loadImages(images);
+  if(!excel.length&&!pdfs.length&&!txts.length&&!images.length)
+    showStatus(LANG==='ar'?'نوع الملف غير معروف':'Unknown file type','warn');
+}
+async function loadImages(files){
+  uploadedImages=[];document.getElementById('imageThumbs').innerHTML='';
+  for(const f of files){
+    const b64=await fileToBase64(f);
+    uploadedImages.push({name:f.name,base64:b64.split(',')[1],mimeType:f.type||'image/jpeg'});
+    const img=document.createElement('img');img.src=b64;
+    img.style.cssText='width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid var(--border);';
+    document.getElementById('imageThumbs').appendChild(img);
+  }
+  document.getElementById('imagePreviewArea').style.display='block';
+  showStatus(`${LANG==='ar'?'تم رفع':'Uploaded'} ${files.length} ${LANG==='ar'?'صورة':'image(s)'}. ${LANG==='ar'?'اضغط استخراج':'Click Extract'}.`,'success');
+}
+function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});}
+async function extractFromImages(){
+  if(!uploadedImages.length){showStatus(LANG==='ar'?'لا توجد صور':'No images','error');return;}
+  const log=document.getElementById('visionLog');log.style.display='block';log.innerHTML='';
+  let all='';
+  for(let i=0;i<uploadedImages.length;i++){
+    const img=uploadedImages[i];
+    log.innerHTML+=`📸 ${LANG==='ar'?'معالجة':'Processing'} ${i+1}/${uploadedImages.length}: ${img.name}...<br>`;
+    try{
+      const r=await callVisionAI(img.base64,img.mimeType);all+=r+'\n\n';
+      log.innerHTML+=`✅ ${LANG==='ar'?'تم استخراج':'Extracted'} ${i+1}<br>`;
+    }catch(e){log.innerHTML+=`⚠️ ${e.message}<br>`;}
+    log.scrollTop=log.scrollHeight;
+  }
+  document.getElementById('extractedRawText').value=all;
+  document.getElementById('rawTextArea').style.display='block';
+  log.innerHTML+=LANG==='ar'?'✅ انتهى. راجع البيانات وعدّلها إن لزم.':'✅ Done. Review data and edit if needed.';
+  showStatus(LANG==='ar'?'✅ تم الاستخراج! راجع البيانات ثم اضغط تحويل.':'✅ Extracted! Review then convert.','success');
+}
+async function callVisionAI(base64,mimeType){
+  const prompt=LANG==='ar'
+    ?'استخرج البيانات من هذه الصورة بصيغة CSV دقيقة. الصف الأول رؤوس الأعمدة. إذا كان جدول استبيان حوّله لـ CSV. أجب بالبيانات فقط.'
+    :'Extract data from this image as accurate CSV. First row = headers. If a questionnaire table, convert to CSV. Respond with data only.';
+  const res=await fetch(GROQ_URL,{method:'POST',headers:{'Authorization':`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:VISION_MODEL,messages:[{role:'user',content:[{type:'image_url',image_url:{url:`data:${mimeType};base64,${base64}`}},{type:'text',text:prompt}]}],temperature:0.1,max_tokens:3000})});
+  const d=await res.json();if(d.error)throw new Error(d.error.message);return d.choices?.[0]?.message?.content||'';
+}
+async function parseTextToData(){
+  const text=document.getElementById('extractedRawText').value.trim();
+  if(!text){showStatus(LANG==='ar'?'لا يوجد نص':'No text','error');return;}
+  showStatus('⏳ '+(LANG==='ar'?'جاري التحليل...':'Processing...'),'loading');
+  const parsed=tryParseCSV(text);
+  if(parsed&&parsed.length>0){finalizeData(parsed);showStatus(`✅ ${parsed.length} ${LANG==='ar'?'صف':'rows'}!`,'success');return;}
+  try{
+    const prompt=LANG==='ar'
+      ?`حوّل هذه البيانات إلى CSV دقيق. الصف الأول رؤوس. استخدم الفاصلة. أجب بـ CSV فقط.\n${text.substring(0,8000)}`
+      :`Convert this data to accurate CSV. First row = headers. Use comma. Respond with CSV only.\n${text.substring(0,8000)}`;
+    const csv=await callAI(prompt,3000);
+    const p2=tryParseCSV(csv);
+    if(p2&&p2.length>0){finalizeData(p2);showStatus(`✅ ${p2.length} ${LANG==='ar'?'صف':'rows'}!`,'success');}
+    else showStatus(LANG==='ar'?'تعذر التحويل. عدّل النص يدوياً.':'Conversion failed. Edit text manually.','error');
+  }catch(e){showStatus('Error: '+e.message,'error');}
+}
+function tryParseCSV(text){
+  try{
+    text=text.replace(/```[a-z]*\n?/g,'').replace(/```/g,'').trim();
+    const lines=text.split('\n').filter(l=>l.trim());
+    if(lines.length<2)return null;
+    const headers=parseCSVLine(lines[0]);
+    if(headers.length<2)return null;
+    const data=[];
+    for(let i=1;i<lines.length;i++){
+      const vals=parseCSVLine(lines[i]);
+      if(!vals.length||vals.every(v=>!v.trim()))continue;
+      const row={};headers.forEach((h,j)=>{row[h.trim()]=vals[j]?.trim()||'';});
+      data.push(row);
+    }
+    return data.length>0?data:null;
+  }catch(e){return null;}
+}
+function parseCSVLine(line){
+  const sep=line.includes('\t')?'\t':line.includes(';')?';':line.includes('|')?'|':',';
+  return line.split(sep).map(v=>v.replace(/^"|"$/g,'').trim());
+}
+async function loadExcelFile(f){
+  return new Promise(resolve=>{
+    showStatus('⏳ '+(LANG==='ar'?'جاري قراءة الملف...':'Reading file...'),'loading');
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        let data;
+        if(f.name.endsWith('.csv')){
+          const text=new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+          data=tryParseCSV(text);
+          if(!data){const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});}
+        }else{
+          const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+          data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+        }
+        if(!data||!data.length){showStatus(LANG==='ar'?'الملف فارغ':'File is empty','error');resolve();return;}
+        finalizeData(data);
+        showStatus(`✅ ${LANG==='ar'?'تم رفع':'Uploaded'} ${data.length} ${LANG==='ar'?'صف':'rows'}, ${Object.keys(data[0]).length} ${LANG==='ar'?'عمود':'cols'}`,'success');
+      }catch(err){showStatus('Error: '+err.message,'error');}
+      resolve();
+    };
+    reader.readAsArrayBuffer(f);
+  });
+}
+async function loadPDFData(f){
+  showStatus('⏳ '+(LANG==='ar'?'جاري قراءة PDF...':'Reading PDF...'),'loading');
+  try{
+    const text=await extractPDFText(f);
+    if(!text.trim()){showStatus(LANG==='ar'?'لم يُستخرج نص من PDF':'No text from PDF','warn');return;}
+    const parsed=tryParseCSV(text);
+    if(parsed&&parsed.length>1){finalizeData(parsed);showStatus(`✅ ${parsed.length} ${LANG==='ar'?'صف':'rows'}`,'success');}
+    else{document.getElementById('extractedRawText').value=text;document.getElementById('rawTextArea').style.display='block';showStatus(LANG==='ar'?'✅ تم استخراج النص. راجعه وحوّله.':'✅ Text extracted. Review and convert.','success');}
+  }catch(e){showStatus('Error: '+e.message,'error');}
+}
+async function loadTextData(f){
+  showStatus('⏳ '+(LANG==='ar'?'جاري قراءة الملف...':'Reading file...'),'loading');
+  try{
+    const text=f.name.endsWith('.txt')?await f.text():await extractDocxText(f);
+    const parsed=tryParseCSV(text);
+    if(parsed&&parsed.length>0){finalizeData(parsed);showStatus(`✅ ${parsed.length} ${LANG==='ar'?'صف':'rows'}`,'success');}
+    else{document.getElementById('extractedRawText').value=text;document.getElementById('rawTextArea').style.display='block';showStatus(LANG==='ar'?'✅ جاهز للتحويل':'✅ Ready to convert','success');}
+  }catch(e){showStatus('Error: '+e.message,'error');}
+}
+
+// ==================== DATA SETUP ====================
+function finalizeData(data){
+  rawData=data;colNames=Object.keys(rawData[0]);
+  detectNumericCols();renderDataPreview();populateColSelects();
+  document.getElementById('dataInfo').style.display='block';
+  document.getElementById('analysisConfig').style.display='block';
+  document.getElementById('analyzeBtn').style.display='inline-flex';
+}
+function detectNumericCols(){
+  numericCols=[];numericData={};
+  colNames.forEach(col=>{
+    const vals=rawData.map(r=>parseFloat(r[col])).filter(v=>!isNaN(v));
+    if(vals.length>=rawData.length*0.4&&vals.length>=3){numericCols.push(col);numericData[col]=vals;}
+  });
+}
+function renderDataPreview(){
+  const miss=rawData.filter(r=>Object.values(r).some(v=>v===''||v===null||v===undefined)).length;
+  document.getElementById('dataStatCards').innerHTML=`
+    <div class="stat-card"><div class="val">${rawData.length}</div><div class="lbl">${LANG==='ar'?'إجمالي الصفوف':'Total Rows'}</div></div>
+    <div class="stat-card"><div class="val">${colNames.length}</div><div class="lbl">${LANG==='ar'?'المتغيرات':'Variables'}</div></div>
+    <div class="stat-card"><div class="val">${numericCols.length}</div><div class="lbl">${LANG==='ar'?'متغيرات رقمية':'Numeric Vars'}</div></div>
+    <div class="stat-card"><div class="val">${miss}</div><div class="lbl">${LANG==='ar'?'صفوف ناقصة':'Missing Rows'}</div></div>`;
+  const sc=colNames.slice(0,10);
+  let html=`<table class="data-table"><thead><tr>${sc.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+  rawData.slice(0,6).forEach(row=>{html+=`<tr>${sc.map(c=>`<td>${row[c]}</td>`).join('')}</tr>`;});
+  html+=`</tbody></tr><p style="font-size:11px;color:var(--muted);margin-top:5px;">${LANG==='ar'?'معاينة أول 6 صفوف':'Preview: first 6 rows'}${colNames.length>10?(LANG==='ar'?' (أول 10 أعمدة)':' (first 10 cols)'):''}</p>`;
+  document.getElementById('previewWrap').innerHTML=html;
+}
+function populateColSelects(){
+  ['colX','colY'].forEach(id=>{document.getElementById(id).innerHTML=numericCols.map(c=>`<option value="${c}">${c}</option>`).join('');});
+  document.getElementById('colGroup').innerHTML=`<option value="">${LANG==='ar'?'-- اختياري --':'-- Optional --'}</option>`+numericCols.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+// ==================== MAIN ANALYSIS ENGINE ====================
+let charts=[];
+async function runFullAnalysis(){
+  if(!rawData.length){showStatus(LANG==='ar'?'الرجاء رفع ملف بيانات':'Please upload data file','error');return;}
+  const btn=document.getElementById('analyzeBtn');
+  btn.innerHTML=`<span class="spinner"></span> ${LANG==='ar'?'جاري التحليل...':'Analyzing...'}`;btn.disabled=true;
+  showStatus('⏳ '+(LANG==='ar'?'جاري التحليل الإحصائي الشامل...':'Running comprehensive statistical analysis...'),'loading');
+
+  const info={
+    title:document.getElementById('mTitle').value||studyInfo.title||(LANG==='ar'?'دراسة أكاديمية':'Academic Study'),
+    objectives:document.getElementById('mObjectives').value||studyInfo.objectives||'',
+    problem:document.getElementById('mProblem').value||studyInfo.problem||'',
+    hypotheses:document.getElementById('mHypotheses').value||studyInfo.hypotheses||'',
+    methodology:document.getElementById('mMethodology').value||studyInfo.methodology||(LANG==='ar'?'المنهج الوصفي التحليلي':'Descriptive Analytical Method'),
+    independentVar:document.getElementById('mIndep').value||studyInfo.independentVar||document.getElementById('colX').value,
+    dependentVar:document.getElementById('mDep').value||studyInfo.dependentVar||document.getElementById('colY').value,
+    sample:document.getElementById('mSample').value||studyInfo.sample||`n = ${rawData.length}`,
+  };
+  const colX=document.getElementById('colX').value,colY=document.getElementById('colY').value,colG=document.getElementById('colGroup').value;
+
+  // ---- DETECT LIKERT & SECTIONS ----
+  const likertCols=numericCols.filter(c=>isLikertCol(c));
+  const nonLikertCols=numericCols.filter(c=>!isLikertCol(c));
+  const sections=detectSections();
+  const sectionNames=Object.keys(sections);
+
+  // ---- DESCRIPTIVE STATS (ALL NUMERIC) ----
+  const descriptive={};
+  numericCols.forEach(col=>{
+    const v=numericData[col];
+    descriptive[col]={n:v.length,mean:mean(v),median:median(v),std:stdDev(v),variance:variance(v),min:Math.min(...v),max:Math.max(...v),skew:skewness(v),kurt:kurtosis(v)};
+  });
+
+  // ---- LIKERT ITEM ANALYSIS ----
+  const likertStats={};
+  likertCols.forEach(col=>{likertStats[col]=computeLikertItemStats(col);});
+
+  // ---- SECTION SCORES & RELIABILITY ----
+  const sectionScores={};const sectionAlpha={};const sectionMeans={};
+  sectionNames.forEach(sec=>{
+    const cols=sections[sec].filter(c=>numericData[c]);
+    if(cols.length<2)return;
+    const scores=computeSectionScore(cols);
+    sectionScores[sec]=scores;
+    sectionMeans[sec]=mean(scores);
+    const alpha=cronbachAlpha(cols.map(c=>numericData[c]));
+    sectionAlpha[sec]=alpha;
+  });
+  const allLikertMat=likertCols.map(c=>numericData[c]);
+  const totalAlpha=allLikertMat.length>=2?cronbachAlpha(allLikertMat):null;
+
+  // ---- CORRELATION MATRIX ----
+  // Between section scores if sections exist, else between all numeric cols
+  const corrItems=sectionNames.length>=2?sectionNames.filter(s=>sectionScores[s]):numericCols.slice(0,12);
+  const corrData=corrItems.map(k=>sectionScores[k]||numericData[k]);
+  const correlations=[];
+  for(let i=0;i<corrItems.length;i++){
+    for(let j=i+1;j<corrItems.length;j++){
+      const x=corrData[i],y=corrData[j];
+      if(!x||!y)continue;
+      const r=pearsonR(x,y),rs=spearmanR(x,y);
+      const n=Math.min(x.length,y.length),tv=r*Math.sqrt(n-2)/Math.sqrt(1-r*r||0.001);
+      const p=tPValue(tv,n-2);
+      correlations.push({c1:corrItems[i],c2:corrItems[j],r,rs,t:tv,p,n,sig:getSig(p),interp:rInterp(r)});
+    }
+  }
+
+  // ---- REGRESSION ----
+  let regression=null;
+  if(numericData[colX]&&numericData[colY]&&colX!==colY){
+    regression=linearRegression(numericData[colX],numericData[colY]);
+    regression.colX=colX;regression.colY=colY;
+    regression.tp=tPValue(regression.t,regression.n-2);
+    regression.sig=getSig(regression.tp);
+  }
+
+  // ---- T-TEST ----
+  let ttest=null,ttestOne=null;
+  if(numericData[colX]&&numericData[colY]&&colX!==colY){
+    ttest=tTestIndependent(numericData[colX],numericData[colY]);
+    ttest.p=tPValue(ttest.t,ttest.df);ttest.sig=getSig(ttest.p);ttest.colX=colX;ttest.colY=colY;
+    ttestOne=tTestOneSample(numericData[colY],3);
+    ttestOne.p=tPValue(ttestOne.t,ttestOne.df);ttestOne.sig=getSig(ttestOne.p);
+  }
+
+  // ---- ANOVA ----
+  let anova=null;
+  if(colG&&numericData[colY]){
+    const groups={};
+    rawData.forEach((row,i)=>{const g=row[colG];if(!groups[g])groups[g]=[];groups[g].push(numericData[colY][i]);});
+    const ga=Object.values(groups).filter(g=>g.length>1);
+    if(ga.length>=2){anova=anovaSingle(ga);anova.p=fPValue(anova.F,anova.df1,anova.df2);anova.sig=getSig(anova.p);anova.groupNames=Object.keys(groups);anova.colY=colY;}
+  }
+
+  const R={descriptive,likertStats,sections,sectionScores,sectionAlpha,sectionMeans,totalAlpha,correlations,regression,ttest,ttestOne,anova,likertCols,sectionNames};
+
+  // ---- AI INTERPRETATION ----
+  showStatus('🤖 '+(LANG==='ar'?'جاري توليد التفسير الأكاديمي...':'Generating academic interpretation...'),'loading');
+  let statSummary=`${LANG==='ar'?'حجم العينة':'Sample'}: ${rawData.length}\n`;
+  sectionNames.forEach(s=>{if(sectionMeans[s])statSummary+=`${s}: M=${fmt(sectionMeans[s],3)}, α=${sectionAlpha[s]?fmt(sectionAlpha[s],3):'N/A'}\n`;});
+  correlations.slice(0,6).forEach(c=>{statSummary+=`${c.c1}×${c.c2}: r=${fmt(c.r,3)} p=${fmt(c.p,4)} (${c.sig})\n`;});
+  if(regression)statSummary+=`Regression: β=${fmt(regression.b,3)} R²=${fmt(regression.r2,3)} p=${fmt(regression.tp,4)}\n`;
+  if(totalAlpha)statSummary+=`Total α=${fmt(totalAlpha,3)}\n`;
+  likertCols.slice(0,8).forEach(col=>{const s=likertStats[col];statSummary+=`${col}: M=${fmt(s.mean,2)} SD=${fmt(s.std,2)} Agree=${fmt(s.agreePct,1)}%\n`;});
+
+  const aiPrompt=`You are a ${t('aiRole')}. Write your entire response in ${t('aiLang')}.
+
+## Study Info:
+Title: ${info.title}
+Objectives: ${info.objectives||'Not provided'}
+Hypotheses: ${info.hypotheses||'Not provided'}
+Independent: ${info.independentVar} | Dependent: ${info.dependentVar}
+Sample: ${info.sample} | Method: ${info.methodology}
+
+## Statistical Results:
+${statSummary}
+
+## Write (in ${t('aiLang')}):
+1. **${LANG==='ar'?'الملخص التنفيذي':'Executive Summary'}** (120 words): Key findings summary
+2. **${LANG==='ar'?'مناقشة النتائج':'Discussion of Results'}** (300 words): Deep academic interpretation with exact statistics, academic references (APA format), gaps identified, implications
+3. **${LANG==='ar'?'اختبار الفرضيات':'Hypothesis Testing'}**: Was each hypothesis supported? Statistical justification
+4. **${LANG==='ar'?'التوصيات العملية':'Practical Recommendations'}**: 6 specific actionable recommendations
+5. **${LANG==='ar'?'توصيات بحثية مستقبلية':'Future Research'}**: 4 specific future study suggestions
+
+Use academic language with statistical values. Reference key theories.`;
+
+  let aiText='';
+  try{aiText=await callAI(aiPrompt,4000);}
+  catch(e){aiText=LANG==='ar'?'⚠️ تعذر الاتصال بالذكاء الاصطناعي. التقرير الإحصائي مكتمل.':'⚠️ AI connection failed. Statistical report is complete.';}
+
+  buildReport(info,R,aiText);
+  btn.innerHTML=t('analyzeBtn');btn.disabled=false;
+  showStatus('✅ '+(LANG==='ar'?'تم إنشاء التقرير الأكاديمي الشامل':'Full academic report generated'),'success');
+  document.getElementById('reportContainer').scrollIntoView({behavior:'smooth'});
+}
+
+function skewness(a){const m=mean(a),s=stdDev(a),n=a.length;return(n/((n-1)*(n-2)||1))*a.reduce((r,v)=>r+Math.pow((v-m)/(s||1),3),0);}
+function kurtosis(a){const m=mean(a),s=stdDev(a),n=a.length;return a.reduce((r,v)=>r+Math.pow((v-m)/(s||1),4),0)/n-3;}
+
+// ==================== REPORT BUILDER ====================
+function buildReport(info,R,aiText){
+  charts.forEach(c=>{try{c.destroy();}catch(e){}});charts=[];
+  const container=document.getElementById('reportContainer');
+  const dir=LANG==='ar'?'rtl':'ltr';
+  const dateStr=new Date().toLocaleDateString(LANG==='ar'?'ar-SA':'en-US');
+
+  function aiSec(text,key){
+    const pats=[`**${key}**`,`## ${key}`,`### ${key}`,`${key}:`];
+    for(const p of pats){const idx=text.indexOf(p);if(idx>=0){const s=idx+p.length;const nx=['**','##','###'].map(h=>text.indexOf(h,s+10)).filter(i=>i>0);const e=nx.length?Math.min(...nx):text.length;return text.slice(s,e).trim().replace(/\n/g,'<br>');}}
+    return '';
+  }
+  const secAbstract=aiSec(aiText,LANG==='ar'?'الملخص التنفيذي':'Executive Summary')||aiText.substring(0,400).replace(/\n/g,'<br>');
+  const secDiscussion=aiSec(aiText,LANG==='ar'?'مناقشة النتائج':'Discussion of Results');
+  const secHypo=aiSec(aiText,LANG==='ar'?'اختبار الفرضيات':'Hypothesis Testing');
+  const secRecs=aiSec(aiText,LANG==='ar'?'التوصيات العملية':'Practical Recommendations');
+  const secFuture=aiSec(aiText,LANG==='ar'?'توصيات بحثية مستقبلية':'Future Research');
+
+  // ---- SECTION 1: LIKERT ANALYSIS TABLES ----
+  let likertHTML='';
+  R.sectionNames.forEach(secName=>{
+    const cols=R.sections[secName].filter(c=>R.likertStats[c]);
+    if(!cols.length)return;
+    const sAlpha=R.sectionAlpha[secName];
+    const sMean=R.sectionMeans[secName];
+    // Detect scale max
+    const scaleMax=cols.length?R.likertStats[cols[0]]?.scaleMax||5:5;
+    const agreeLabel=LANG==='ar'?'الموافقة (4+5)':'Agree (4+5)';
+
+    let rows='';
+    cols.forEach(col=>{
+      const s=R.likertStats[col];
+      const dists=[1,2,3,4,5].map(v=>s.dist[v]||0);
+      const distPcts=dists.map(d=>s.n?fmt(d/s.n*100,1):'0.0');
+      rows+=`<tr>
+        <td style="text-align:${LANG==='ar'?'right':'left'};font-size:12px;max-width:180px;">${col}</td>
+        ${distPcts.map(p=>`<td>${p}%</td>`).join('')}
+        <td><strong>${fmt(s.agreePct,1)}%</strong></td>
+        <td><strong>${fmt(s.mean,2)}</strong></td>
+        <td>${fmt(s.std,2)}</td>
+      </tr>`;
+    });
+
+    const strongest=cols.reduce((a,b)=>R.likertStats[a].agreePct>R.likertStats[b].agreePct?a:b);
+    const weakest=cols.reduce((a,b)=>R.likertStats[a].agreePct<R.likertStats[b].agreePct?a:b);
+
+    likertHTML+=`<div class="section-box">
+      <h4>📊 ${LANG==='ar'?'محور':'Section'} ${secName} 
+        ${sMean?`<span style="font-size:13px;color:var(--muted);">| ${LANG==='ar'?'المتوسط الكلي':'Overall Mean'}: <strong>${fmt(sMean,3)}</strong></span>`:''}
+        ${sAlpha?`<span style="font-size:13px;color:var(--muted);">| Cronbach's α: <strong>${fmt(sAlpha,3)}</strong> (${alphaInterp(sAlpha)})</span>`:''}
+      </h4>
+      <div style="overflow-x:auto;">
+      <table class="report-table likert-table">
+        <thead><tr>
+          <th style="min-width:140px;text-align:${LANG==='ar'?'right':'left'};">${LANG==='ar'?'الفقرة':'Item'}</th>
+          <th>1(%)</th><th>2(%)</th><th>3(%)</th><th>4(%)</th><th>5(%)</th>
+          <th>${agreeLabel}</th>
+          <th>μ</th><th>σ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);display:flex;gap:20px;flex-wrap:wrap;">
+        <span>✅ <strong>${LANG==='ar'?'الأقوى':'Strongest'}</strong>: ${strongest} (${fmt(R.likertStats[strongest].agreePct,1)}%)</span>
+        <span>⚠️ <strong>${LANG==='ar'?'الأضعف':'Weakest'}</strong>: ${weakest} (${fmt(R.likertStats[weakest].agreePct,1)}%)</span>
+        <span>${LANG==='ar'?'الفجوة':'Gap'}: <span class="gap-badge">${fmt(R.likertStats[strongest].agreePct-R.likertStats[weakest].agreePct,1)}%</span></span>
+      </div>
+    </div>`;
+  });
+
+  // ---- SECTION 2: RELIABILITY TABLE ----
+  let reliabilityRows='';
+  R.sectionNames.forEach(sec=>{
+    const a=R.sectionAlpha[sec];if(!a)return;
+    const cols=R.sections[sec].filter(c=>numericData[c]);
+    reliabilityRows+=`</tr><td style="text-align:${LANG==='ar'?'right':'left'};">${sec}</td><td style="text-align:center;">${cols.length}</td><td style="text-align:center;">${rawData.length}</td><td style="text-align:center;"><strong>${fmt(a,3)}</strong></td><td style="text-align:center;">${alphaInterp(a)}</td><td style="text-align:center;"><span class="sig-tag ${a>=0.7?'sig-yes':'sig-no'}">${a>=0.7?'✓':'✗'}</span></td></tr>`;
+  });
+  if(R.totalAlpha) reliabilityRows+=`<tr style="background:#f0f9ff;font-weight:bold;"><td style="text-align:${LANG==='ar'?'right':'left'};">${LANG==='ar'?'الكلي':'Total'}</td><td style="text-align:center;">${R.likertCols.length}</td><td style="text-align:center;">${rawData.length}</td><td style="text-align:center;"><strong>${fmt(R.totalAlpha,3)}</strong></td><td style="text-align:center;">${alphaInterp(R.totalAlpha)}</td><td style="text-align:center;"><span class="sig-tag ${R.totalAlpha>=0.7?'sig-yes':'sig-no'}">${R.totalAlpha>=0.7?'✓':'✗'}</span></td></tr>`;
+
+  // ---- SECTION 3: CORRELATION MATRIX ----
+  const corrCols=R.sectionNames.length>=2?R.sectionNames:numericCols.slice(0,8);
+  let corrMatHTML='<div style="overflow-x:auto;"><table class="report-table"><thead><tr><th></th>'+corrCols.map(c=>`<th>${c}</th>`).join('')+'</table></thead><tbody>';
+  corrCols.forEach((c1,i)=>{
+    corrMatHTML+=`<tr><th style="text-align:${LANG==='ar'?'right':'left'};background:#f1f5f9;">${c1}</th>`;
+    corrCols.forEach((c2,j)=>{
+      if(i===j){corrMatHTML+=`<td style="background:#e0f2fe;font-weight:bold;">1.00</td>`;return;}
+      const e=R.correlations.find(r=>(r.c1===c1&&r.c2===c2)||(r.c2===c1&&r.c1===c2));
+      if(!e){corrMatHTML+=`<td>-</td>`;return;}
+      const bg=e.p<0.05?(e.r>0?`rgba(209,250,229,${Math.min(0.9,Math.abs(e.r))})`:`rgba(254,202,202,${Math.min(0.9,Math.abs(e.r))})`):'';
+      corrMatHTML+=`<td style="background:${bg};"><strong>${fmt(e.r,3)}</strong><br><span style="font-size:10px;color:var(--muted);">${e.sig}</span></td>`;
+    });
+    corrMatHTML+=`</tr>`;
+  });
+  corrMatHTML+='</tbody></table></div>';
+  corrMatHTML+=`<p style="font-size:12px;color:var(--muted);margin-top:8px;">${LANG==='ar'?'* p<0.05  ** p<0.01  *** p<0.001':'* p<0.05  ** p<0.01  *** p<0.001'} | ${LANG==='ar'?'الخلايا الخضراء: ارتباط موجب دال، الحمراء: عكسي دال':'Green: positive significant, Red: negative significant'}</p>`;
+
+  // ---- DESCRIPTIVE STATS TABLE ----
+  const descRows=numericCols.slice(0,20).map(col=>{
+    const s=R.descriptive[col];
+    return `<tr>
+      <td style="text-align:${LANG==='ar'?'right':'left'};font-size:12px;">${col}</td>
+      <td style="text-align:center;">${s.n}</td><td style="text-align:center;">${fmt(s.mean,3)}</td><td style="text-align:center;">${fmt(s.median,3)}</td>
+      <td style="text-align:center;">${fmt(s.std,3)}</td><td style="text-align:center;">${fmt(s.variance,3)}</td>
+      <td style="text-align:center;">${fmt(s.min,2)}</td><td style="text-align:center;">${fmt(s.max,2)}</td>
+      <td style="text-align:center;">${fmt(s.skew,3)}</td><td style="text-align:center;">${fmt(s.kurt,3)}</td>
+    </tr>`;
+  }).join('');
+
+  // ---- HYPOTHESIS SECTION ----
+  const hypoLines=info.hypotheses.split('\n').filter(l=>l.trim());
+  let hypoHTML='';
+  if(hypoLines.length>0){
+    hypoLines.forEach((h,i)=>{
+      const rel=R.correlations[i%Math.max(1,R.correlations.length)];
+      const acc=rel&&rel.p<0.05;
+      hypoHTML+=`<div class="hypothesis-item ${acc?'accepted':'rejected'}">
+        <strong>${h}</strong>
+        <div style="margin-top:8px;font-size:13px;">
+          ${rel?`r = ${fmt(rel.r,3)} | p = ${fmt(rel.p,4)} | <span class="sig-tag ${acc?'sig-yes':'sig-no'}">${rel.sig}</span>
+          <strong style="margin-inline-start:12px;">${acc?(LANG==='ar'?'✅ تُقبل الفرضية البديلة':'✅ Accept Alternative Hypothesis'):(LANG==='ar'?'❌ تُرفض الفرضية البديلة':'❌ Reject Alternative Hypothesis')}</strong>`:''}
+        </div>
+      </div>`;
+    });
+  } else {
+    if(R.regression){
+      const acc=R.regression.tp<0.05;
+      hypoHTML+=`<div class="hypothesis-item ${acc?'accepted':'rejected'}">
+        <strong>H1: ${LANG==='ar'?`يوجد أثر دال لـ ${info.independentVar} على ${info.dependentVar}`:`There is a significant effect of ${info.independentVar} on ${info.dependentVar}`}</strong>
+        <div style="margin-top:8px;font-size:13px;">β = ${fmt(R.regression.b,3)} | R² = ${fmt(R.regression.r2,3)} | t = ${fmt(R.regression.t,3)} | p = ${fmt(R.regression.tp,4)}
+        <strong style="margin-inline-start:12px;"><span class="sig-tag ${acc?'sig-yes':'sig-no'}">${R.regression.sig}</span> ${acc?(LANG==='ar'?'✅ مقبولة':'✅ Accepted'):(LANG==='ar'?'❌ مرفوضة':'❌ Rejected')}</strong></div>
+      </div>`;
+    }
+    R.correlations.slice(0,3).forEach((c,i)=>{
+      const acc=c.p<0.05;
+      hypoHTML+=`<div class="hypothesis-item ${acc?'accepted':'rejected'}">
+        <strong>H${(R.regression?2:1)+i}: ${LANG==='ar'?`يوجد ارتباط دال بين ${c.c1} و ${c.c2}`:`There is a significant correlation between ${c.c1} and ${c.c2}`}</strong>
+        <div style="margin-top:8px;font-size:13px;">r = ${fmt(c.r,3)} | rs = ${fmt(c.rs,3)} | p = ${fmt(c.p,4)}
+        <strong style="margin-inline-start:12px;"><span class="sig-tag ${acc?'sig-yes':'sig-no'}">${c.sig}</span> ${acc?(LANG==='ar'?'✅ مقبولة':'✅ Accepted'):(LANG==='ar'?'❌ مرفوضة':'❌ Rejected')}</strong></div>
+      </div>`;
+    });
+  }
+  if(secHypo)hypoHTML+=`<div class="ai-box" style="margin-top:14px;"><div class="ai-box-label">🤖 ${LANG==='ar'?'تحليل الذكاء الاصطناعي':'AI Analysis'}</div><p>${secHypo}</p></div>`;
+
+  // ---- GAP ANALYSIS ----
+  let gapHTML='';
+  if(R.likertCols.length>=2){
+    const sorted=[...R.likertCols].sort((a,b)=>R.likertStats[b].agreePct-R.likertStats[a].agreePct);
+    const top=sorted.slice(0,3),bot=sorted.slice(-3);
+    const overallMean=mean(R.likertCols.map(c=>R.likertStats[c].mean));
+    gapHTML=`
+      <div class="grid-2">
+        <div>
+          <h4 style="color:var(--success);margin-bottom:10px;">✅ ${LANG==='ar'?'أعلى الفقرات موافقةً':'Highest Agreement Items'}</h4>
+          ${top.map(c=>`<div class="mini-bar-wrap">
+            <span style="min-width:120px;font-size:11px;">${c}</span>
+            <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${R.likertStats[c].agreePct}%;background:var(--success);"></div></div>
+            <span style="font-size:12px;font-weight:bold;color:var(--success);">${fmt(R.likertStats[c].agreePct,1)}%</span>
+          </div>`).join('')}
+        </div>
+        <div>
+          <h4 style="color:var(--danger);margin-bottom:10px;">⚠️ ${LANG==='ar'?'أدنى الفقرات موافقةً':'Lowest Agreement Items'}</h4>
+          ${bot.map(c=>`<div class="mini-bar-wrap">
+            <span style="min-width:120px;font-size:11px;">${c}</span>
+            <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${R.likertStats[c].agreePct}%;background:var(--danger);"></div></div>
+            <span style="font-size:12px;font-weight:bold;color:var(--danger);">${fmt(R.likertStats[c].agreePct,1)}%</span>
+          </div>`).join('')}
+        </div>
+      </div>
+      <p style="margin-top:14px;background:#fef3c7;padding:12px;border-radius:10px;font-size:13px;">
+        📊 <strong>${LANG==='ar'?'المتوسط الكلي لجميع الفقرات':'Overall Mean of All Items'}</strong>: ${fmt(overallMean,3)} / ${R.likertStats[R.likertCols[0]]?.scaleMax||5}
+        &nbsp;|&nbsp; ${LANG==='ar'?'فجوة التطرف':'Extreme Gap'}: <span class="gap-badge">${fmt(R.likertStats[top[0]].agreePct-R.likertStats[bot[bot.length-1]].agreePct,1)}%</span>
+      </p>`;
+  }
+
+  const html=`<div dir="${dir}">
+  <div class="report-header">
+    <h1>📊 ${info.title}</h1>
+    <p>${LANG==='ar'?'تاريخ التحليل':'Analysis Date'}: ${dateStr} | ${LANG==='ar'?'العينة':'Sample'}: ${info.sample}</p>
+    ${info.independentVar?`<p>${LANG==='ar'?'المتغير المستقل':'Independent'}: <strong>${info.independentVar}</strong> → ${LANG==='ar'?'المتغير التابع':'Dependent'}: <strong>${info.dependentVar}</strong></p>`:''}
+    <p style="margin-top:8px;font-size:13px;color:var(--muted);">${info.methodology}</p>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="report-section">
+    <div class="section-title">📋 ${LANG==='ar'?'الملخص التنفيذي':'Executive Summary'}</div>
+    <div class="section-body">
+      <div class="ai-box"><div class="ai-box-label">🤖 ${LANG==='ar'?'تحليل الذكاء الاصطناعي':'AI Analysis'}</div><p>${secAbstract}</p></div>
+      <div class="grid-4" style="margin-top:16px;">
+        <div class="stat-card"><div class="val">${rawData.length}</div><div class="lbl">${LANG==='ar'?'حجم العينة':'Sample Size'}</div></div>
+        <div class="stat-card"><div class="val">${R.likertCols.length}</div><div class="lbl">${LANG==='ar'?'فقرات ليكرت':'Likert Items'}</div></div>
+        ${R.totalAlpha?`<div class="stat-card"><div class="val">${fmt(R.totalAlpha,3)}</div><div class="lbl">Cronbach's α ${LANG==='ar'?'الكلي':'Total'}</div></div>`:''}
+        ${R.correlations.length?`<div class="stat-card"><div class="val">${R.correlations.filter(c=>c.p<0.05).length}/${R.correlations.length}</div><div class="lbl">${LANG==='ar'?'ارتباطات دالة':'Sig. Correlations'}</div></div>`:''}
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDY FRAMEWORK -->
+  ${(info.objectives||info.problem||info.hypotheses)?`
+  <div class="report-section">
+    <div class="section-title">🎯 ${LANG==='ar'?'الإطار المنهجي للدراسة':'Study Framework'}</div>
+    <div class="section-body">
+      <div class="grid-2">
+        ${info.objectives?`<div><h4 style="color:var(--primary);margin-bottom:8px;">${LANG==='ar'?'الأهداف:':'Objectives:'}</h4><p style="line-height:1.9;">${info.objectives.replace(/\n/g,'<br>')}</p></div>`:''}
+        ${info.problem?`<div><h4 style="color:var(--primary);margin-bottom:8px;">${LANG==='ar'?'مشكلة الدراسة:':'Research Problem:'}</h4><p>${info.problem}</p></div>`:''}
+      </div>
+      ${info.hypotheses?`<h4 style="color:var(--primary);margin-top:14px;margin-bottom:8px;">${LANG==='ar'?'الفرضيات:':'Hypotheses:'}</h4><p style="background:#f8fafc;padding:12px;border-radius:10px;line-height:1.9;">${info.hypotheses.replace(/\n/g,'<br>')}</p>`:''}
+    </div>
+  </div>`:''}
+
+  <!-- DESCRIPTIVE STATS -->
+  <div class="report-section">
+    <div class="section-title">📊 ${LANG==='ar'?'الإحصاء الوصفي الشامل':'Comprehensive Descriptive Statistics'}</div>
+    <div class="section-body">
+      <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead><tr>
+          <th style="text-align:${LANG==='ar'?'right':'left'};">${LANG==='ar'?'المتغير':'Variable'}</th>
+          <th>N</th><th>${LANG==='ar'?'المتوسط':'Mean'}</th><th>${LANG==='ar'?'الوسيط':'Median'}</th>
+          <th>${LANG==='ar'?'الانحراف':'Std Dev'}</th><th>${LANG==='ar'?'التباين':'Variance'}</th>
+          <th>${LANG==='ar'?'الأدنى':'Min'}</th><th>${LANG==='ar'?'الأعلى':'Max'}</th>
+          <th>${LANG==='ar'?'الالتواء':'Skewness'}</th><th>${LANG==='ar'?'التفرطح':'Kurtosis'}</th>
+        </tr></thead>
+        <tbody>${descRows}</tbody>
+      </table>
+      </div>
+      <div class="chart-grid" id="descChartArea"></div>
+    </div>
+  </div>
+
+  <!-- LIKERT ANALYSIS -->
+  ${R.likertCols.length>0?`
+  <div class="report-section">
+    <div class="section-title">📋 ${LANG==='ar'?'تحليل فقرات الاستبيان (مقياس ليكرت)':'Questionnaire Item Analysis (Likert Scale)'}</div>
+    <div class="section-body">
+      ${likertHTML}
+      ${gapHTML?`<h4 style="color:var(--primary);margin-top:18px;margin-bottom:12px;">📈 ${LANG==='ar'?'تحليل الفجوات بين الفقرات':'Item Gap Analysis'}</h4>${gapHTML}`:''}
+    </div>
+  </div>`:''}
+
+  <!-- RELIABILITY -->
+  ${reliabilityRows?`
+  <div class="report-section">
+    <div class="section-title">🔢 ${LANG==='ar'?'تحليل الثبات والموثوقية (ألفا كرونباخ)':'Reliability Analysis (Cronbach\'s Alpha)'}</div>
+    <div class="section-body">
+      <table class="report-table">
+        <thead><tr>
+          <th>${LANG==='ar'?'المحور':'Section'}</th><th>${LANG==='ar'?'الفقرات':'Items'}</th>
+          <th>N</th><th>Cronbach's α</th><th>${LANG==='ar'?'المستوى':'Level'}</th>
+          <th>${LANG==='ar'?'مقبول':'Acceptable'}</th>
+        </tr></thead>
+        <tbody>${reliabilityRows}</tbody>
+      </table>
+      <p style="margin-top:12px;font-size:13px;color:var(--muted);">
+        📌 ${LANG==='ar'?'المعيار المقبول ≥ 0.70 وفق Nunnally (1978)':'Acceptable standard ≥ 0.70 per Nunnally (1978)'}
+      </p>
+      <div class="chart-grid" id="alphaChartArea"></div>
+    </div>
+  </div>`:''}
+
+  <!-- CORRELATION MATRIX -->
+  <div class="report-section">
+    <div class="section-title">🔗 ${LANG==='ar'?'مصفوفة الارتباطات (بيرسون)':'Correlation Matrix (Pearson)'}</div>
+    <div class="section-body">
+      ${corrMatHTML}
+      <div class="chart-grid" id="corrChartArea"></div>
+      ${R.correlations.length?`
+      <table class="report-table" style="margin-top:16px;">
+        <thead><tr>
+          <th>${LANG==='ar'?'المتغيرات':'Variables'}</th>
+          <th>r (${LANG==='ar'?'بيرسون':'Pearson'})</th>
+          <th>rs (${LANG==='ar'?'سبيرمان':'Spearman'})</th>
+          <th>t</th><th>p</th>
+          <th>${LANG==='ar'?'المستوى':'Level'}</th>
+          <th>${LANG==='ar'?'قوة العلاقة':'Strength'}</th>
+        </table></thead>
+        <tbody>
+        ${R.correlations.map(c=>`<tr>
+          <td style="text-align:${LANG==='ar'?'right':'left'};">${c.c1} × ${c.c2}</td>
+          <td style="text-align:center;">${fmt(c.r,3)}</td><td style="text-align:center;">${fmt(c.rs,3)}</td>
+          <td style="text-align:center;">${fmt(c.t,3)}</td><td style="text-align:center;">${fmt(c.p,4)}</td>
+          <td style="text-align:center;"><span class="sig-tag ${c.p<0.05?'sig-yes':'sig-no'}">${c.sig}</span></td>
+          <td style="text-align:center;">${c.interp} ${c.r>=0?'▲':'▼'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>`:''}
+    </div>
+  </div>
+
+  <!-- REGRESSION -->
+  ${R.regression?`
+  <div class="report-section">
+    <div class="section-title">📈 ${LANG==='ar'?'تحليل الانحدار الخطي البسيط':'Simple Linear Regression Analysis'}</div>
+    <div class="section-body">
+      <div class="grid-4">
+        <div class="stat-card"><div class="val">${fmt(R.regression.r,3)}</div><div class="lbl">r</div></div>
+        <div class="stat-card"><div class="val">${fmt(R.regression.r2,3)}</div><div class="lbl">R²</div></div>
+        <div class="stat-card"><div class="val">${fmt(R.regression.b,3)}</div><div class="lbl">β</div></div>
+        <div class="stat-card"><div class="val"><span class="sig-tag ${R.regression.tp<0.05?'sig-yes':'sig-no'}">${R.regression.sig}</span></div><div class="lbl">p-value</div></div>
+      </div>
+      <table class="report-table" style="margin-top:16px;">
+        <thead><tr>
+          <th>${LANG==='ar'?'المعامل':'Coefficient'}</th><th>${LANG==='ar'?'القيمة':'Value'}</th>
+          <th>${LANG==='ar'?'الخطأ المعياري':'Std. Error'}</th><th>t</th><th>${LANG==='ar'?'الدلالة':'Sig.'}</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>${LANG==='ar'?'الثابت (a)':'Intercept (a)'}</td><td>${fmt(R.regression.a,4)}</td><td>-</td><td>-</td><td>-</td></tr>
+          <tr><td>${R.regression.colX} (β)</td><td>${fmt(R.regression.b,4)}</td><td>${fmt(R.regression.se,4)}</td><td>${fmt(R.regression.t,3)}</td>
+          <td><span class="sig-tag ${R.regression.tp<0.05?'sig-yes':'sig-no'}">${R.regression.sig}</span></td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px;background:#f8fafc;padding:12px;border-radius:10px;font-size:13px;">
+        <strong>${LANG==='ar'?'معادلة التنبؤ':'Prediction Equation'}:</strong>
+        <code>Ŷ = ${fmt(R.regression.a,3)} + ${fmt(R.regression.b,3)} × ${R.regression.colX}</code><br>
+        <strong>${LANG==='ar'?'التفسير':'Interpretation'}:</strong>
+        ${LANG==='ar'?`يفسر المتغير المستقل ${fmt(R.regression.r2*100,1)}% من التباين في المتغير التابع.`:`The independent variable explains ${fmt(R.regression.r2*100,1)}% of variance in the dependent variable.`}
+        ${R.regression.r2>=0.5?(LANG==='ar'?'✅ النموذج يمتلك قوة تفسيرية جيدة.':'✅ Model has good explanatory power.'):(LANG==='ar'?'⚠️ النموذج يحتاج متغيرات إضافية.':'⚠️ Model needs additional variables.')}
+      </p>
+      <div class="chart-grid" id="regChartArea"></div>
+    </div>
+  </div>`:''}
+
+  <!-- T-TEST -->
+  ${R.ttest?`
+  <div class="report-section">
+    <div class="section-title">🧪 ${LANG==='ar'?'اختبار T للعينات المستقلة':'Independent Samples T-Test'}</div>
+    <div class="section-body">
+      <table class="report-table">
+        <thead><tr>
+          <th>${LANG==='ar'?'المجموعة':'Group'}</th><th>N</th><th>${LANG==='ar'?'المتوسط':'Mean'}</th>
+          <th>t</th><th>df</th><th>p</th><th>${LANG==='ar'?'الدلالة':'Sig.'}</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>${R.ttest.colX}</td><td>${R.ttest.n1}</td><td>${fmt(R.ttest.meanX,3)}</td>
+          <td rowspan="2">${fmt(R.ttest.t,3)}</td><td rowspan="2">${R.ttest.df}</td>
+          <td rowspan="2">${fmt(R.ttest.p,4)}</td>
+          <td rowspan="2"><span class="sig-tag ${R.ttest.p<0.05?'sig-yes':'sig-no'}">${R.ttest.sig}</span></td></tr>
+          <tr><td>${R.ttest.colY}</td><td>${R.ttest.n2}</td><td>${fmt(R.ttest.meanY,3)}</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:10px;color:var(--muted);font-size:13px;">
+        ${R.ttest.p<0.05?(LANG==='ar'?'✅ توجد فروق دالة إحصائياً بين المجموعتين':'✅ Statistically significant differences exist'):(LANG==='ar'?'⚠️ لا توجد فروق دالة':'⚠️ No significant differences')} (p = ${fmt(R.ttest.p,4)}).
+      </p>
+      ${R.ttestOne?`
+      <table class="report-table" style="margin-top:12px;">
+        <thead><tr><th colspan="4">${LANG==='ar'?'اختبار t لعينة واحدة (μ₀=3)':'One-Sample T-Test (μ₀=3)'}</th></tr>
+        <tr><th>${LANG==='ar'?'المتوسط':'Mean'}</th><th>t</th><th>df</th><th>${LANG==='ar'?'الدلالة':'Sig.'}</th></tr></thead>
+        <tbody><tr><td>${fmt(R.ttestOne.mean,3)}</td><td>${fmt(R.ttestOne.t,3)}</td><td>${R.ttestOne.df}</td>
+        <td><span class="sig-tag ${R.ttestOne.p<0.05?'sig-yes':'sig-no'}">${R.ttestOne.sig}</span></td></tr></tbody>
+      </table>`:''}
+    </div>
+  </div>`:''}
+
+  <!-- ANOVA -->
+  ${R.anova?`
+  <div class="report-section">
+    <div class="section-title">📊 ${LANG==='ar'?'تحليل التباين الأحادي (ANOVA)':'One-Way ANOVA'}</div>
+    <div class="section-body">
+      <table class="report-table">
+        <thead><tr>
+          <th>${LANG==='ar'?'المصدر':'Source'}</th><th>${LANG==='ar'?'مجموع المربعات':'SS'}</th>
+          <th>df</th><th>${LANG==='ar'?'متوسط المربعات':'MS'}</th><th>F</th><th>p</th><th>${LANG==='ar'?'الدلالة':'Sig.'}</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>${LANG==='ar'?'بين المجموعات':'Between Groups'}</td><td>${fmt(R.anova.SSB,3)}</td><td>${R.anova.df1}</td><td>${fmt(R.anova.MSB,3)}</td>
+          <td rowspan="2">${fmt(R.anova.F,3)}</td><td rowspan="2">${fmt(R.anova.p,4)}</td>
+          <td rowspan="2"><span class="sig-tag ${R.anova.p<0.05?'sig-yes':'sig-no'}">${R.anova.sig}</span></td></tr>
+          <tr><td>${LANG==='ar'?'داخل المجموعات':'Within Groups'}</td><td>${fmt(R.anova.SSW,3)}</td><td>${R.anova.df2}</td><td>${fmt(R.anova.MSW,3)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`:''}
+
+  <!-- HYPOTHESIS TESTING -->
+  <div class="report-section">
+    <div class="section-title">🧪 ${LANG==='ar'?'اختبار فرضيات الدراسة':'Hypothesis Testing'}</div>
+    <div class="section-body">${hypoHTML}</div>
+  </div>
+
+  <!-- DISCUSSION -->
+  ${secDiscussion?`
+  <div class="report-section">
+    <div class="section-title">📖 ${LANG==='ar'?'مناقشة النتائج وتفسيرها':'Discussion & Interpretation'}</div>
+    <div class="section-body">
+      <div class="ai-box"><div class="ai-box-label">🤖 ${LANG==='ar'?'التفسير الأكاديمي':'Academic Interpretation'}</div><p>${secDiscussion}</p></div>
+    </div>
+  </div>`:''}
+
+  <!-- RECOMMENDATIONS -->
+  ${(secRecs||secFuture)?`
+  <div class="report-section">
+    <div class="section-title">💡 ${LANG==='ar'?'التوصيات والمقترحات البحثية':'Recommendations & Future Research'}</div>
+    <div class="section-body">
+      <div class="grid-2">
+        ${secRecs?`<div><h4 style="color:var(--primary);margin-bottom:10px;">📌 ${LANG==='ar'?'التوصيات العملية:':'Practical Recommendations:'}</h4><div class="ai-box"><div class="ai-box-label">🤖 AI</div><p>${secRecs}</p></div></div>`:''}
+        ${secFuture?`<div><h4 style="color:var(--primary);margin-bottom:10px;">🔭 ${LANG==='ar'?'الدراسات المستقبلية المقترحة:':'Future Research Suggestions:'}</h4><div class="ai-box"><div class="ai-box-label">🤖 AI</div><p>${secFuture}</p></div></div>`:''}
+      </div>
+    </div>
+  </div>`:''}
+
+  <!-- EXPORT -->
+  <div style="text-align:center;padding:24px;">
+    <button class="btn btn-success" onclick="exportPDF()">${t('lbl_exportPDF')}</button>
+    <button class="btn btn-primary" onclick="exportWord()">${t('lbl_exportWord')}</button>
+    <button class="btn btn-outline" onclick="window.print()">${t('lbl_print')}</button>
+  </div>
+  </div>`;
+
+  container.innerHTML=html;container.style.display='block';
+  setTimeout(()=>renderCharts(R),200);
+}
+
+// ==================== CHARTS ====================
+function renderCharts(R){
+  // Descriptive bar
+  const da=document.getElementById('descChartArea');
+  if(da&&numericCols.length>0){
+    da.innerHTML='';
+    const c1=document.createElement('canvas'),b1=document.createElement('div');b1.className='chart-box';b1.appendChild(c1);da.appendChild(b1);
+    charts.push(new Chart(c1,{type:'bar',data:{labels:numericCols.slice(0,15),datasets:[
+      {label:LANG==='ar'?'المتوسط':'Mean',data:numericCols.slice(0,15).map(c=>R.descriptive[c].mean),backgroundColor:'rgba(44,125,160,0.7)',borderColor:'rgba(11,59,79,1)',borderWidth:1},
+      {label:LANG==='ar'?'الانحراف':'Std Dev',data:numericCols.slice(0,15).map(c=>R.descriptive[c].std),backgroundColor:'rgba(45,106,79,0.6)',borderColor:'rgba(45,106,79,1)',borderWidth:1}
+    ]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}}));
+  }
+
+  // Likert section means bar
+  const secMeansArr=R.sectionNames.filter(s=>R.sectionMeans[s]);
+  if(secMeansArr.length>0&&da){
+    const c2=document.createElement('canvas'),b2=document.createElement('div');b2.className='chart-box';b2.appendChild(c2);da.appendChild(b2);
+    charts.push(new Chart(c2,{type:'bar',data:{labels:secMeansArr,datasets:[
+      {label:LANG==='ar'?'متوسط المحور':'Section Mean',data:secMeansArr.map(s=>R.sectionMeans[s]),backgroundColor:secMeansArr.map((_,i)=>`hsl(${200+i*40},60%,50%)`),borderWidth:1}
+    ]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{min:1,max:5}}}}));
+  }
+
+  // Alpha chart
+  const aa=document.getElementById('alphaChartArea');
+  const alphaData=R.sectionNames.filter(s=>R.sectionAlpha[s]);
+  if(aa&&alphaData.length>0){
+    aa.innerHTML='';
+    const c3=document.createElement('canvas'),b3=document.createElement('div');b3.className='chart-box';b3.appendChild(c3);aa.appendChild(b3);
+    charts.push(new Chart(c3,{type:'bar',data:{labels:alphaData,datasets:[
+      {label:"Cronbach's α",data:alphaData.map(s=>R.sectionAlpha[s]),backgroundColor:alphaData.map(s=>R.sectionAlpha[s]>=0.8?'rgba(45,106,79,0.7)':R.sectionAlpha[s]>=0.7?'rgba(44,125,160,0.7)':'rgba(153,27,27,0.7)'),borderWidth:1}
+    ]},options:{responsive:true,scales:{y:{min:0,max:1,ticks:{stepSize:0.1}}},plugins:{legend:{display:false},annotation:{annotations:{line1:{type:'line',y:0.7,borderColor:'red',borderWidth:2,borderDash:[5,5]}}}}}}));
+  }
+
+  // Correlation heatmap (radar)
+  const ca=document.getElementById('corrChartArea');
+  if(ca&&R.correlations.length>0){
+    ca.innerHTML='';
+    const labels=R.sectionNames.length>=2?R.sectionNames:numericCols.slice(0,8);
+    const getData=(col)=>labels.map(c2=>{if(col===c2)return 1;const e=R.correlations.find(r=>(r.c1===col&&r.c2===c2)||(r.c2===col&&r.c1===c2));return e?Math.abs(e.r):0;});
+    const colors=['rgba(44,125,160,','rgba(45,106,79,','rgba(180,83,9,','rgba(153,27,27,'];
+    const c4=document.createElement('canvas'),b4=document.createElement('div');b4.className='chart-box';b4.appendChild(c4);ca.appendChild(b4);
+    charts.push(new Chart(c4,{type:'radar',data:{labels,datasets:labels.slice(0,4).map((col,i)=>({label:col,data:getData(col),fill:true,backgroundColor:colors[i%4]+'0.15)',borderColor:colors[i%4]+'0.9)',pointRadius:3}))},options:{responsive:true,scales:{r:{min:0,max:1,ticks:{stepSize:0.2}}}}}));
+
+    // Scatter
+    if(R.regression){
+      const x=numericData[R.regression.colX],y=numericData[R.regression.colY];
+      const xmn=Math.min(...x),xmx=Math.max(...x);
+      const c5=document.createElement('canvas'),b5=document.createElement('div');b5.className='chart-box';b5.appendChild(c5);ca.appendChild(b5);
+      charts.push(new Chart(c5,{type:'scatter',data:{datasets:[
+        {label:LANG==='ar'?'البيانات':'Data',data:x.map((xi,i)=>({x:xi,y:y[i]})),backgroundColor:'rgba(44,125,160,0.5)',pointRadius:4},
+        {label:LANG==='ar'?'خط الانحدار':'Regression',data:[{x:xmn,y:R.regression.a+R.regression.b*xmn},{x:xmx,y:R.regression.a+R.regression.b*xmx}],type:'line',borderColor:'#ef4444',borderWidth:2,pointRadius:0,fill:false}
+      ]},options:{responsive:true,scales:{x:{title:{display:true,text:R.regression.colX}},y:{title:{display:true,text:R.regression.colY}}}}}));
+    }
+  }
+}
+
+// ==================== EXPORT ====================
+async function exportPDF(){
+  showStatus('⏳ '+(LANG==='ar'?'جاري إنشاء PDF...':'Generating PDF...'),'loading');
+  try{
+    const el=document.getElementById('reportContainer');
+    const canvas=await html2canvas(el,{scale:1.5,useCORS:true,scrollX:0,scrollY:-window.scrollY});
+    const imgData=canvas.toDataURL('image/jpeg',0.92);
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
+    const w=pdf.internal.pageSize.getWidth()-20,pageH=pdf.internal.pageSize.getHeight()-20;
+    const h=(canvas.height*w)/canvas.width;let y=10,rem=h,srcY=0;
+    while(rem>0){
+      const slH=Math.min(rem,pageH);
+      const sc=document.createElement('canvas');sc.width=canvas.width;sc.height=(slH/h)*canvas.height;
+      sc.getContext('2d').drawImage(canvas,0,srcY*canvas.height/h,canvas.width,sc.height,0,0,canvas.width,sc.height);
+      pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',10,y,w,slH);
+      rem-=slH;srcY+=slH;if(rem>0){pdf.addPage();y=10;}
+    }
+    pdf.save(LANG==='ar'?'التقرير_الأكاديمي.pdf':'Academic_Report.pdf');
+    showStatus('✅ '+(LANG==='ar'?'تم تصدير PDF':'PDF exported'),'success');
+  }catch(e){showStatus('Error: '+e.message,'error');}
+}
+async function exportWord(){
+  const reportEl = document.getElementById('reportContainer');
+  if(!reportEl || !reportEl.innerHTML.trim()){
+    showStatus('⚠️ لا يوجد تقرير للتصدير','warn');
+    return;
+  }
+  const isAr = LANG==='ar';
+  showStatus('⏳ '+(isAr?'جاري تحضير الملف (تحويل الرسومات + الجداول)...':'Preparing file (converting charts + tables)...'),'loading');
+
+  try {
+    // ── الخطوة 1: استنساخ المحتوى وتحويل Canvas → img ──
+    const clone = reportEl.cloneNode(true);
+
+    // ── تحويل Canvas → img base64 ──
+    const origCanvases = reportEl.querySelectorAll('canvas');
+    const cloneCanvases = clone.querySelectorAll('canvas');
+    origCanvases.forEach((origCanvas, idx) => {
+      try {
+        const dataUrl = origCanvas.toDataURL('image/png');
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'max-width:100%;display:block;margin:8px auto;';
+        img.setAttribute('data-chart', 'true');
+        if(cloneCanvases[idx]) cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
+      } catch(e){ if(cloneCanvases[idx]) cloneCanvases[idx].remove(); }
+    });
+
+    // ── تحويل <img> إلى base64 عبر Canvas ──
+    const origImgs = Array.from(reportEl.querySelectorAll('img'));
+    const cloneImgs = Array.from(clone.querySelectorAll('img'));
+    await Promise.all(origImgs.map((origImg, idx) => new Promise(resolve => {
+      const cloneImg = cloneImgs[idx];
+      if(!cloneImg){ resolve(); return; }
+      // تجاهل الصور المكسورة أو المخفية
+      if(!origImg.complete || origImg.naturalWidth === 0){ 
+        // إذا كان هناك SVG fallback في src الحالي، احتفظ به
+        if(cloneImg.src && cloneImg.src.startsWith('data:')){ resolve(); return; }
+        cloneImg.remove(); resolve(); return;
+      }
+      try {
+        const cvs = document.createElement('canvas');
+        cvs.width  = origImg.naturalWidth  || origImg.width  || 100;
+        cvs.height = origImg.naturalHeight || origImg.height || 100;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(origImg, 0, 0, cvs.width, cvs.height);
+        cloneImg.src = cvs.toDataURL('image/png');
+        cloneImg.removeAttribute('onerror');
+        resolve();
+      } catch(e){
+        // cross-origin: إذا كان SVG data URL احتفظ به
+        if(cloneImg.src && cloneImg.src.startsWith('data:image/svg')){
+          // إبقاء SVG كما هو — سيتعامل معه Backend
+        } else {
+          cloneImg.remove();
+        }
+        resolve();
+      }
+    })));
+
+    // ── إزالة العناصر غير المطلوبة في Word ──
+    clone.querySelectorAll('script, noscript, button, [data-noexport], .page-number').forEach(el=>el.remove());
+
+    // ── الخطوة 2: إرسال HTML المُعالج إلى Backend ──
+    const htmlContent = clone.innerHTML;
+
+    const response = await fetch('/tools/html_to_word', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        html: htmlContent,
+        filename: isAr ? 'التقرير_الأكاديمي' : 'Academic_Report',
+        direction: isAr ? 'rtl' : 'ltr'
+      })
+    });
+
+    if(!response.ok){
+      const errText = await response.text();
+      throw new Error(errText || 'فشل الاتصال بالخادم');
+    }
+
+    const result = await response.json();
+
+    if(result.success && result.download_url){
+      const a = document.createElement('a');
+      a.href = result.download_url;
+      a.download = result.filename || (isAr?'التقرير_الأكاديمي.docx':'Academic_Report.docx');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showStatus('✅ '+(isAr?'تم التصدير بنجاح (فواصل صفحات + جداول كاملة + رسومات)':'Exported successfully (page breaks + full tables + charts)'),'success');
+    } else {
+      throw new Error(result.error || 'فشل التحويل');
+    }
+
+  } catch(e) {
+    console.error('Word export error:', e);
+    showStatus('❌ '+(LANG==='ar'?'خطأ: ':'Error: ')+e.message,'error');
+  }
+}
+
+// ==================== INIT ====================
+applyTranslations();
+</script>
+</body>
+</html>

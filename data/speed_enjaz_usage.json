@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-04",
+  "daily_requests": 0,
+  "daily_limit_est": 2000,
+  "active_key_index": 4,
+  "total_files_generated": 0,
+  "key_stats": {
+    "key_1": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_2": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_3": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_4": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_5": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_6": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_7": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "key_8": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    },
+    "env_key": {
+      "calls": 0,
+      "errors": 0,
+      "status": "active"
+    }
+  },
+  "last_reset": "2026-10-04T10:43:28.287415"
+}

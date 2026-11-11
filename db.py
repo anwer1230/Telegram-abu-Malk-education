@@ -366,3 +366,102 @@ def delete_saved_links_batch(link_ids: list[str]) -> bool:
 
     return bool(_run(operation, default=False))
 
+
+def get_saved_phone_numbers() -> Optional[list[dict]]:
+    if not is_enabled():
+        return None
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT phone_digits, phone_number, account_name, label, is_default, added_at, "
+                "COALESCE(to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '') "
+                "FROM saved_phone_numbers ORDER BY is_default DESC, updated_at DESC"
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "phone_number": r[1],
+                    "account_name": r[2] or r[3] or "",
+                    "label": r[3] or r[2] or "",
+                    "is_default": bool(r[4]),
+                    "added_at": r[5] or "",
+                    "updated_at": r[6] or "",
+                }
+                for r in rows
+                if r[1]
+            ]
+
+    return _run(operation, default=None)
+
+
+def upsert_saved_phone_number(entry: dict) -> bool:
+    if not is_enabled() or not isinstance(entry, dict):
+        return False
+    import re
+    raw_phone = str(entry.get("phone_number") or "").strip()
+    digits = re.sub(r"[^0-9]", "", raw_phone)
+    if not digits:
+        return False
+    acc_name = str(entry.get("account_name") or entry.get("label") or "").strip()
+    label = str(entry.get("label") or acc_name or "").strip()
+    is_def = bool(entry.get("is_default", False))
+    added_at = str(entry.get("added_at") or "")
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO saved_phone_numbers (phone_digits, phone_number, account_name, label, is_default, added_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (phone_digits) DO UPDATE SET
+                    phone_number = EXCLUDED.phone_number,
+                    account_name = EXCLUDED.account_name,
+                    label = EXCLUDED.label,
+                    is_default = saved_phone_numbers.is_default OR EXCLUDED.is_default,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (digits, raw_phone, acc_name, label, is_def, added_at))
+        return True
+
+    return bool(_run(operation, default=False))
+
+
+def upsert_saved_phone_numbers_batch(entries: list[dict]) -> int:
+    if not is_enabled() or not entries:
+        return 0
+    import re
+    rows = []
+    seen = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        raw_phone = str(entry.get("phone_number") or "").strip()
+        digits = re.sub(r"[^0-9]", "", raw_phone)
+        if not digits or digits in seen:
+            continue
+        seen.add(digits)
+        acc_name = str(entry.get("account_name") or entry.get("label") or "").strip()
+        label = str(entry.get("label") or acc_name or "").strip()
+        is_def = bool(entry.get("is_default", False))
+        added_at = str(entry.get("added_at") or "")
+        rows.append((digits, raw_phone, acc_name, label, is_def, added_at))
+
+    if not rows:
+        return 0
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.executemany("""
+                INSERT INTO saved_phone_numbers (phone_digits, phone_number, account_name, label, is_default, added_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (phone_digits) DO UPDATE SET
+                    phone_number = EXCLUDED.phone_number,
+                    account_name = EXCLUDED.account_name,
+                    label = EXCLUDED.label,
+                    is_default = saved_phone_numbers.is_default OR EXCLUDED.is_default,
+                    updated_at = CURRENT_TIMESTAMP
+            """, rows)
+        return len(rows)
+
+    return int(_run(operation, default=0) or 0)
+
+

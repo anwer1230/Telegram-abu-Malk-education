@@ -131,7 +131,9 @@ from telethon.errors import (
     PasswordHashInvalidError, FloodWaitError, UserAlreadyParticipantError,
     InviteHashExpiredError, InviteHashInvalidError, InviteRequestSentError,
     ChannelPrivateError, UsernameInvalidError, UsernameNotOccupiedError,
-    ChannelsTooMuchError
+    ChannelsTooMuchError, SessionRevokedError, AuthKeyUnregisteredError,
+    AuthKeyInvalidError, UserDeactivatedError, UserDeactivatedBanError,
+    UnauthorizedError
 )
 from telethon.sessions import StringSession
 from rate_limiter import join_limiter
@@ -142,44 +144,131 @@ BATCH_CANCEL_EVENTS = {}
 # قاموس لتتبع حالة دفعات الإرسال ودعم الإيقاف الفوري والاستئناف من حيث التوقف
 BATCH_SENDER_STATES = {}
 
-def handle_session_revoked(user_id, reason="تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الرسمي"):
+_REVOKED_GUARD_LOCK = threading.Lock()
+_LAST_REVOKED_TS = {}
+
+def handle_session_revoked(user_id, reason="تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي"):
     """
     استشعار تلقائي لإنهاء أو إزالة الجلسة من تطبيق تليجرام الرسمي:
-    - تسجيل الخروج تلقائياً فورياً
-    - تنظيف ملف الجلسة الملغاة من القرص
-    - تحديث حالة الحساب وإرسال إشعار فوري للواجهة
+    - حفظ الرقم واسم الحساب الفعلي في قاعدة الأرقام المحفوظة للأبد
+    - إيقاف المهام الجارية والعميل تلقائياً
+    - تنظيف ملف الجلسة وسلسلة الجلسة الملغاة من القرص وGitHub
+    - تسجيل الخروج تلقائياً وتحديث حالة الحساب وإرسال إشعار فوري للواجهة
     """
+    now_t = time.time()
+    with _REVOKED_GUARD_LOCK:
+        prev_t = _LAST_REVOKED_TS.get(user_id, 0)
+        if now_t - prev_t < 5.0:
+            return
+        _LAST_REVOKED_TS[user_id] = now_t
+
     logger.warning(f"🚨 [استشعار إلغاء الجلسة] للمستخدم {user_id}: {reason}")
     try:
+        # 1. حفظ الرقم واسم الحساب الفعلي قبل إنهاء الجلسة
+        revoked_phone = ''
+        revoked_name = ''
+        cm = None
         with USERS_LOCK:
             if user_id in USERS:
-                USERS[user_id]['authenticated'] = False
-                USERS[user_id]['connected'] = False
-                USERS[user_id]['is_running'] = False
-                cm = USERS[user_id].get('client_manager')
-                if cm:
+                ud = USERS[user_id]
+                revoked_phone = ud.get('account_phone') or ud.get('settings', {}).get('phone') or ''
+                revoked_name = ud.get('account_name') or ''
+                ud['authenticated'] = False
+                ud['connected'] = False
+                ud['is_running'] = False
+                ud['session_revoked'] = True
+                ud['revoked_reason'] = reason
+                cm = ud.get('client_manager')
+
+        # 2. إيقاف أي دفعة إرسال أو نشر مجدول
+        try:
+            ev = BATCH_CANCEL_EVENTS.get(user_id)
+            if ev:
+                ev.set()
+            st_batch = BATCH_SENDER_STATES.get(user_id)
+            if st_batch and st_batch.get('status') == 'sending':
+                st_batch['status'] = 'paused'
+        except Exception:
+            pass
+        try:
+            if 'rotating_manager' in globals():
+                rotating_manager.stop(user_id)
+        except Exception:
+            pass
+
+        # 3. فصل وإيقاف عميل التليجرام وإخراجه من المديرين
+        if cm:
+            try:
+                cm.authenticated = False
+                cm.connected = False
+                if hasattr(cm, 'stop_flag'):
+                    cm.stop_flag.set()
+                if getattr(cm, 'client', None) and getattr(cm, 'loop', None) and cm.loop.is_running():
                     try:
-                        cm.authenticated = False
-                        cm.connected = False
-                        if getattr(cm, 'client', None):
-                            cm.client.disconnect()
+                        asyncio.run_coroutine_threadsafe(cm.client.disconnect(), cm.loop)
                     except Exception:
                         pass
-        session_file = os.path.join(SESSIONS_DIR, f"{user_id}_session.session")
-        if os.path.exists(session_file):
-            try:
-                os.remove(session_file)
-                logger.info(f"تم حذف ملف الجلسة المنتهية: {session_file}")
-            except Exception as _fe:
-                logger.error(f"خطأ في حذف ملف الجلسة المنتهية: {_fe}")
+            except Exception:
+                pass
+        try:
+            if 'telegram_manager' in globals():
+                telegram_manager.client_managers.pop(user_id, None)
+                lm = telegram_manager.login_managers.pop(user_id, None)
+                if lm:
+                    try:
+                        lm.stop()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        # 4. تثبيت الرقم واسمه الفعلي في الأرقام المحفوظة للأبد قبل مسح بيانات الجلسة
         try:
             st = load_settings(user_id) or {}
-            st['authenticated'] = False
-            st['connected'] = False
+            revoked_phone = revoked_phone or st.get('phone') or st.get('account_phone') or ''
+            revoked_name = revoked_name or st.get('account_name') or st.get('name') or ''
+            if revoked_phone:
+                import firestore_sync
+                firestore_sync.save_phone_number(revoked_phone)
+                if revoked_name and not firestore_sync._is_placeholder_phone_name(revoked_name):
+                    firestore_sync.update_phone_account_name(revoked_phone, revoked_name)
+                socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+        except Exception:
+            pass
+
+        # 5. حذف ملفات الجلسة المحلية (.session و _string.txt) ومن GitHub
+        for fp in (
+            os.path.join(SESSIONS_DIR, f"{user_id}_session.session"),
+            os.path.join(SESSIONS_DIR, f"{user_id}_string.txt"),
+        ):
+            if os.path.exists(fp):
+                try:
+                    os.remove(fp)
+                    logger.info(f"تم حذف ملف الجلسة المنتهية: {fp}")
+                except Exception as _fe:
+                    logger.error(f"خطأ في حذف ملف الجلسة المنتهية: {_fe}")
+        try:
+            if 'github_delete_session' in globals():
+                _OSThread(target=github_delete_session, args=(user_id,), daemon=True).start()
+        except Exception:
+            pass
+
+        # 6. تحديث الإعدادات لتعكس تسجيل الخروج الآلي
+        try:
+            st = load_settings(user_id) or {}
+            st.update({
+                'phone': '',
+                'account_phone': '',
+                'authenticated': False,
+                'connected': False,
+                'rotating_persistent': False,
+                'monitoring_persistent': False,
+            })
             save_settings(user_id, st)
         except Exception:
             pass
-        alert_msg = "⚠️ تنبيه أمني: تم رصد إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي! تم تسجيل الخروج تلقائياً."
+
+        alert_msg = "⚠️ تنبيه: تم رصد إزالة الجلسة أو تسجيل الخروج من تطبيق تليجرام الآخر الرسمي! تم تسجيل الخروج آلياً من هذا التطبيق."
         socketio.emit('session_revoked', {
             "user_id": user_id,
             "message": alert_msg,
@@ -188,12 +277,33 @@ def handle_session_revoked(user_id, reason="تم إنهاء أو إزالة ال
         socketio.emit('login_status', {
             "logged_in": False,
             "connected": False,
+            "awaiting_code": False,
+            "awaiting_password": False,
+            "is_running": False,
             "session_revoked": True,
+            "user_id": user_id,
             "message": alert_msg
         }, to=user_id)
+        socketio.emit('account_updated', {
+            "logged_in": False,
+            "connected": False,
+            "session_revoked": True,
+            "user_id": user_id
+        })
         socketio.emit('connection_status', {
             "status": "disconnected"
         }, to=user_id)
+        socketio.emit('log_update', {"message": alert_msg}, to=user_id)
+        try:
+            if 'send_push_notification' in globals():
+                send_push_notification(
+                    user_id,
+                    "⚠️ تم إزالة الجلسة من تليجرام",
+                    alert_msg,
+                    data={"type": "session_revoked", "user_id": user_id}
+                )
+        except Exception:
+            pass
     except Exception as e_rev:
         logger.error(f"Error handling session revoked for {user_id}: {e_rev}")
 
@@ -2142,12 +2252,22 @@ class TelegramClientManager:
                     lname = getattr(me, 'last_name', '') or ''
                     self.my_name = f"{fname} {lname}".strip() or getattr(me, 'username', '') or str(me.id)
                     logger.info(f"User identity confirmed for {self.user_id}: ID={self.my_id}, @{self.my_username}, Name={self.my_name}")
-                    # تثبيت وتحديث اسم الحساب للرقم بشكل دائم
+                    # تثبيت وتحديث اسم الحساب للرقم بشكل دائم وأبدي
                     try:
                         p_num = getattr(me, 'phone', '') or (load_settings(self.user_id) or {}).get('phone') or getattr(self, 'phone_number', '')
-                        if p_num and self.my_name and self.my_name != 'رقم أساسي':
+                        if p_num:
+                            p_norm = p_num if str(p_num).startswith('+') else f"+{p_num}"
+                            if self.my_name:
+                                st_cur = load_settings(self.user_id) or {}
+                                st_cur['account_name'] = self.my_name
+                                if self.my_username:
+                                    st_cur['account_username'] = self.my_username
+                                st_cur['account_phone'] = p_norm
+                                save_settings(self.user_id, st_cur)
                             import firestore_sync
-                            firestore_sync.update_phone_account_name(p_num, self.my_name)
+                            if self.my_name and not firestore_sync._is_placeholder_phone_name(self.my_name):
+                                firestore_sync.update_phone_account_name(p_norm, self.my_name)
+                                socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
                     except Exception as _sync_err:
                         logger.debug(f"Sync phone account name error: {_sync_err}")
             except Exception as e:
@@ -2442,31 +2562,46 @@ class TelegramClientManager:
         return is_prot, reason
 
     async def is_session_valid(self):
-        """التحقق من صحة الجلسة الحالية"""
+        """التحقق الفعلي من صلاحية الجلسة واستشعار إزالتها من تطبيق تليجرام الرسمي"""
         try:
             if not self.client:
                 return False
+            if not self.client.is_connected():
+                await self.client.connect()
             is_authorized = await self.client.is_user_authorized()
             if not is_authorized:
+                logger.warning(f"Session unauthorized for {self.user_id} — triggering auto-logout")
+                handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
                 return False
             me = await self.client.get_me()
-            return me is not None
+            if me is None:
+                handle_session_revoked(self.user_id, "تعذر التحقق من هوية الجلسة — الجلسة غير صالحة")
+                return False
+            return True
+        except (SessionRevokedError, AuthKeyUnregisteredError, AuthKeyInvalidError, UserDeactivatedError, UserDeactivatedBanError, UnauthorizedError) as rev_err:
+            logger.warning(f"Telegram revoked session for {self.user_id}: {rev_err}")
+            handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+            return False
         except Exception as e:
             error_str = str(e).lower()
-            if any(kw in error_str for kw in ['auth_key', 'session', 'revoked', 'unauthorized', 'deactivated']):
+            if any(kw in error_str for kw in ['auth_key_unregistered', 'auth_key_invalid', 'session_revoked', 'session_expired', 'unauthorized', 'user_deactivated']):
                 logger.warning(f"Session invalid for {self.user_id}: {e}")
-                socketio.emit('session_revoked', {
-                    "user_id": self.user_id,
-                    "reason": str(e)
-                }, to=self.user_id)
-            return False
+                handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                return False
+            # خطأ شبكة عابر لا يعني بالضرورة إلغاء الجلسة
+            logger.debug(f"Transient session check error for {self.user_id}: {e}")
+            return True
 
     def check_session_valid_sync(self):
         """نسخة متزامنة للتحقق من صحة الجلسة"""
         try:
             return self.run_coroutine(self.is_session_valid())
-        except Exception:
-            return False
+        except Exception as e:
+            err_l = str(e).lower()
+            if any(kw in err_l for kw in ['auth_key_unregistered', 'auth_key_invalid', 'session_revoked', 'session_expired', 'unauthorized', 'user_deactivated']):
+                handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                return False
+            return True
 
     async def force_reset_session(self):
         """إعادة تعيين الجلسة وإزالة ملفاتها"""
@@ -2555,13 +2690,33 @@ class TelegramClientManager:
                 self.loop.close()
 
     async def _client_main(self):
+        _revocation_types = (
+            SessionRevokedError, AuthKeyUnregisteredError, AuthKeyInvalidError,
+            UserDeactivatedError, UserDeactivatedBanError, UnauthorizedError
+        )
+        _revocation_keywords = (
+            'auth_key_unregistered', 'auth_key_invalid', 'session_revoked',
+            'session_expired', 'user_deactivated', 'unauthorized'
+        )
         try:
             if self.client:
                 self._install_safety_wrapper()
                 await self.client.connect()
                 self.is_ready.set()
+                try:
+                    init_auth = await self.client.is_user_authorized()
+                except _revocation_types:
+                    handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                    return
+                if not init_auth:
+                    with USERS_LOCK:
+                        was_auth = bool(USERS.get(self.user_id, {}).get('authenticated'))
+                    if was_auth or load_string_session(self.user_id):
+                        handle_session_revoked(self.user_id, "الجلسة لم تعد مصرحة — تم تسجيل الخروج من تطبيق تليجرام الرسمي")
+                        return
                 await self._ensure_my_info()
                 await self._register_event_handlers()
+
                 async def _watch_stop():
                     while not self.stop_flag.is_set():
                         await asyncio.sleep(0.5)
@@ -2569,47 +2724,122 @@ class TelegramClientManager:
                         await self.client.disconnect()
                     except Exception:
                         pass
+
+                async def _watch_session_revoked():
+                    """مراقبة حية كل 15 ثانية لاكتشاف إزالة الجلسة من تطبيق تليجرام الرسمي فوراً"""
+                    await asyncio.sleep(10)
+                    while not self.stop_flag.is_set():
+                        try:
+                            if self.client and self.client.is_connected():
+                                is_auth = await self.client.is_user_authorized()
+                                if not is_auth:
+                                    handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                    self.stop_flag.set()
+                                    break
+                                me = await self.client.get_me()
+                                if me is None:
+                                    handle_session_revoked(self.user_id, "تم إنهاء الجلسة من تطبيق تليجرام الرسمي")
+                                    self.stop_flag.set()
+                                    break
+                        except _revocation_types:
+                            handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                            self.stop_flag.set()
+                            break
+                        except Exception as we:
+                            if any(k in str(we).lower() for k in _revocation_keywords):
+                                handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                self.stop_flag.set()
+                                break
+                        await asyncio.sleep(15)
+
                 stop_task = asyncio.ensure_future(_watch_stop())
+                watchdog_task = asyncio.ensure_future(_watch_session_revoked())
                 while not self.stop_flag.is_set():
                     try:
                         is_auth = await self.client.is_user_authorized()
                         if is_auth:
                             try:
                                 await self.client.run_until_disconnected()
-                                # run_until_disconnected returned — client disconnected
                                 if self.stop_flag.is_set():
                                     break
-                                logger.info(f"Client disconnected for {self.user_id}, reconnecting in 3s...")
-                                await asyncio.sleep(3)
+                                logger.info(f"Client disconnected for {self.user_id}, verifying session before reconnecting...")
+                                await asyncio.sleep(2)
                                 try:
                                     await self.client.connect()
+                                    if not await self.client.is_user_authorized():
+                                        handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                        break
+                                    me_rc = await self.client.get_me()
+                                    if me_rc is None:
+                                        handle_session_revoked(self.user_id, "الجلسة ملغاة — تم تسجيل الخروج آلياً")
+                                        break
                                     await self._ensure_my_info()
                                     logger.info(f"Reconnected successfully for {self.user_id}")
+                                except _revocation_types:
+                                    handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                    break
                                 except Exception as rc_err:
+                                    if any(k in str(rc_err).lower() for k in _revocation_keywords):
+                                        handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                        break
                                     logger.error(f"Reconnect failed for {self.user_id}: {rc_err}")
                                     await asyncio.sleep(5)
+                            except _revocation_types:
+                                handle_session_revoked(self.user_id, "تم رصد إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                break
                             except Exception as run_err:
                                 if self.stop_flag.is_set():
+                                    break
+                                if any(k in str(run_err).lower() for k in _revocation_keywords):
+                                    handle_session_revoked(self.user_id, "تم رصد إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
                                     break
                                 logger.warning(f"run_until_disconnected interrupted for {self.user_id}: {run_err}")
                                 await asyncio.sleep(2)
                                 try:
                                     if not self.client.is_connected():
                                         await self.client.connect()
-                                        await self._ensure_my_info()
-                                        logger.info(f"Reconnected after error for {self.user_id}")
+                                    if not await self.client.is_user_authorized():
+                                        handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                        break
+                                    await self.client.get_me()
+                                    await self._ensure_my_info()
+                                    logger.info(f"Reconnected after error for {self.user_id}")
+                                except _revocation_types:
+                                    handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                    break
                                 except Exception as rc2_err:
+                                    if any(k in str(rc2_err).lower() for k in _revocation_keywords):
+                                        handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                        break
                                     logger.error(f"Reconnect after error failed for {self.user_id}: {rc2_err}")
                                     await asyncio.sleep(5)
                         else:
+                            with USERS_LOCK:
+                                was_auth = bool(USERS.get(self.user_id, {}).get('authenticated'))
+                            if was_auth:
+                                handle_session_revoked(self.user_id, "تم إنهاء الجلسة من تطبيق تليجرام الآخر الرسمي")
+                                break
                             await asyncio.sleep(1)
+                    except _revocation_types:
+                        handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                        break
                     except Exception as auth_check_err:
+                        if any(k in str(auth_check_err).lower() for k in _revocation_keywords):
+                            handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+                            break
                         logger.debug(f"Auth check during loop for {self.user_id}: {auth_check_err}")
                         await asyncio.sleep(1)
                 if not stop_task.done():
                     stop_task.cancel()
+                if not watchdog_task.done():
+                    watchdog_task.cancel()
+        except _revocation_types:
+            handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
         except Exception as e:
-            logger.error(f"Client main error: {str(e)}")
+            if any(k in str(e).lower() for k in _revocation_keywords):
+                handle_session_revoked(self.user_id, "تم إنهاء أو إزالة الجلسة من تطبيق تليجرام الآخر الرسمي")
+            else:
+                logger.error(f"Client main error: {str(e)}")
         finally:
             try:
                 if self.client and self.client.is_connected():
@@ -4361,10 +4591,12 @@ class TelegramLogin:
 
             account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
             phone_num = getattr(me, 'phone', '') or getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone')
-            if phone_num and account_full_name and account_full_name != 'رقم أساسي':
+            if phone_num:
                 try:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(phone_num, account_full_name)
+                    firestore_sync.save_phone_number(phone_num)
+                    if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
+                        firestore_sync.update_phone_account_name(phone_num, account_full_name)
                 except Exception:
                     pass
 
@@ -4376,8 +4608,8 @@ class TelegramLogin:
                     "first_name": me.first_name,
                     "last_name": me.last_name,
                     "username": me.username,
-                    "phone": me.phone,
-                    "full_name": f"{me.first_name or ''} {me.last_name or ''}".strip(),
+                    "phone": getattr(me, 'phone', '') or phone_num,
+                    "full_name": account_full_name,
                     "avatar": avatar_url
                 }
             }
@@ -4450,10 +4682,12 @@ class TelegramLogin:
 
             account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
             phone_num = getattr(me, 'phone', '') or getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone')
-            if phone_num and account_full_name and account_full_name != 'رقم أساسي':
+            if phone_num:
                 try:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(phone_num, account_full_name)
+                    firestore_sync.save_phone_number(phone_num)
+                    if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
+                        firestore_sync.update_phone_account_name(phone_num, account_full_name)
                 except Exception:
                     pass
 
@@ -4465,8 +4699,8 @@ class TelegramLogin:
                     "first_name": me.first_name,
                     "last_name": me.last_name,
                     "username": me.username,
-                    "phone": me.phone,
-                    "full_name": f"{me.first_name or ''} {me.last_name or ''}".strip(),
+                    "phone": getattr(me, 'phone', '') or phone_num,
+                    "full_name": account_full_name,
                     "avatar": avatar_url
                 }
             }
@@ -4574,10 +4808,16 @@ class TelegramManager:
                     USERS[user_id]['authenticated'] = True
                     USERS[user_id]['connected'] = True
 
+            _mgr_self = self
             def _bg_ensure(cm=client_manager, uid=user_id):
                 try:
                     cm.start_client_thread()
                     logger.info(f"✅ تم تنشيط جلسة موجودة في الخلفية لـ {uid}")
+                    try:
+                        time.sleep(1.5)
+                        _mgr_self._fetch_account_name(uid)
+                    except Exception:
+                        pass
                     if _AUTO_JOINER_AVAILABLE:
                         try:
                             start_account_login_auto_join(uid, cm)
@@ -4781,24 +5021,42 @@ class TelegramManager:
             name = ' '.join(parts).strip()
             if not name:
                 name = getattr(me, 'username', None) or 'حساب تليجرام'
+            p_num = getattr(me, 'phone', None) or (load_settings(user_id) or {}).get('phone') or (load_settings(user_id) or {}).get('account_phone')
+            if p_num and not str(p_num).startswith('+'):
+                p_num = '+' + str(p_num)
+            acc_username = getattr(me, 'username', None)
             with USERS_LOCK:
                 if user_id in USERS:
                     USERS[user_id]['account_name'] = name
-                    USERS[user_id]['account_username'] = getattr(me, 'username', None)
-                    p_num = getattr(me, 'phone', None)
-                    if p_num and not str(p_num).startswith('+'):
-                        p_num = '+' + str(p_num)
+                    USERS[user_id]['account_username'] = acc_username
                     USERS[user_id]['account_phone'] = p_num
+            try:
+                st = load_settings(user_id) or {}
+                if name:
+                    st['account_name'] = name
+                if acc_username is not None:
+                    st['account_username'] = acc_username
+                if p_num:
+                    st['account_phone'] = p_num
+                    if not st.get('phone'):
+                        st['phone'] = p_num
+                save_settings(user_id, st)
+            except Exception:
+                pass
             try:
                 if user_id in PREDEFINED_USERS and name:
                     PREDEFINED_USERS[user_id]['name'] = name
+                    if p_num:
+                        PREDEFINED_USERS[user_id]['phone'] = p_num
                     _save_custom_accounts()
             except Exception:
                 pass
             try:
-                if p_num and name and name not in ['حساب تليجرام', 'رقم أساسي']:
+                if p_num:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(p_num, name)
+                    firestore_sync.save_phone_number(p_num)
+                    if name and not firestore_sync._is_placeholder_phone_name(name):
+                        firestore_sync.update_phone_account_name(p_num, name)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
             except Exception as _sync_err:
                 logger.debug(f"Sync phone name error in _fetch_account_name: {_sync_err}")
@@ -4929,15 +5187,19 @@ class TelegramManager:
             try:
                 if user_id in PREDEFINED_USERS and account_name:
                     PREDEFINED_USERS[user_id]['name'] = account_name
+                    if account_phone:
+                        PREDEFINED_USERS[user_id]['phone'] = account_phone
                     _save_custom_accounts()
             except Exception as _e_pname:
                 logger.warning(f"Could not update PREDEFINED_USERS name: {_e_pname}")
 
-            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وبث التحديث للقائمة
+            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وأبدي وبث التحديث للقائمة
             try:
-                if account_phone and account_name and account_name not in ['حساب تليجرام', 'رقم أساسي']:
+                if account_phone:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(account_phone, account_name)
+                    firestore_sync.save_phone_number(account_phone)
+                    if account_name and not firestore_sync._is_placeholder_phone_name(account_name):
+                        firestore_sync.update_phone_account_name(account_phone, account_name)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
             except Exception as _sync_err:
                 logger.debug(f"Sync phone name error in verify_code: {_sync_err}")
@@ -5066,15 +5328,19 @@ class TelegramManager:
             try:
                 if user_id in PREDEFINED_USERS and account_name:
                     PREDEFINED_USERS[user_id]['name'] = account_name
+                    if account_phone:
+                        PREDEFINED_USERS[user_id]['phone'] = account_phone
                     _save_custom_accounts()
             except Exception as _e_pname:
                 logger.warning(f"Could not update PREDEFINED_USERS name: {_e_pname}")
 
-            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وبث التحديث للقائمة
+            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وأبدي وبث التحديث للقائمة
             try:
-                if account_phone and account_name and account_name not in ['حساب تليجرام', 'رقم أساسي']:
+                if account_phone:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(account_phone, account_name)
+                    firestore_sync.save_phone_number(account_phone)
+                    if account_name and not firestore_sync._is_placeholder_phone_name(account_name):
+                        firestore_sync.update_phone_account_name(account_phone, account_name)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
             except Exception as _sync_err:
                 logger.debug(f"Sync phone name error in verify_password: {_sync_err}")
@@ -7058,7 +7324,7 @@ def index():
             aphone = u_mem.get('account_phone') or st.get('account_phone') or st.get('phone') or udata.get('phone')
             aavatar = u_mem.get('account_avatar')
 
-        if (aphone and '201120945094' in str(aphone)) or uid == 'user_1':
+        if (aphone and '201120945094' in str(aphone)) or (uid == 'user_1' and not aphone):
             aname = 'Lamis'
             if not aphone:
                 aphone = '+201120945094'
@@ -7319,12 +7585,18 @@ def api_save_login():
         })
 
     new_phone = str(data.get('phone')).strip()
+    if new_phone and not new_phone.startswith('+'):
+        _digits_tmp = re.sub(r'[^0-9]', '', new_phone)
+        if _digits_tmp:
+            new_phone = '+' + _digits_tmp
     clean_new_phone = re.sub(r'[^0-9]', '', new_phone)
 
-    # حفظ الرقم في Firestore بشكل دائم
+    # حفظ الرقم فوراً وبشكل دائم في قاعدة البيانات والكاش وبث التحديث للقائمة
+    saved_phone_info = None
     try:
         import firestore_sync
-        firestore_sync.save_phone_number(new_phone)
+        saved_phone_info = firestore_sync.save_phone_number(new_phone)
+        socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
     except Exception as _fe:
         logger.error(f"Error persisting phone {new_phone} to Firestore: {_fe}")
 
@@ -7366,16 +7638,21 @@ def api_save_login():
         if is_already_auth:
             try:
                 telegram_manager.ensure_client_active(target_uid)
+                _resolved_name = telegram_manager._fetch_account_name(target_uid)
             except Exception:
-                pass
+                _resolved_name = None
+            with USERS_LOCK:
+                _cur_acc_name = USERS.get(target_uid, {}).get('account_name')
+            _st_target = load_settings(target_uid) or {}
+            _best_acc_name = _resolved_name or _cur_acc_name or _st_target.get('account_name') or PREDEFINED_USERS[target_uid].get('name')
             logger.info(f"Account {target_uid} already active for phone {new_phone} - switched to it")
             return jsonify({
                 "success": True,
-                "message": f"✅ تم التبديل إلى {PREDEFINED_USERS[target_uid]['name']} وهو متصل ويعمل بالفعل",
+                "message": f"✅ تم التبديل إلى {_best_acc_name} وهو متصل ويعمل بالفعل",
                 "switched_account": True,
                 "already_connected": True,
                 "user_id": target_uid,
-                "account_name": PREDEFINED_USERS[target_uid].get('name')
+                "account_name": _best_acc_name
             })
     else:
         # الرقم جديد وغير مخصص لأي حساب بعد:
@@ -7428,6 +7705,7 @@ def api_save_login():
                 PREDEFINED_USERS[free_uid] = {
                     "id": free_uid,
                     "name": display_name,
+                    "phone": new_phone,
                     "icon": icon,
                     "color": color
                 }
@@ -7444,11 +7722,36 @@ def api_save_login():
     logger.info(f"api_save_login: user_id={user_id}, phone={new_phone}")
     log_user_event(user_id, 'INFO', f"📱 طلب تسجيل دخول للرقم: {new_phone} (الحساب: {PREDEFINED_USERS[user_id]['name']})")
 
-    settings = {
+    prev_st = load_settings(user_id) or {}
+    old_digits = re.sub(r'[^0-9]', '', str(prev_st.get('phone') or prev_st.get('account_phone') or ''))
+    settings = dict(prev_st)
+    settings.update({
         'phone': new_phone,
+        'account_phone': new_phone,
         'password': data.get('password', ''),
         'login_time': time.time()
-    }
+    })
+    if old_digits and old_digits != clean_new_phone:
+        settings.pop('account_name', None)
+        settings.pop('name', None)
+        settings.pop('account_username', None)
+        settings.pop('account_avatar', None)
+
+    # استعادة الاسم الفعلي المحفوظ مسبقاً لهذا الرقم إن وجد
+    try:
+        import firestore_sync
+        known_name = firestore_sync._pick_best_phone_name(saved_phone_info) if saved_phone_info else ''
+        if known_name and not firestore_sync._is_placeholder_phone_name(known_name):
+            settings['account_name'] = known_name
+            if user_id in PREDEFINED_USERS:
+                PREDEFINED_USERS[user_id]['name'] = known_name
+                PREDEFINED_USERS[user_id]['phone'] = new_phone
+                _save_custom_accounts()
+        elif user_id in PREDEFINED_USERS:
+            PREDEFINED_USERS[user_id]['phone'] = new_phone
+            _save_custom_accounts()
+    except Exception:
+        pass
 
     if not save_settings(user_id, settings):
         return jsonify({
@@ -7631,11 +7934,13 @@ def api_verify_code():
             account_username = USERS.get(user_id, {}).get('account_username') or ''
             account_avatar = result.get("account_avatar") or USERS.get(user_id, {}).get('account_avatar')
 
-            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وبث التحديث للقائمة
-            if account_phone and account_name:
+            # تثبيت الرقم واسم الحساب الفعلي بشكل دائم وأبدي وبث التحديث للقائمة
+            if account_phone:
                 try:
                     import firestore_sync
-                    firestore_sync.update_phone_account_name(account_phone, account_name)
+                    firestore_sync.save_phone_number(account_phone)
+                    if account_name and not firestore_sync._is_placeholder_phone_name(account_name):
+                        firestore_sync.update_phone_account_name(account_phone, account_name)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
                 except Exception as _sync_e:
                     logger.debug(f"Sync phone account name error: {_sync_e}")
@@ -8106,13 +8411,23 @@ def api_telegram_auth_verify_code():
 
         if res and res.get("status") == "success":
             acc_name = res.get("account_name") or "حساب تيليجرام"
+            acc_phone = USERS.get(user_id, {}).get('account_phone') or phone or (load_settings(user_id) or {}).get('phone') or ''
+            if acc_phone:
+                try:
+                    import firestore_sync
+                    firestore_sync.save_phone_number(acc_phone)
+                    if acc_name and not firestore_sync._is_placeholder_phone_name(acc_name):
+                        firestore_sync.update_phone_account_name(acc_phone, acc_name)
+                    socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+                except Exception:
+                    pass
             return jsonify({
                 "success": True,
                 "message": "✅ تم التحقق وتوثيق الحساب بنجاح",
                 "user": {
                     "id": user_id,
                     "firstName": acc_name,
-                    "phone": phone
+                    "phone": acc_phone
                 },
                 "isRealTelegramMTProto": True
             })
@@ -8193,8 +8508,9 @@ def api_database_status():
 
 @app.route("/api/user_logout", methods=["POST"])
 def api_user_logout():
-    user_id = session.get('user_id')
-    if not user_id:
+    req_data = request.get_json(silent=True) or {}
+    user_id = resolve_request_user_id(req_data) if 'resolve_request_user_id' in globals() else (session.get('user_id') or req_data.get('user_id') or 'user_1')
+    if not user_id or user_id not in PREDEFINED_USERS:
         return jsonify({
             "success": False,
             "message": "❌ لا توجد جلسة نشطة"
@@ -8203,34 +8519,86 @@ def api_user_logout():
     try:
         logger.info(f"User {user_id} logging out...")
 
+        # إيقاف أي دفعة إرسال نشطة فوراً قبل الخروج
+        try:
+            ev = BATCH_CANCEL_EVENTS.get(user_id)
+            if ev:
+                ev.set()
+            BATCH_SENDER_STATES.pop(user_id, None)
+            BATCH_CANCEL_EVENTS.pop(user_id, None)
+        except Exception:
+            pass
+
+        # حفظ الرقم والاسم الفعلي نهائياً قبل تسجيل الخروج لضمان بقائهما في القائمة للأبد
+        _logout_phone = ''
+        _logout_name = ''
+        cm_to_stop = None
         with USERS_LOCK:
             if user_id in USERS:
-                client_manager = USERS[user_id].get('client_manager')
-                if client_manager:
-                    try:
-                        if USERS[user_id].get('is_running'):
-                            USERS[user_id]['is_running'] = False
-
-                        if hasattr(client_manager, 'client') and client_manager.client:
-                            client_manager.client.disconnect()
-                            logger.info(f"Client disconnected for user {user_id}")
-
-                        if hasattr(client_manager, 'stop'):
-                            client_manager.stop()
-
-                    except Exception as e:
-                        logger.error(f"خطأ في إغلاق العميل للمستخدم {user_id}: {e}")
-
+                _u_mem = USERS[user_id]
+                _logout_phone = _u_mem.get('account_phone') or _u_mem.get('settings', {}).get('phone') or ''
+                _logout_name = _u_mem.get('account_name') or ''
+                cm_to_stop = _u_mem.get('client_manager')
+                _u_mem['is_running'] = False
                 del USERS[user_id]
                 logger.info(f"User data removed from memory for {user_id}")
 
-        session_file = os.path.join(SESSIONS_DIR, f"{user_id}_session.session")
-        if os.path.exists(session_file):
+        if not cm_to_stop:
+            cm_to_stop = telegram_manager.client_managers.get(user_id)
+        if cm_to_stop:
             try:
-                os.remove(session_file)
-                logger.info(f"Session file removed for {user_id}")
+                if hasattr(cm_to_stop, 'stop_flag'):
+                    cm_to_stop.stop_flag.set()
+                if getattr(cm_to_stop, 'client', None) and getattr(cm_to_stop, 'loop', None) and cm_to_stop.loop.is_running():
+                    try:
+                        fut_out = asyncio.run_coroutine_threadsafe(cm_to_stop.client.log_out(), cm_to_stop.loop)
+                        fut_out.result(timeout=4)
+                    except Exception:
+                        try:
+                            asyncio.run_coroutine_threadsafe(cm_to_stop.client.disconnect(), cm_to_stop.loop)
+                        except Exception:
+                            pass
+                if hasattr(cm_to_stop, 'stop'):
+                    cm_to_stop.stop()
             except Exception as e:
-                logger.error(f"خطأ في حذف ملف الجلسة: {e}")
+                logger.error(f"خطأ في إغلاق العميل للمستخدم {user_id}: {e}")
+
+        telegram_manager.client_managers.pop(user_id, None)
+        lm_to_stop = telegram_manager.login_managers.pop(user_id, None)
+        if lm_to_stop:
+            try:
+                lm_to_stop.stop()
+            except Exception:
+                pass
+
+        try:
+            _cur_st_before = load_settings(user_id) or {}
+            _logout_phone = _logout_phone or _cur_st_before.get('phone') or _cur_st_before.get('account_phone') or ''
+            _logout_name = _logout_name or _cur_st_before.get('account_name') or _cur_st_before.get('name') or ''
+            if _logout_phone:
+                import firestore_sync
+                firestore_sync.save_phone_number(_logout_phone)
+                if _logout_name and not firestore_sync._is_placeholder_phone_name(_logout_name):
+                    firestore_sync.update_phone_account_name(_logout_phone, _logout_name)
+        except Exception as _lpe:
+            logger.debug(f"Preserve phone before logout notice: {_lpe}")
+
+        # حذف ملفات الجلسة المحلية (.session و _string.txt) حتى لا تعاد المصادقة تلقائياً
+        for sess_path in (
+            os.path.join(SESSIONS_DIR, f"{user_id}_session.session"),
+            os.path.join(SESSIONS_DIR, f"{user_id}_string.txt"),
+        ):
+            if os.path.exists(sess_path):
+                try:
+                    os.remove(sess_path)
+                    logger.info(f"Session artifact removed for {user_id}: {sess_path}")
+                except Exception as e:
+                    logger.error(f"خطأ في حذف ملف الجلسة: {e}")
+
+        try:
+            _OSThread(target=github_delete_session, args=(user_id,), daemon=True).start()
+        except Exception:
+            pass
 
         # إيقاف النشر الدوري فوراً عند تسجيل الخروج
         try:
@@ -8239,43 +8607,58 @@ def api_user_logout():
         except Exception as _re:
             logger.error(f"خطأ في إيقاف النشر الدوري عند الخروج: {_re}")
 
-        settings_file = os.path.join(SESSIONS_DIR, f"{user_id}.json")
-        if os.path.exists(settings_file):
-            try:
-                settings = load_settings(user_id)
-                settings.update({
-                    'phone': '',
-                    'authenticated': False,
-                    'connected': False,
-                    'rotating_persistent': False,
-                    'monitoring_persistent': False
-                })
-                save_settings(user_id, settings)
-                logger.info(f"Settings cleared for {user_id}")
-            except Exception as e:
-                logger.error(f"خطأ في مسح الإعدادات: {e}")
+        try:
+            settings = load_settings(user_id) or {}
+            settings.update({
+                'phone': '',
+                'account_phone': '',
+                'account_name': '',
+                'account_username': '',
+                'authenticated': False,
+                'connected': False,
+                'rotating_persistent': False,
+                'monitoring_persistent': False
+            })
+            save_settings(user_id, settings)
+            logger.info(f"Settings cleared for {user_id}")
+        except Exception as e:
+            logger.error(f"خطأ في مسح الإعدادات: {e}")
+
+        try:
+            import firestore_sync
+            socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+        except Exception:
+            pass
 
         socketio.emit('log_update', {
-            "message": "🚪 تم تسجيل الخروج وإنهاء جلسة التليجرام"
+            "message": "🚪 تم تسجيل الخروج وإنهاء جلسة التليجرام (مع الإبقاء على أرقامك وأسمائها محفوظة)"
         }, to=user_id)
 
         socketio.emit('connection_status', {
             "status": "disconnected"
         }, to=user_id)
 
+        socketio.emit('account_updated', {
+            "logged_in": False,
+            "connected": False,
+            "user_id": user_id
+        })
+
         socketio.emit('login_status', {
             "logged_in": False,
             "connected": False,
             "awaiting_code": False,
             "awaiting_password": False,
-            "is_running": False
+            "is_running": False,
+            "user_id": user_id
         }, to=user_id)
 
         logger.info(f"User {user_id} logged out successfully")
 
         return jsonify({
             "success": True,
-            "message": "✅ تم تسجيل الخروج وإنهاء جلسة التليجرام بنجاح"
+            "user_id": user_id,
+            "message": "✅ تم تسجيل الخروج وإنهاء جلسة التليجرام مع بقاء الرقم والاسم محفوظين دائماً"
         })
 
     except Exception as e:
@@ -8664,21 +9047,29 @@ def api_pre_send_scan():
 @app.route("/api/send_now/pause", methods=["POST"])
 @app.route("/api/send_now/stop", methods=["POST"])
 def api_send_now_stop():
-    """إيقاف فوري مؤقت لعملية الإرسال مع إمكانية الاستئناف لاحقاً"""
+    """إيقاف فوري لعملية الإرسال مع حفظ موضع التوقف للاستئناف لاحقاً"""
     req_data = request.get_json(silent=True) or {}
     user_id = resolve_request_user_id(req_data) if 'resolve_request_user_id' in globals() else None
     if not user_id:
         user_id = req_data.get('user_id') or session.get('user_id') or 'user_1'
     state = BATCH_SENDER_STATES.get(user_id)
-    if user_id and user_id in BATCH_CANCEL_EVENTS:
-        BATCH_CANCEL_EVENTS[user_id].set()
+    cancel_ev = BATCH_CANCEL_EVENTS.get(user_id)
+    if state and not cancel_ev:
+        cancel_ev = state.get("cancel_event") or threading.Event()
+        BATCH_CANCEL_EVENTS[user_id] = cancel_ev
+        state["cancel_event"] = cancel_ev
+
+    if user_id and (cancel_ev or (state and state.get("status") in ("sending", "paused"))):
+        if cancel_ev:
+            cancel_ev.set()
         if state:
             state["status"] = "paused"
+            state["paused_emitted"] = True
         logger.info(f"🛑 تم إرسال إشارة إيقاف الإرسال الفوري للمستخدم: {user_id}")
         idx = state["current_index"] if state else 0
         tot = len(state["groups_list"]) if state else 0
         rem = max(0, tot - idx)
-        pause_msg = f"⏸️ تم إيقاف الإرسال مؤقتاً فوراً عند المجموعة {idx} من {tot}. يمكنك الاستئناف في أي وقت."
+        pause_msg = f"⏸️ تم إيقاف الإرسال فوراً عند المجموعة {idx} من {tot}. يمكنك الضغط على استئناف للمتابعة من حيث توقفت."
         socketio.emit('log_update', {"message": pause_msg}, to=user_id)
         socketio.emit('send_progress', {
             "status": "paused",
@@ -8693,9 +9084,9 @@ def api_send_now_stop():
             "current_index": idx,
             "total": tot,
             "remaining": rem,
-            "message": "تم إيقاف الإرسال مؤقتاً، اضغط 'استئناف' للمتابعة من حيث توقفت"
+            "message": pause_msg
         })
-    return jsonify({"success": True, "message": "لا توجد عملية إرسال نشطة لإيقافها"})
+    return jsonify({"success": True, "paused": False, "message": "لا توجد عملية إرسال نشطة لإيقافها"})
 
 
 @app.route("/api/send_now/resume", methods=["POST"])
@@ -8709,7 +9100,7 @@ def api_send_now_resume():
     if not state or state.get("status") != "paused":
         return jsonify({
             "success": False,
-            "message": "❌ لا توجد عملية إرسال موقوفة مؤقتاً لاستئنافها"
+            "message": "❌ لا توجد عملية إرسال موقوفة لاستئنافها"
         })
     tot = len(state["groups_list"])
     curr = state.get("current_index", 0)
@@ -8718,12 +9109,18 @@ def api_send_now_resume():
             "success": False,
             "message": "❌ تم إكمال الإرسال لجميع المجموعات بالفعل"
         })
+    # انتظر لحظة وجيزة إذا كان الخيط السابق يغلق دورته لتجنب تشغيل خيطين معاً
+    prev_thread = state.get("worker_thread")
+    if prev_thread and prev_thread.is_alive():
+        prev_thread.join(timeout=2.0)
+
     cancel_event = threading.Event()
     BATCH_CANCEL_EVENTS[user_id] = cancel_event
     state["cancel_event"] = cancel_event
     state["status"] = "sending"
+    state["paused_emitted"] = False
     rem = tot - curr
-    resume_msg = f"▶️ استئناف الإرسال الفوري: بدء الإرسال للمجموعات المتبقية ({rem} من أصل {tot})..."
+    resume_msg = f"▶️ استئناف الإرسال الفوري: استكمال المجموعات المتبقية ({rem} من أصل {tot}) بدءاً من #{curr + 1}..."
     socketio.emit('log_update', {"message": resume_msg}, to=user_id)
     socketio.emit('send_progress', {
         "status": "resumed",
@@ -8736,7 +9133,9 @@ def api_send_now_resume():
     def run_resume():
         _execute_batch_send(user_id, state, is_resume=True)
 
-    _OSThread(target=run_resume, daemon=True).start()
+    wt = _OSThread(target=run_resume, daemon=True)
+    state["worker_thread"] = wt
+    wt.start()
     return jsonify({
         "success": True,
         "message": resume_msg,
@@ -8749,7 +9148,7 @@ def api_send_now_resume():
 @app.route("/api/send_now/status", methods=["GET"])
 def api_send_now_status():
     """الحصول على حالة دفعة الإرسال الفوري الحالية"""
-    user_id = request.args.get('user_id') or session.get('user_id', 'user_1')
+    user_id = request.args.get('user_id') or request.headers.get('X-User-Id') or session.get('user_id', 'user_1')
     state = BATCH_SENDER_STATES.get(user_id)
     if not state:
         return jsonify({"has_batch": False, "status": "idle"})
@@ -8765,6 +9164,46 @@ def api_send_now_status():
         "skipped": state.get("skipped_count", 0),
         "remaining": max(0, tot - idx)
     })
+
+
+@app.route("/api/send_now/cancel", methods=["POST"])
+def api_send_now_cancel():
+    """إلغاء دفعة الإرسال الفوري نهائياً ومسح حالتها"""
+    req_data = request.get_json(silent=True) or {}
+    user_id = resolve_request_user_id(req_data) if 'resolve_request_user_id' in globals() else None
+    if not user_id:
+        user_id = req_data.get('user_id') or session.get('user_id') or 'user_1'
+    cancel_ev = BATCH_CANCEL_EVENTS.pop(user_id, None)
+    if cancel_ev:
+        cancel_ev.set()
+    state = BATCH_SENDER_STATES.pop(user_id, None)
+    if state:
+        state_ev = state.get("cancel_event")
+        if state_ev:
+            state_ev.set()
+        state["status"] = "cancelled"
+    msg = "🛑 تم إلغاء دفعة الإرسال الحالية نهائياً"
+    socketio.emit('log_update', {"message": msg}, to=user_id)
+    socketio.emit('send_progress', {"status": "cancelled", "message": msg}, to=user_id)
+    return jsonify({"success": True, "message": msg})
+
+
+def _emit_batch_paused(user_id, state, paused_idx, total, msg=None):
+    state['status'] = 'paused'
+    state['current_index'] = paused_idx
+    rem = max(0, total - paused_idx)
+    stop_msg = msg or f"⏸️ تم إيقاف الإرسال فوراً عند المجموعة {paused_idx} من أصل {total} (متبقي {rem})"
+    logger.info(stop_msg)
+    if not state.get('paused_emitted'):
+        state['paused_emitted'] = True
+        socketio.emit('log_update', {"message": stop_msg}, to=user_id)
+        socketio.emit('send_progress', {
+            "status": "paused",
+            "index": paused_idx,
+            "total": total,
+            "remaining": rem,
+            "message": stop_msg
+        }, to=user_id)
 
 
 def _execute_batch_send(user_id, state, is_resume=False):
@@ -8788,20 +9227,8 @@ def _execute_batch_send(user_id, state, is_resume=False):
             group = groups_list[idx]
 
             # ── فحص فوري لإشارة الإيقاف قبل البدء في المجموعة ──
-            if cancel_event.is_set():
-                state['status'] = 'paused'
-                state['current_index'] = idx
-                rem = total - idx
-                stop_msg = f"⏸️ تم إيقاف الإرسال مؤقتاً فوراً عند المجموعة {idx} من أصل {total} (متبقي {rem})"
-                logger.info(stop_msg)
-                socketio.emit('log_update', {"message": stop_msg}, to=user_id)
-                socketio.emit('send_progress', {
-                    "status": "paused",
-                    "index": idx,
-                    "total": total,
-                    "remaining": rem,
-                    "message": stop_msg
-                }, to=user_id)
+            if cancel_event.is_set() or state.get('status') == 'paused':
+                _emit_batch_paused(user_id, state, idx, total)
                 return
 
             try:
@@ -8815,6 +9242,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                     raise Exception("العميل غير متصل - يرجى تسجيل الدخول للحساب")
 
                 entity_obj = telegram_manager._resolve_entity(cm, group)
+                if cancel_event.is_set():
+                    _emit_batch_paused(user_id, state, idx, total)
+                    return
 
                 # ── 2. فحص العضوية المسبق والانضمام التلقائي المنظم ──
                 is_member = False
@@ -8826,10 +9256,16 @@ def _execute_batch_send(user_id, state, is_resume=False):
 
                 join_success = False
                 if not is_member:
+                    if cancel_event.is_set():
+                        _emit_batch_paused(user_id, state, idx, total)
+                        return
                     socketio.emit('log_update', {
                         "message": f"🔗 [{i}/{total}] الحساب ليس عضواً في {group} — جاري الانضمام التلقائي المنظم..."
                     }, to=user_id)
                     join_limiter.acquire_sync()
+                    if cancel_event.is_set():
+                        _emit_batch_paused(user_id, state, idx, total)
+                        return
                     try:
                         import re as _re
                         m_invite = _re.search(r't\.me/(?:\+|joinchat/)([A-Za-z0-9_\-]+)', group)
@@ -8844,7 +9280,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                         socketio.emit('log_update', {
                             "message": f"✅ [{i}/{total}] تم الانضمام بنجاح إلى {group} — انتظار ثانيتين للاستقرار"
                         }, to=user_id)
-                        time.sleep(2)
+                        if cancel_event.wait(2):
+                            _emit_batch_paused(user_id, state, idx, total)
+                            return
                     except UserAlreadyParticipantError:
                         join_success = True
                         is_member = True
@@ -8894,7 +9332,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                         socketio.emit('log_update', {
                             "message": f"⏳ [{i}/{total}] قيد FloodWait أثناء الانضمام لـ {group}: انتظار {wait_secs:.0f}ث..."
                         }, to=user_id)
-                        time.sleep(wait_secs)
+                        if cancel_event.wait(wait_secs):
+                            _emit_batch_paused(user_id, state, idx, total)
+                            return
                         try:
                             if m_invite:
                                 cm.run_coroutine(cm.client(ImportChatInviteRequest(m_invite.group(1))))
@@ -8902,7 +9342,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                                 cm.run_coroutine(cm.client(JoinChannelRequest(entity_obj)))
                             join_success = True
                             is_member = True
-                            time.sleep(2)
+                            if cancel_event.wait(2):
+                                _emit_batch_paused(user_id, state, idx, total)
+                                return
                         except Exception as fwe_retry:
                             fail_msg = f"❌ [{i}/{total}] فشل الانضمام لـ {group} بعد انتظار FloodWait: {fwe_retry}"
                             logger.error(fail_msg)
@@ -8917,6 +9359,10 @@ def _execute_batch_send(user_id, state, is_resume=False):
                             continue
                     except Exception as join_err:
                         err_str = str(join_err)
+                        if any(k in err_str.lower() for k in ["auth_key_unregistered", "session_revoked", "user_deactivated"]):
+                            handle_session_revoked(user_id, "تم رصد إلغاء الجلسة أثناء الانضمام")
+                            state['status'] = 'cancelled'
+                            return
                         reason = "تم التخطي: الحساب وصل للحد الأقصى (500 مجموعة)" if ("too much" in err_str.lower() or "500" in err_str) else f"تعذر الانضمام ({err_str[:60]})"
                         skip_msg = f"⏭️ [{i}/{total}] {reason} لـ {group}"
                         logger.warning(skip_msg)
@@ -8929,6 +9375,10 @@ def _execute_batch_send(user_id, state, is_resume=False):
                         state['skipped_count'] += 1
                         state['current_index'] = i
                         continue
+
+                if cancel_event.is_set():
+                    _emit_batch_paused(user_id, state, idx, total)
+                    return
 
                 # 3. التحقق من تقرير الأمان وتكييف الرسالة
                 report, is_new = telegram_manager.get_or_create_group_safety_report(
@@ -8955,6 +9405,10 @@ def _execute_batch_send(user_id, state, is_resume=False):
                     state['current_index'] = i
                     continue
 
+                if cancel_event.is_set():
+                    _emit_batch_paused(user_id, state, idx, total)
+                    return
+
                 # 4. تحديد الإجراء ومنع تعليق العميل بسبب وضع salam
                 needs_smart = bool(
                     report.get('requires_smart_send') or 
@@ -8978,6 +9432,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 max_send_attempts = 2
                 result = None
                 while send_attempts < max_send_attempts:
+                    if cancel_event.is_set():
+                        _emit_batch_paused(user_id, state, idx, total)
+                        return
                     send_attempts += 1
                     try:
                         if action_to_use == 'salam':
@@ -9009,7 +9466,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                             socketio.emit('log_update', {
                                 "message": f"⏳ [{i}/{total}] FloodWait: انتظار {wait_s:.0f} ثانية قبل إعادة محاولة الإرسال لـ {group}..."
                             }, to=user_id)
-                            time.sleep(wait_s)
+                            if cancel_event.wait(wait_s):
+                                _emit_batch_paused(user_id, state, idx, total)
+                                return
                         else:
                             raise fwe
 
@@ -9052,15 +9511,16 @@ def _execute_batch_send(user_id, state, is_resume=False):
                         batch_entries.append({"group": group, "msg_id": msg_id})
                     with USERS_LOCK:
                         if user_id in USERS:
-                            USERS[user_id]['stats']['sent'] += 1
-                            socketio.emit('stats_update', USERS[user_id]['stats'], to=user_id)
+                            st_dict = USERS[user_id].setdefault('stats', {'sent': 0, 'errors': 0, 'replies': 0})
+                            st_dict['sent'] = st_dict.get('sent', 0) + 1
+                            socketio.emit('stats_update', st_dict, to=user_id)
 
                 state['current_index'] = i
 
             except Exception as e_grp:
                 err_str = str(e_grp)
                 err_lower = err_str.lower()
-                if any(k in err_lower for k in ["auth_key_unregistered", "session_revoked", "user_deactivated"]):
+                if any(k in err_lower for k in ["auth_key_unregistered", "auth_key_invalid", "session_revoked", "user_deactivated", "unauthorized"]):
                     handle_session_revoked(user_id, "تم رصد إلغاء الجلسة أثناء الإرسال")
                     state['status'] = 'cancelled'
                     return
@@ -9074,7 +9534,9 @@ def _execute_batch_send(user_id, state, is_resume=False):
                     error_type = f"تجاوز حد الإرسال المؤقت (FloodWait: {wait_s}s)"
                     if isinstance(wait_s, int) and wait_s > 0:
                         logger.warning(f"🛑 تم إيقاف الحملة مؤقتاً لمدة {wait_s} ثانية حتى انقضاء الـ FloodWait...")
-                        time.sleep(min(wait_s + 2, 300))
+                        if cancel_event.wait(min(wait_s + 2, 300)):
+                            _emit_batch_paused(user_id, state, idx, total)
+                            return
                 elif "slow" in err_lower:
                     error_type = "مفعّل الوضع البطيء (Slow Mode) في المجموعة"
                 elif "timeout" in err_lower:
@@ -9116,23 +9578,16 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 state['current_index'] = i
                 with USERS_LOCK:
                     if user_id in USERS:
-                        USERS[user_id]['stats']['errors'] += 1
-                        socketio.emit('stats_update', USERS[user_id]['stats'], to=user_id)
+                        st_dict = USERS[user_id].setdefault('stats', {'sent': 0, 'errors': 0, 'replies': 0})
+                        st_dict['errors'] = st_dict.get('errors', 0) + 1
+                        socketio.emit('stats_update', st_dict, to=user_id)
 
             # ── فحص فوري بعد إنهاء المجموعة الحالية ──
-            if cancel_event.is_set():
-                state['status'] = 'paused'
-                rem = total - i
-                stop_msg = f"⏸️ تم إيقاف الإرسال مؤقتاً فوراً بعد إرسال المجموعة {i} من {total} (متبقي {rem})"
-                logger.info(stop_msg)
-                socketio.emit('log_update', {"message": stop_msg}, to=user_id)
-                socketio.emit('send_progress', {
-                    "status": "paused",
-                    "index": i,
-                    "total": total,
-                    "remaining": rem,
-                    "message": stop_msg
-                }, to=user_id)
+            if cancel_event.is_set() or state.get('status') == 'paused':
+                _emit_batch_paused(
+                    user_id, state, i, total,
+                    f"⏸️ تم إيقاف الإرسال فوراً بعد المجموعة {i} من {total} (متبقي {max(0, total - i)})"
+                )
                 return
 
             # ── فاصل زمني ديناميكي آمن مع فحص إيقاف فوري (cancel_event.wait يستيقظ في 0ms) ──
@@ -9141,18 +9596,10 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 dynamic_delay = random.uniform(user_interval, user_interval + 3.0)
                 logger.info(f"⏳ فاصل زمني ديناميكي: انتظار {dynamic_delay:.1f} ثانية قبل المجموعة التالية...")
                 if cancel_event.wait(dynamic_delay):
-                    state['status'] = 'paused'
-                    rem = total - i
-                    stop_msg = f"⏸️ تم إيقاف الإرسال مؤقتاً فوراً عند المجموعة {i} من {total} (متبقي {rem})"
-                    logger.info(stop_msg)
-                    socketio.emit('log_update', {"message": stop_msg}, to=user_id)
-                    socketio.emit('send_progress', {
-                        "status": "paused",
-                        "index": i,
-                        "total": total,
-                        "remaining": rem,
-                        "message": stop_msg
-                    }, to=user_id)
+                    _emit_batch_paused(
+                        user_id, state, i, total,
+                        f"⏸️ تم إيقاف الإرسال فوراً عند المجموعة {i} من {total} (متبقي {max(0, total - i)})"
+                    )
                     return
 
         # ── اكتمل الإرسال لجميع المجموعات ──
@@ -9367,7 +9814,9 @@ def api_send_now():
     def run_worker():
         _execute_batch_send(user_id, state, is_resume=False)
 
-    _OSThread(target=run_worker, daemon=True).start()
+    wt = _OSThread(target=run_worker, daemon=True)
+    state["worker_thread"] = wt
+    wt.start()
 
     return jsonify({
         "success": True, 
@@ -9498,7 +9947,7 @@ def api_get_login_status():
             if not account_phone:
                 account_phone = PREDEFINED_USERS.get(user_id, {}).get('phone')
 
-            if user_id == 'user_1' or (account_phone and '201120945094' in str(account_phone)):
+            if (account_phone and '201120945094' in str(account_phone)) or (user_id == 'user_1' and not account_phone):
                 account_name = 'Lamis'
                 if not account_phone:
                     account_phone = '+201120945094'
@@ -9515,6 +9964,8 @@ def api_get_login_status():
                 "awaiting_password": awaiting_password,
                 "login_pending": login_pending,
                 "login_error": login_error,
+                "session_revoked": bool(user_data.get('session_revoked', False)),
+                "revoked_reason": user_data.get('revoked_reason'),
                 "is_running": user_data.get('is_running', False),
                 "user_id": user_id,
                 "account_name": account_name,
@@ -9526,7 +9977,7 @@ def api_get_login_status():
     cur_settings = load_settings(user_id) or {}
     cur_phone = cur_settings.get('phone') or cur_settings.get('account_phone') or PREDEFINED_USERS.get(user_id, {}).get('phone')
     cur_name = cur_settings.get('account_name') or cur_settings.get('name') or PREDEFINED_USERS.get(user_id, {}).get('name')
-    if (cur_phone and '201120945094' in str(cur_phone)) or user_id == 'user_1':
+    if (cur_phone and '201120945094' in str(cur_phone)) or (user_id == 'user_1' and not cur_phone):
         cur_name = 'Lamis'
         if not cur_phone:
             cur_phone = '+201120945094'
@@ -9538,6 +9989,7 @@ def api_get_login_status():
         "awaiting_password": False,
         "login_pending": False,
         "login_error": None,
+        "session_revoked": False,
         "is_running": False,
         "user_id": user_id,
         "account_name": cur_name,
@@ -9554,13 +10006,17 @@ def api_get_all_accounts_info():
         st = load_settings(uid) or {}
         with USERS_LOCK:
             u_mem = USERS.get(uid, {})
-            auth = u_mem.get('authenticated', False) or os.path.exists(os.path.join(SESSIONS_DIR, f"{uid}_session.session"))
+            has_disk_session = (
+                os.path.exists(os.path.join(SESSIONS_DIR, f"{uid}_session.session"))
+                or os.path.exists(os.path.join(SESSIONS_DIR, f"{uid}_string.txt"))
+            )
+            auth = bool(u_mem.get('authenticated', False)) or (has_disk_session and not u_mem.get('session_revoked'))
             aname = u_mem.get('account_name') or st.get('account_name') or st.get('name') or udata.get('name')
             auser = u_mem.get('account_username') or st.get('account_username')
             aphone = u_mem.get('account_phone') or st.get('account_phone') or st.get('phone') or udata.get('phone')
             aavatar = u_mem.get('account_avatar')
 
-        if (aphone and '201120945094' in str(aphone)) or uid == 'user_1':
+        if (aphone and '201120945094' in str(aphone)) or (uid == 'user_1' and not aphone):
             aname = 'Lamis'
             if not aphone:
                 aphone = '+201120945094'
@@ -9771,15 +10227,27 @@ def api_add_account():
         new_account_info = {
             "id": new_uid,
             "name": display_name,
+            "phone": custom_phone,
             "icon": icon,
             "color": color
         }
         PREDEFINED_USERS[new_uid] = new_account_info
         _save_custom_accounts()
 
+        # حفظ الرقم واسمه الدائم في قاعدة الأرقام المحفوظة فوراً وبث التحديث
+        if custom_phone:
+            try:
+                import firestore_sync
+                firestore_sync.save_phone_number(custom_phone, custom_name or 'حساب محفوظ')
+                socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+            except Exception as _spe:
+                logger.debug(f"api_add_account phone save notice: {_spe}")
+
         # تهيئة مجلد الجلسة والإعدادات
         get_user_session_dir(new_uid)
         initial_settings = {"phone": custom_phone} if custom_phone else {}
+        if custom_name:
+            initial_settings["account_name"] = custom_name
         save_settings(new_uid, initial_settings)
 
         with USERS_LOCK:
@@ -9917,6 +10385,21 @@ def api_reset_login():
     try:
         logger.info(f"Resetting login for user {user_id}")
 
+        # تثبيت أي رقم واسم فعلي قبل إعادة تعيين جلسة الحساب
+        try:
+            _st_r = load_settings(user_id) or {}
+            with USERS_LOCK:
+                _u_r = USERS.get(user_id, {})
+                _rp = _u_r.get('account_phone') or _st_r.get('phone') or _st_r.get('account_phone') or ''
+                _rn = _u_r.get('account_name') or _st_r.get('account_name') or _st_r.get('name') or ''
+            if _rp:
+                import firestore_sync
+                firestore_sync.save_phone_number(_rp)
+                if _rn and not firestore_sync._is_placeholder_phone_name(_rn):
+                    firestore_sync.update_phone_account_name(_rp, _rn)
+        except Exception:
+            pass
+
         with USERS_LOCK:
             if user_id in USERS:
                 if USERS[user_id].get('is_running', False):
@@ -9943,6 +10426,12 @@ def api_reset_login():
                 logger.info(f"Session file removed for {user_id}")
             except Exception as e:
                 logger.error(f"Failed to remove session file for {user_id}: {str(e)}")
+
+        try:
+            import firestore_sync
+            socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+        except Exception:
+            pass
 
         socketio.emit('log_update', {
             "message": f"🔄 تم إعادة تعيين جلسة تسجيل الدخول لـ {PREDEFINED_USERS[user_id]['name']}"
@@ -15149,10 +15638,10 @@ def github_delete_session(user_id):
 #  مدقق صحة الجلسات الدوري
 # ════════════════════════════════════════════════════════════
 def start_session_health_checker():
-    """يفحص صحة جميع الجلسات كل 120 ثانية"""
+    """يفحص صحة جميع الجلسات بشكل دوري كل 25 ثانية لاستشعار أي إلغاء أو خروج من تطبيق تليجرام الرسمي"""
     def _checker():
         import time as _t
-        _t.sleep(120)  # انتظر دقيقتين قبل الفحص الأول لإعطاء العملاء وقتاً كافياً
+        _t.sleep(20)  # مهلة مبدئية قصيرة عند الإقلاع
         while True:
             try:
                 with USERS_LOCK:
@@ -15161,34 +15650,32 @@ def start_session_health_checker():
                     try:
                         with USERS_LOCK:
                             user_data = USERS.get(uid, {})
+                            was_auth = bool(user_data.get('authenticated'))
                         client_manager = user_data.get('client_manager')
                         if not client_manager or not client_manager.client:
                             continue
                         # تخطّ الفحص إذا كان الخيط لا يزال يبدأ
                         if client_manager.thread and client_manager.thread.is_alive() and not client_manager.is_ready.is_set():
-                            logger.debug(f"Health check skipped for {uid} — client still starting")
                             continue
                         # تخطّ الفحص إذا لم يكن الـ loop يعمل بعد
                         if not client_manager.loop or not client_manager.loop.is_running():
                             continue
+                        if not was_auth:
+                            continue
                         is_valid = client_manager.check_session_valid_sync()
                         if not is_valid:
-                            logger.warning(f"Session health check failed for {uid} — revoking")
-                            socketio.emit('session_revoked', {
-                                "user_id": uid,
-                                "reason": "انتهت صلاحية الجلسة أو تم إلغاؤها"
-                            }, to=uid)
-                            github_delete_session(uid)
+                            logger.warning(f"Session health check failed for {uid} — auto-logging out via handle_session_revoked")
+                            handle_session_revoked(uid, "انتهت صلاحية الجلسة أو تم إزالتها من تطبيق تليجرام الآخر الرسمي")
                     except Exception as inner_e:
                         logger.debug(f"Health check error for {uid}: {inner_e}")
             except Exception as e:
                 logger.debug(f"Session health checker error: {e}")
-            _t.sleep(120)
+            _t.sleep(25)
 
     # استخدام OS thread حقيقي للـ health checker
     t = _OSThread(target=_checker, daemon=True, name='SessionHealthChecker')
     t.start()
-    logger.info("✅ مدقق صحة الجلسات الدوري مُفعّل (كل 120 ثانية)")
+    logger.info("✅ مدقق صحة الجلسات الدوري مُفعّل (كل 25 ثانية)")
 
 start_session_health_checker()
 
@@ -15457,10 +15944,21 @@ def debug_ping():
 #  إعادة التعيين — مستخدم واحد أو جميع المستخدمين
 # ════════════════════════════════════════════════════════════
 def _do_reset_user(uid):
-    """تنفيذ إعادة تعيين مستخدم واحد (يُستدعى داخلياً)"""
+    """تنفيذ إعادة تعيين مستخدم واحد مع الحفاظ الدائم على الأرقام وأسمائها الفعلية"""
     try:
         with USERS_LOCK:
             user_data = USERS.get(uid, {})
+        try:
+            _st_reset = load_settings(uid) or {}
+            _rp = user_data.get('account_phone') or _st_reset.get('phone') or _st_reset.get('account_phone') or ''
+            _rn = user_data.get('account_name') or _st_reset.get('account_name') or _st_reset.get('name') or ''
+            if _rp:
+                import firestore_sync
+                firestore_sync.save_phone_number(_rp)
+                if _rn and not firestore_sync._is_placeholder_phone_name(_rn):
+                    firestore_sync.update_phone_account_name(_rp, _rn)
+        except Exception:
+            pass
         client_manager = user_data.get('client_manager')
         if client_manager:
             try:
@@ -15488,11 +15986,11 @@ def _do_reset_user(uid):
 @app.route("/api/reset_user", methods=["POST"])
 def api_reset_user():
     """إعادة تعيين الحساب الحالي فقط — حذف الجلسة محلياً وعلى GitHub"""
-    if 'user_id' not in session:
-        return jsonify({"success": False, "message": "الجلسة غير صالحة"})
-    user_id = session['user_id']
     data = request.get_json(silent=True) or {}
-    target_id = data.get('target_user_id', user_id)
+    user_id = resolve_request_user_id(data) if 'resolve_request_user_id' in globals() else session.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "الجلسة غير صالحة"})
+    target_id = data.get('target_user_id') or user_id
     try:
         _do_reset_user(target_id)
         socketio.emit('login_status', {

@@ -302,9 +302,175 @@ DEFAULT_PHONE_NUMBERS = [
     {"phone_number": "+966539709737", "is_default": True, "label": "الحساب السادس", "account_name": "الحساب السادس"}
 ]
 
+_PLACEHOLDER_PHONE_NAMES = {
+    "", "رقم أساسي", "رقم محفوظ", "حساب محفوظ", "حساب معتمد", "حساب تليجرام",
+    "الحساب الأول", "الحساب الثاني", "الحساب الثالث", "الحساب الرابع", "الحساب الخامس", "الحساب السادس"
+}
+
+_PHONES_MEM_CACHE = {
+    "phones": None,
+    "ts": 0.0,
+    "ttl": 20.0,
+    "last_probe_ts": 0.0,
+}
+
 
 def _clean_phone_digits(p):
     return re.sub(r'[^0-9]', '', str(p or ''))
+
+
+def _normalize_phone_display(p):
+    raw = str(p or '').strip()
+    digits = _clean_phone_digits(raw)
+    if not digits:
+        return raw
+    return raw if raw.startswith('+') else f"+{digits}"
+
+
+def _is_placeholder_phone_name(name):
+    s = str(name or '').strip()
+    if s in _PLACEHOLDER_PHONE_NAMES:
+        return True
+    if re.match(r'^(?:حساب|الحساب|المستخدم)\s+[\d\+]+$', s):
+        return True
+    if s.startswith('الحساب ') and len(s) < 20:
+        # يشمل الحساب الأول .. إلخ أو الحساب 1 (+...)
+        if any(w in s for w in ('الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', '(')):
+            return True
+    return False
+
+
+def _pick_best_phone_name(item):
+    """اختيار أفضل اسم للحساب مع تغليب الاسم الفعلي على المسمى الأولي"""
+    if not isinstance(item, dict):
+        return ""
+    acc = str(item.get('account_name') or '').strip()
+    lbl = str(item.get('label') or '').strip()
+    if acc and not _is_placeholder_phone_name(acc):
+        return acc
+    if lbl and not _is_placeholder_phone_name(lbl):
+        return lbl
+    return acc or lbl
+
+
+def _merge_phone_lists(*sources):
+    """دمج قوائم الهواتف مع الحفاظ الأبدي على كل رقم مضاف وكل اسم حساب فعلي"""
+    defaults_map = {_clean_phone_digits(d['phone_number']): d for d in DEFAULT_PHONE_NUMBERS}
+    merged_by_digits = {}
+
+    for src in sources:
+        if not isinstance(src, list):
+            continue
+        for item in src:
+            if not isinstance(item, dict):
+                continue
+            raw_phone = _normalize_phone_display(item.get('phone_number', ''))
+            digits = _clean_phone_digits(raw_phone)
+            if not digits:
+                continue
+
+            cand_name = _pick_best_phone_name(item)
+            cand_updated = str(item.get('updated_at') or '')
+            cand_added = str(item.get('added_at') or '')
+            cand_default = bool(item.get('is_default', False)) or (digits in defaults_map)
+
+            existing = merged_by_digits.get(digits)
+            if not existing:
+                best_name = cand_name or (defaults_map[digits]['account_name'] if digits in defaults_map else f"حساب {raw_phone}")
+                merged_by_digits[digits] = {
+                    "phone_number": raw_phone,
+                    "is_default": cand_default,
+                    "label": best_name,
+                    "account_name": best_name,
+                    "added_at": cand_added or "2026-09-20T00:00:00Z",
+                    "updated_at": cand_updated,
+                }
+            else:
+                existing["is_default"] = existing["is_default"] or cand_default
+                if raw_phone.startswith('+') and not existing["phone_number"].startswith('+'):
+                    existing["phone_number"] = raw_phone
+                ex_name = _pick_best_phone_name(existing)
+                ex_is_placeholder = _is_placeholder_phone_name(ex_name)
+                cand_is_placeholder = _is_placeholder_phone_name(cand_name)
+
+                # الاسم الفعلي دائماً يهزم الاسم الأولي؛ وعند وجود اسمين فعليين نختار الأحدث زمنياً
+                should_take_cand = False
+                if cand_name and not cand_is_placeholder:
+                    if ex_is_placeholder or not ex_name:
+                        should_take_cand = True
+                    elif cand_updated and (not existing.get("updated_at") or cand_updated >= existing["updated_at"]):
+                        should_take_cand = True
+                if should_take_cand:
+                    existing["label"] = cand_name
+                    existing["account_name"] = cand_name
+                    if cand_updated:
+                        existing["updated_at"] = cand_updated
+                if cand_added and (not existing.get("added_at") or cand_added < existing["added_at"]):
+                    existing["added_at"] = cand_added
+
+    # التأكد من تضمين جميع الأرقام الافتراضية دائماً
+    for def_entry in DEFAULT_PHONE_NUMBERS:
+        d_digits = _clean_phone_digits(def_entry['phone_number'])
+        if d_digits not in merged_by_digits:
+            merged_by_digits[d_digits] = dict(def_entry)
+
+    # ترتيب: الافتراضية أولاً بنفس الترتيب ثم الأرقام الجديدة المضافة حسب الأحدث
+    default_order = {_clean_phone_digits(d['phone_number']): i for i, d in enumerate(DEFAULT_PHONE_NUMBERS)}
+    defaults_out = []
+    custom_out = []
+    for d_digits, entry in merged_by_digits.items():
+        if d_digits in default_order:
+            defaults_out.append((default_order[d_digits], entry))
+        else:
+            custom_out.append(entry)
+
+    defaults_out.sort(key=lambda x: x[0])
+    custom_out.sort(key=lambda x: x.get('updated_at') or x.get('added_at') or '', reverse=True)
+    return [x[1] for x in defaults_out] + custom_out
+
+
+def _bg_sync_phones_remote(phones_snapshot, target_entry=None, target_digits=None):
+    """مزامنة الأرقام والأسماء الفعلية في الخلفية مع PostgreSQL وFirestore وGitHub."""
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled():
+            if target_entry:
+                _pg_db.upsert_saved_phone_number(target_entry)
+            elif phones_snapshot:
+                _pg_db.upsert_saved_phone_numbers_batch(phones_snapshot)
+    except Exception as _pge:
+        logger.debug(f"PG saved_phones sync notice: {_pge}")
+
+    if target_digits and target_entry:
+        ok, _ = _firestore_rest_patch('saved_phone_numbers', target_digits, target_entry, timeout=3.0)
+        if not ok and NODE_FIREBASE_INSTALLED:
+            _run_node_bridge(['update_phone_name', target_entry['phone_number'], target_entry['account_name']], timeout=8)
+
+    # نسخ احتياطي في GitHub إذا كان التوكن متوفراً لضمان عدم الفقدان عند إعادة نشر Render
+    try:
+        import base64
+        gh_tok = os.environ.get("GITHUB_TOKEN", "").strip()
+        if gh_tok and requests and phones_snapshot:
+            owner = os.environ.get("GITHUB_REPO_OWNER", "anwer1230")
+            repo = os.environ.get("GITHUB_REPO_NAME", "Telegram-abu-Malk-education")
+            branch = os.environ.get("GITHUB_BRANCH", "main")
+            api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/data/saved_phones.json"
+            hdrs = {"Authorization": f"token {gh_tok}", "Accept": "application/vnd.github.v3+json"}
+            sha = None
+            r_get = requests.get(api_url, headers=hdrs, timeout=8)
+            if r_get.status_code == 200:
+                sha = r_get.json().get("sha")
+            raw_bytes = json.dumps(phones_snapshot, ensure_ascii=False, indent=2).encode("utf-8")
+            body = {
+                "message": "تحديث الأرقام المحفوظة وأسماء الحسابات",
+                "content": base64.b64encode(raw_bytes).decode("utf-8"),
+                "branch": branch,
+            }
+            if sha:
+                body["sha"] = sha
+            requests.put(api_url, headers=hdrs, json=body, timeout=12)
+    except Exception as _ghe:
+        logger.debug(f"GitHub saved_phones sync notice: {_ghe}")
 
 
 def _init_default_phones_from_cache():
@@ -313,8 +479,8 @@ def _init_default_phones_from_cache():
         cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
         for c in cached:
             c_digits = _clean_phone_digits(c.get('phone_number'))
-            c_name = c.get('account_name') or c.get('label')
-            if c_name and not c_name.startswith('الحساب ') and c_name not in ['رقم أساسي', 'رقم محفوظ', 'حساب تليجرام']:
+            c_name = _pick_best_phone_name(c)
+            if c_name and not _is_placeholder_phone_name(c_name):
                 for d in DEFAULT_PHONE_NUMBERS:
                     if _clean_phone_digits(d.get('phone_number')) == c_digits:
                         d['label'] = c_name
@@ -327,111 +493,129 @@ _init_default_phones_from_cache()
 
 
 def _sanitize_phone_list(phones):
-    """تنقية وتحديث أسماء الحسابات للأرقام وتثبيت الأسماء الحقيقية ومنع ظهور كلمة 'أساسي'"""
+    """تنقية ودمج وتوحيد قائمة الأرقام مع حماية الأسماء الفعلية"""
     if not isinstance(phones, list):
         return [dict(x) for x in DEFAULT_PHONE_NUMBERS]
-
-    result = []
-    defaults_map = {_clean_phone_digits(d['phone_number']): d for d in DEFAULT_PHONE_NUMBERS}
-
-    for item in phones:
-        if not isinstance(item, dict):
-            continue
-        entry = dict(item)
-        raw_phone = entry.get('phone_number', '')
-        digits = _clean_phone_digits(raw_phone)
-        cur_label = (entry.get('label') or entry.get('account_name') or '').strip()
-
-        if digits == '201120945094' and (not cur_label or cur_label in ['رقم أساسي', 'رقم محفوظ', 'حساب تليجرام']):
-            entry['label'] = 'Lamis'
-            entry['account_name'] = 'Lamis'
-        elif cur_label and not cur_label.startswith('الحساب ') and cur_label not in ['رقم أساسي', 'رقم محفوظ', 'حساب تليجرام']:
-            entry['label'] = cur_label
-            entry['account_name'] = cur_label
-        elif digits in defaults_map:
-            def_lbl = defaults_map[digits].get('label', f"حساب {raw_phone}")
-            entry['label'] = def_lbl
-            entry['account_name'] = defaults_map[digits].get('account_name', def_lbl)
-        else:
-            entry['label'] = entry.get('account_name') or f"حساب {raw_phone}"
-            entry['account_name'] = entry['label']
-
-        result.append(entry)
-
-    existing_digits = {_clean_phone_digits(r.get('phone_number')) for r in result}
-    for def_entry in DEFAULT_PHONE_NUMBERS:
-        def_digits = _clean_phone_digits(def_entry['phone_number'])
-        if def_digits not in existing_digits:
-            result.append(dict(def_entry))
-
-    return result
+    return _merge_phone_lists(phones)
 
 
-def get_saved_phone_numbers():
-    """استرجاع أرقام الهواتف المحفوظة مع أسماء الحسابات الثابتة والـ Fallback للكاش المحلي"""
+def invalidate_phones_cache():
+    _PHONES_MEM_CACHE["phones"] = None
+    _PHONES_MEM_CACHE["ts"] = 0.0
+
+
+def get_saved_phone_numbers(force_refresh=False):
+    """استرجاع كافة الأرقام المحفوظة بأسمائها الفعلية الدائمة عبر الدمج الآمن (PG + المحلي + Firestore)"""
+    now = time.time()
+    if not force_refresh and _PHONES_MEM_CACHE["phones"] is not None and (now - _PHONES_MEM_CACHE["ts"]) < _PHONES_MEM_CACHE["ttl"]:
+        return [dict(x) for x in _PHONES_MEM_CACHE["phones"]]
+
     with _PHONES_CACHE_LOCK:
         cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
 
-    phones = None
-    docs, _ = _firestore_rest_list('saved_phone_numbers', timeout=2.5)
-    if docs:
-        phones = docs
-    elif NODE_FIREBASE_INSTALLED:
-        res = _run_node_bridge(['get_phones'], timeout=6)
-        if res and res.get('success') and res.get('phones'):
-            phones = res.get('phones')
+    pg_phones = None
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled():
+            pg_phones = _pg_db.get_saved_phone_numbers()
+    except Exception as _pge:
+        logger.debug(f"PG get_saved_phone_numbers notice: {_pge}")
 
-    if not phones:
-        phones = cached if cached else [dict(x) for x in DEFAULT_PHONE_NUMBERS]
+    cloud_phones = None
+    if force_refresh or (now - _PHONES_MEM_CACHE["last_probe_ts"]) >= 25.0:
+        _PHONES_MEM_CACHE["last_probe_ts"] = now
+        docs, _ = _firestore_rest_list('saved_phone_numbers', timeout=2.0)
+        if docs:
+            cloud_phones = docs
+        elif NODE_FIREBASE_INSTALLED:
+            res = _run_node_bridge(['get_phones'], timeout=5)
+            if res and res.get('success') and res.get('phones'):
+                cloud_phones = res.get('phones')
 
-    sanitized = _sanitize_phone_list(phones)
+    # دمج آمن: المحلي وPostgreSQL وFirestore والافتراضي — بدون أي تراجع للاسم الأولي أبداً
+    sanitized = _merge_phone_lists(cached or [], pg_phones or [], cloud_phones or [], DEFAULT_PHONE_NUMBERS)
 
     with _PHONES_CACHE_LOCK:
         _save_json_file(LOCAL_PHONES_CACHE_FILE, sanitized)
+
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in sanitized]
+    _PHONES_MEM_CACHE["ts"] = time.time()
+
+    # تغذية PostgreSQL في الخلفية إذا كان خالياً أو متأخراً
+    if pg_phones is None or len(pg_phones) < len(sanitized):
+        _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, [dict(x) for x in sanitized], None, None)
 
     return sanitized
 
 
 def update_phone_account_name(phone, account_name):
-    """تحديث اسم الحساب الفعلي للرقم وتثبيته بشكل دائم في الكاش المحلي و Firestore"""
+    """
+    تحديث اسم الحساب الفعلي للرقم وتثبيته بشكل دائم وأبدي في:
+    الذاكرة + الكاش المحلي + PostgreSQL + Firestore + GitHub.
+    """
     if not phone or not account_name:
         return None
-    clean_phone = str(phone).strip()
+    clean_phone = _normalize_phone_display(phone)
     clean_name = str(account_name).strip()
     if not clean_name:
         return None
 
     target_digits = _clean_phone_digits(clean_phone)
+    if not target_digits:
+        return None
+
+    now_iso = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     updated_entry = None
+    phones_snapshot = None
 
     with _PHONES_CACHE_LOCK:
-        phones = _load_json_file(LOCAL_PHONES_CACHE_FILE, [dict(x) for x in DEFAULT_PHONE_NUMBERS])
-        phones = _sanitize_phone_list(phones)
+        cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
+        pg_phones = None
+        try:
+            import db as _pg_db
+            if _pg_db.is_enabled():
+                pg_phones = _pg_db.get_saved_phone_numbers()
+        except Exception:
+            pass
+        phones = _merge_phone_lists(cached or [], pg_phones or [], DEFAULT_PHONE_NUMBERS)
+
         found = False
         for p in phones:
             if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                existing_name = _pick_best_phone_name(p)
+                # لا تستبدل اسماً فعلياً محفوظاً باسم شكلي أبداً
+                if _is_placeholder_phone_name(clean_name) and existing_name and not _is_placeholder_phone_name(existing_name):
+                    updated_entry = p
+                    found = True
+                    break
+                p['phone_number'] = clean_phone if clean_phone.startswith('+') else p.get('phone_number', clean_phone)
                 p['label'] = clean_name
                 p['account_name'] = clean_name
-                p['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+                p['updated_at'] = now_iso
                 updated_entry = p
                 found = True
                 break
+
         if not found:
             updated_entry = {
                 "phone_number": clean_phone,
                 "is_default": False,
                 "label": clean_name,
                 "account_name": clean_name,
-                "added_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+                "added_at": now_iso,
+                "updated_at": now_iso,
             }
             phones.append(updated_entry)
 
+        phones = _merge_phone_lists(phones)
         _save_json_file(LOCAL_PHONES_CACHE_FILE, phones)
+        phones_snapshot = [dict(x) for x in phones]
 
-        for d in DEFAULT_PHONE_NUMBERS:
-            if _clean_phone_digits(d.get('phone_number')) == target_digits:
-                d['label'] = clean_name
-                d['account_name'] = clean_name
+        if not _is_placeholder_phone_name(clean_name):
+            for d in DEFAULT_PHONE_NUMBERS:
+                if _clean_phone_digits(d.get('phone_number')) == target_digits:
+                    d['label'] = clean_name
+                    d['account_name'] = clean_name
 
         try:
             acc_file = os.path.join(DATA_DIR, 'accounts.json')
@@ -449,49 +633,88 @@ def update_phone_account_name(phone, account_name):
         except Exception as _ae:
             logger.debug(f"accounts.json sync error: {_ae}")
 
-    def _bg_update():
-        if target_digits and updated_entry:
-            ok, err = _firestore_rest_patch('saved_phone_numbers', target_digits, updated_entry, timeout=3.0)
-            if not ok and NODE_FIREBASE_INSTALLED:
-                _run_node_bridge(['update_phone_name', clean_phone, clean_name], timeout=8)
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot]
+    _PHONES_MEM_CACHE["ts"] = time.time()
 
-    _SYNC_EXECUTOR.submit(_bg_update)
+    # حفظ فوري ومتزامن في PostgreSQL لضمان البقاء عند إعادة التشغيل الفوري
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled() and updated_entry:
+            _pg_db.upsert_saved_phone_number(updated_entry)
+    except Exception as _pge:
+        logger.debug(f"Direct PG phone upsert notice: {_pge}")
+
+    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot, dict(updated_entry), target_digits)
     return updated_entry
 
 
 def save_phone_number(phone, label='حساب محفوظ'):
-    """حفظ رقم هاتف جديد في الكاش المحلي وخلفياً في Firestore"""
+    """حفظ رقم هاتف جديد بشكل دائم وأبدي دون مسح أو طمس أي اسم فعلي موجود"""
     if not phone:
         return None
-    clean_phone = str(phone).strip()
+    clean_phone = _normalize_phone_display(phone)
     clean_label = str(label or 'حساب محفوظ').strip()
     if 'أساسي' in clean_label:
         clean_label = 'حساب معتمد'
 
-    new_entry = {
-        "phone_number": clean_phone,
-        "is_default": False,
-        "label": clean_label,
-        "account_name": clean_label,
-        "added_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-    }
-
     target_digits = _clean_phone_digits(clean_phone)
+    if not target_digits:
+        return None
+
+    now_iso = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    saved_entry = None
+    phones_snapshot = None
+
     with _PHONES_CACHE_LOCK:
-        phones = _load_json_file(LOCAL_PHONES_CACHE_FILE, [dict(x) for x in DEFAULT_PHONE_NUMBERS])
-        phones = _sanitize_phone_list(phones)
-        if not any(_clean_phone_digits(p.get('phone_number')) == target_digits for p in phones):
-            phones.append(new_entry)
-            _save_json_file(LOCAL_PHONES_CACHE_FILE, phones)
+        cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
+        pg_phones = None
+        try:
+            import db as _pg_db
+            if _pg_db.is_enabled():
+                pg_phones = _pg_db.get_saved_phone_numbers()
+        except Exception:
+            pass
+        phones = _merge_phone_lists(cached or [], pg_phones or [], DEFAULT_PHONE_NUMBERS)
 
-    def _bg_save():
-        if target_digits:
-            ok, _ = _firestore_rest_patch('saved_phone_numbers', target_digits, new_entry, timeout=3.0)
-            if not ok and NODE_FIREBASE_INSTALLED:
-                _run_node_bridge(['add_phone', clean_phone, clean_label], timeout=8)
+        for p in phones:
+            if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                existing_name = _pick_best_phone_name(p)
+                if not _is_placeholder_phone_name(clean_label) and (
+                    not existing_name or _is_placeholder_phone_name(existing_name)
+                ):
+                    p['label'] = clean_label
+                    p['account_name'] = clean_label
+                    p['updated_at'] = now_iso
+                saved_entry = p
+                break
 
-    _SYNC_EXECUTOR.submit(_bg_save)
-    return new_entry
+        if not saved_entry:
+            saved_entry = {
+                "phone_number": clean_phone,
+                "is_default": False,
+                "label": clean_label,
+                "account_name": clean_label,
+                "added_at": now_iso,
+                "updated_at": now_iso,
+            }
+            phones.append(saved_entry)
+
+        phones = _merge_phone_lists(phones)
+        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones)
+        phones_snapshot = [dict(x) for x in phones]
+
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot]
+    _PHONES_MEM_CACHE["ts"] = time.time()
+
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled() and saved_entry:
+            _pg_db.upsert_saved_phone_number(saved_entry)
+    except Exception:
+        pass
+
+    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot, dict(saved_entry), target_digits)
+    return saved_entry
 
 
 # ==========================================

@@ -55,6 +55,16 @@ CREATE TABLE IF NOT EXISTS saved_links (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS saved_phone_numbers (
+    phone_digits TEXT PRIMARY KEY,
+    phone_number TEXT NOT NULL,
+    account_name TEXT NOT NULL DEFAULT '',
+    label TEXT NOT NULL DEFAULT '',
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    added_at TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_sent_batches_user_sent_at ON sent_batches(user_id, sent_at DESC);
 CREATE INDEX IF NOT EXISTS idx_schedule_events_user_recorded_at ON schedule_events(user_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_schedule_events_phase ON schedule_events(phase);

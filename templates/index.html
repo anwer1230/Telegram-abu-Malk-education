@@ -994,7 +994,7 @@
                 {% if saved_phones %}
                   {% for sp in saved_phones %}
                     {% set name_dsp = sp.account_name or sp.label or '' %}
-                    <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
+                    <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
                   {% endfor %}
                 {% else %}
                   <option value="+201120945094" data-name="Lamis">+201120945094 (⭐ Lamis)</option>
@@ -1210,7 +1210,7 @@
                                 </h3>
                             </div>
 
-                            <!-- مؤشر الحساب النشط وحالة الاتصال -->
+                            <!-- مؤشر الحساب النشط وحالة الاتصال وأيقونة تسجيل الخروج -->
                             <div class="d-flex align-items-center gap-2">
                                 <span class="tg-current-user-tag" title="الحساب النشط">
                                     <i class="fas fa-user-check text-warning me-1"></i>
@@ -1223,6 +1223,15 @@
                                         <i class="fas fa-circle text-danger me-1" style="font-size:0.5rem;"></i> غير متصل
                                     {% endif %}
                                 </small>
+                                <button type="button"
+                                        class="btn btn-sm btn-danger align-items-center gap-1 px-2 py-1"
+                                        id="headerLogoutBtn"
+                                        title="تسجيل الخروج من الحساب النشط"
+                                        onclick="return window.handleUserLogout(event);"
+                                        style="border-radius:8px;font-size:0.78rem;display:{% if connection_status == 'connected' %}inline-flex{% else %}none{% endif %};">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span class="d-none d-sm-inline">خروج</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1239,7 +1248,7 @@
                                     {% if saved_phones %}
                                         {% for sp in saved_phones %}
                                             {% set name_dsp = sp.account_name or sp.label or '' %}
-                                            <option value="{{ sp.phone_number }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
+                                            <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
                                         {% endfor %}
                                     {% else %}
                                         <option value="+201120945094">+201120945094 (⭐ Lamis)</option>
@@ -1283,8 +1292,8 @@
                                 </div>
 
                                 <!-- أزرار إدارة الجلسة - تظهر بعد تسجيل الدخول -->
-                                <div class="col-md-6 mb-2" id="sessionControls" style="display: none;">
-                                    <button type="button" class="btn btn-danger w-100" id="logoutButton">
+                                <div class="col-md-6 mb-2" id="sessionControls" style="{% if connection_status != 'connected' %}display: none;{% endif %}">
+                                    <button type="button" class="btn btn-danger w-100" id="logoutButton" onclick="return window.handleUserLogout(event);">
                                         <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
                                     </button>
                                     <small class="text-muted d-block mt-1 text-center">
@@ -1708,12 +1717,12 @@
                                     </button>
                                 </div>
                             </div>
-                            <!-- شريط إيقاف مؤقت / استئناف الإرسال الفوري -->
+                            <!-- شريط إيقاف / استئناف الإرسال الفوري -->
                             <div class="row mb-2" id="sendPauseResumeRow" style="display: none;">
                                 <div class="col-12">
-                                    <button type="button" class="btn btn-warning w-100 fw-bold shadow-sm" id="btnPauseResumeSend">
-                                        <i class="fas fa-pause-circle me-2"></i>
-                                        <span id="btnPauseResumeSendText">إيقاف مؤقت للإرسال</span>
+                                    <button type="button" class="btn btn-danger w-100 fw-bold shadow-sm" id="btnPauseResumeSend">
+                                        <i class="fas fa-stop-circle me-2"></i>
+                                        <span id="btnPauseResumeSendText">إيقاف الإرسال</span>
                                     </button>
                                 </div>
                             </div>
@@ -1724,8 +1733,8 @@
                                         <i class="fas fa-circle-notch fa-spin me-2"></i>جارٍ الإرسال الفوري...
                                     </span>
                                     <div class="d-flex align-items-center gap-2">
-                                        <button type="button" class="btn btn-sm btn-warning" id="stopSendNowBtn" style="display:none;font-size:0.8rem;padding:3px 10px;border-radius:6px;">
-                                            <i class="fas fa-pause me-1"></i><span id="stopSendNowBtnText">إيقاف مؤقت</span>
+                                        <button type="button" class="btn btn-sm btn-danger" id="stopSendNowBtn" style="display:none;font-size:0.8rem;padding:4px 12px;border-radius:6px;font-weight:700;">
+                                            <i class="fas fa-stop-circle me-1"></i><span id="stopSendNowBtnText">إيقاف الإرسال</span>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-outline-danger" id="cancelSendNowBtn" style="display:none;font-size:0.75rem;padding:3px 8px;border-radius:6px;" title="إلغاء الإرسال نهائياً">
                                             <i class="fas fa-times me-1"></i>إلغاء
@@ -4303,21 +4312,11 @@
           advResetForAccount();
           advLoadStatus();
         });
-        // معالج إلغاء الجلسة
+        // معالج إلغاء الجلسة أو إزالتها من تطبيق تيليجرام الرسمي
         s.on('session_revoked', (data) => {
-          const reason = (data && data.reason) ? data.reason : 'تم إلغاء الجلسة أو انتهت صلاحيتها';
-          const banner = document.createElement('div');
-          banner.className = 'alert alert-danger alert-dismissible fade show position-fixed w-100';
-          banner.style.cssText = 'top:0;left:0;right:0;z-index:99999;border-radius:0;margin:0;';
-          banner.innerHTML = `
-            <strong><i class="fas fa-exclamation-triangle me-2"></i>تنبيه: الجلسة ملغاة!</strong>
-            <br><span>${escapeHtml(reason)}</span><br>
-            <small>يرجى إعادة تسجيل الدخول من الإعدادات.</small>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          `;
-          document.body.prepend(banner);
-          const connStatus = document.getElementById('connectionStatus');
-          if (connStatus) { connStatus.textContent = '🔴 جلسة ملغاة'; connStatus.className = 'badge bg-danger'; }
+          if (typeof window.handleSessionRevokedUI === 'function') {
+            window.handleSessionRevokedUI(data);
+          }
         });
         // معالج تحذير المجموعات المحمية
         s.on('group_protection_warning', (data) => {
@@ -5808,10 +5807,18 @@
             const sessionControls = byId('sessionControls');
             const verifyForm = byId('verifyForm');
             const passwordForm = byId('passwordForm');
+            const headerLogoutBtn = byId('headerLogoutBtn');
+            const headerDot = byId('headerActiveStatusDot');
+            const drawerDot = byId('drawerActiveStatusDot');
             if (loginButton) loginButton.style.display = 'none';
             if (sessionControls) sessionControls.style.display = '';
             if (verifyForm) verifyForm.style.display = 'none';
             if (passwordForm) passwordForm.style.display = 'none';
+            if (headerLogoutBtn) headerLogoutBtn.style.setProperty('display', 'inline-flex', 'important');
+            if (headerDot) headerDot.classList.add('online');
+            if (drawerDot) drawerDot.classList.add('online');
+            const oldRevokedBanner = byId('sessionRevokedBanner');
+            if (oldRevokedBanner) oldRevokedBanner.remove();
             showLoginMessage('✅ تم تسجيل الدخول بنجاح.', 'success');
         }
 
@@ -5823,11 +5830,138 @@
             const loginButton = byId('loginButtonContainer');
             const verifyForm = byId('verifyForm');
             const passwordForm = byId('passwordForm');
+            const headerLogoutBtn = byId('headerLogoutBtn');
+            const headerDot = byId('headerActiveStatusDot');
+            const drawerDot = byId('drawerActiveStatusDot');
+            const activeUid = window.currentActiveUserId || '{{ current_user.id }}';
+            const tgDot = byId('tgAccountDot_' + activeUid);
             if (sessionControls) sessionControls.style.display = 'none';
             if (verifyForm) verifyForm.style.display = 'none';
             if (passwordForm) passwordForm.style.display = 'none';
             if (loginButton) loginButton.style.display = '';
+            if (headerLogoutBtn) headerLogoutBtn.style.setProperty('display', 'none', 'important');
+            if (headerDot) headerDot.classList.remove('online');
+            if (drawerDot) drawerDot.classList.remove('online');
+            if (tgDot) tgDot.classList.remove('online');
         }
+
+        window.handleSessionRevokedUI = function(data) {
+            const payload = data || {};
+            const activeUid = window.currentActiveUserId || '{{ current_user.id }}';
+            if (payload.user_id && activeUid && payload.user_id !== activeUid) {
+                if (typeof fetchAllAccounts === 'function') fetchAllAccounts();
+                return;
+            }
+            const now = Date.now();
+            if (window._lastRevokedHandledAt && (now - window._lastRevokedHandledAt) < 4000) {
+                return;
+            }
+            window._lastRevokedHandledAt = now;
+
+            const reason = payload.reason || 'تم إنهاء الجلسة أو إزالتها من تطبيق تيليجرام الرسمي';
+            showLoggedOut();
+            if (typeof updateAccountUI === 'function') {
+                updateAccountUI({
+                    user_id: activeUid,
+                    logged_in: false,
+                    connected: false,
+                    account_name: payload.account_name,
+                    account_phone: payload.account_phone
+                });
+            }
+            if (typeof applyBatchPausedUI === 'function' && window.batchSenderState === 'sending') {
+                applyBatchPausedUI(window.batchRemaining || 0, 0, 0);
+            }
+            showLoginMessage(`⚠️ ${reason} — تم تسجيل الخروج تلقائياً لحماية الحساب، يمكنك إعادة تسجيل الدخول من هنا مع بقاء أرقامك وأسمائك محفوظة.`, 'danger');
+
+            const oldBanner = byId('sessionRevokedBanner');
+            if (oldBanner) oldBanner.remove();
+            const safeReason = (typeof escapeHtml === 'function') ? escapeHtml(reason) : String(reason).replace(/</g, '&lt;');
+            const banner = document.createElement('div');
+            banner.id = 'sessionRevokedBanner';
+            banner.className = 'alert alert-danger alert-dismissible fade show position-fixed w-100 shadow-lg';
+            banner.style.cssText = 'top:0;left:0;right:0;z-index:99999;border-radius:0;margin:0;border-bottom:3px solid #dc3545;';
+            banner.innerHTML = `
+                <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <strong><i class="fas fa-shield-alt me-2"></i>تم إزالة الجلسة أو تسجيل الخروج من تطبيق تليجرام الرسمي!</strong>
+                        <span class="ms-2">${safeReason}</span>
+                        <div class="small mt-1">تم تسجيل خروج الحساب تلقائياً وإيقاف المهام النشطة لحماية حسابك. يمكنك إعادة تسجيل الدخول في أي وقت.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                </div>
+            `;
+            document.body.prepend(banner);
+
+            if (typeof window.showAlert === 'function') {
+                window.showAlert('danger', `🚨 ${reason} — تم تسجيل الخروج تلقائياً`, 12000);
+            }
+            if (typeof window._playBeepDirect === 'function') {
+                try { window._playBeepDirect('broadcast'); } catch (_) {}
+            }
+            if (window.Notification && Notification.permission === 'granted') {
+                try {
+                    new Notification('🚨 تم إنهاء جلسة تيليجرام', {
+                        body: reason,
+                        icon: '/static/icons/icon-192.png'
+                    });
+                } catch (_) {}
+            }
+            if (typeof fetchAllAccounts === 'function') fetchAllAccounts();
+            if (typeof window.loadSavedPhones === 'function') window.loadSavedPhones();
+        };
+
+        window.handleUserLogout = async function(ev) {
+            if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            if (window._logoutInProgress) return false;
+            window._logoutInProgress = true;
+
+            const btn = byId('logoutButton');
+            const headerBtn = byId('headerLogoutBtn');
+            const origBtnHtml = btn ? btn.innerHTML : '';
+            const origHeaderHtml = headerBtn ? headerBtn.innerHTML : '';
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري تسجيل الخروج...';
+            }
+            if (headerBtn) {
+                headerBtn.disabled = true;
+                headerBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span>خروج...</span>';
+            }
+
+            const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
+            try {
+                const res = await postLogin('/api/user_logout', { user_id: activeUser });
+                showLoggedOut();
+                if (typeof updateAccountUI === 'function') {
+                    updateAccountUI({ user_id: activeUser, logged_in: false, connected: false });
+                }
+                const msg = (res && res.message) ? res.message : '🚪 تم تسجيل الخروج بنجاح مع بقاء الرقم والاسم محفوظين دائماً.';
+                showLoginMessage(msg, (res && res.success !== false) ? 'info' : 'danger');
+                if (typeof window.showAlert === 'function') {
+                    window.showAlert((res && res.success !== false) ? 'info' : 'danger', msg, 6000);
+                }
+                if (window.loadSavedPhones) await window.loadSavedPhones();
+                if (typeof fetchAllAccounts === 'function') await fetchAllAccounts();
+            } catch (err) {
+                const errMsg = '❌ تعذر تسجيل الخروج: ' + (err && err.message ? err.message : err);
+                showLoginMessage(errMsg, 'danger');
+                if (typeof window.showAlert === 'function') window.showAlert('danger', errMsg, 6000);
+            } finally {
+                window._logoutInProgress = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origBtnHtml || '<i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج';
+                }
+                if (headerBtn) {
+                    headerBtn.disabled = false;
+                    headerBtn.innerHTML = origHeaderHtml || '<i class="fas fa-sign-out-alt"></i><span class="d-none d-sm-inline">خروج</span>';
+                }
+            }
+            return false;
+        };
 
         async function postLogin(url, body = {}) {
             const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
@@ -5895,22 +6029,26 @@
                     setConnectionStatus(true);
                     showLoginMessage(result.message || '✅ الحساب متصل بالفعل، جاري فتحه وتصفحه...', 'success');
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                     setTimeout(() => { window.location.reload(); }, 600);
                 } else if (result.code_required) {
                     stopLoginPolling();
                     setLoginBusy(false);
                     showCodeForm();
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                 } else if (result.pending) {
                     setConnectionStatus(true);
                     showLoginMessage('⏳ تم بدء الاتصال للحساب (مع استمرار الحساب السابق بالعمل في الخلفية). انتظر وصول كود التحقق...', 'info');
                     startLoginPolling();
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                 } else {
                     stopLoginPolling();
                     setLoginBusy(false);
                     showLoggedIn();
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                     if (result.switched_account) {
                         setTimeout(() => { window.location.reload(); }, 600);
                     }
@@ -5947,6 +6085,7 @@
                 } else if (result.success) {
                     showLoggedIn();
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                     setTimeout(() => { window.location.reload(); }, 600);
                 } else {
                     showLoginMessage(result.message || '❌ كود التحقق غير صحيح.', 'danger');
@@ -5981,6 +6120,7 @@
                 if (result.success) {
                     showLoggedIn();
                     fetchAllAccounts();
+                    if (window.loadSavedPhones) window.loadSavedPhones();
                     setTimeout(() => { window.location.reload(); }, 600);
                 } else {
                     showLoginMessage(result.message || '❌ كلمة المرور غير صحيحة.', 'danger');
@@ -6016,7 +6156,7 @@
             const isLoggedIn = Boolean(data.logged_in);
             let phone = data.account_phone || data.phone || '';
 
-            if ((phone && phone.includes('201120945094')) || uid === 'user_1') {
+            if ((phone && phone.includes('201120945094')) || (!phone && uid === 'user_1')) {
                 accountName = 'Lamis';
                 if (!phone) phone = '+201120945094';
             }
@@ -6244,6 +6384,7 @@
                 });
                 const data = await resp.json();
                 if (data && data.success) {
+                    if (window.loadSavedPhones) await window.loadSavedPhones();
                     const modalEl = document.getElementById('addAccountModal');
                     if (modalEl && typeof bootstrap !== 'undefined') {
                         const modal = bootstrap.Modal.getInstance(modalEl);
@@ -6344,6 +6485,15 @@
 
         function handleLoginStatus(data) {
             if (!data) return;
+            if (data.session_revoked) {
+                if (typeof window.handleSessionRevokedUI === 'function') {
+                    window.handleSessionRevokedUI({
+                        user_id: data.user_id,
+                        reason: data.revoked_reason || 'تم إنهاء الجلسة أو إزالتها من تطبيق تيليجرام الرسمي'
+                    });
+                }
+                return;
+            }
             if (data.connected) setConnectionStatus(true);
             if (data.awaiting_code) {
                 stopLoginPolling();
@@ -6358,10 +6508,13 @@
                 setLoginBusy(false);
                 showLoggedIn();
                 updateAccountUI(data);
+                if (window.loadSavedPhones) window.loadSavedPhones();
             } else if (data.login_error) {
                 stopLoginPolling();
                 setLoginBusy(false);
                 showLoginMessage(data.login_error, 'danger');
+            } else if (data.logged_in === false) {
+                showLoggedOut();
             }
         }
 
@@ -6370,6 +6523,11 @@
             window._loginSocketBound = true;
             window.socket.on('login_result', handleLoginResult);
             window.socket.on('login_status', handleLoginStatus);
+            window.socket.on('session_revoked', (data) => {
+                if (typeof window.handleSessionRevokedUI === 'function') {
+                    window.handleSessionRevokedUI(data);
+                }
+            });
             window.socket.on('login_code_received', (data) => {
                 if (!data || !data.code) return;
                 if (typeof showCodeForm === 'function') {
@@ -6388,7 +6546,11 @@
                 if (window.loadSavedPhones) window.loadSavedPhones();
             });
             window.socket.on('saved_phones_updated', (data) => {
-                if (window.loadSavedPhones) window.loadSavedPhones();
+                if (data && Array.isArray(data.phones) && window.renderSavedPhones) {
+                    window.renderSavedPhones(data.phones);
+                } else if (window.loadSavedPhones) {
+                    window.loadSavedPhones();
+                }
             });
             window.socket.on('connection_status', (data) => {
                 if (data?.status) setConnectionStatus(data.status === 'connected');
@@ -6449,45 +6611,50 @@
             }
         };
 
+        window.renderSavedPhones = function(phones) {
+            const select1 = byId('savedPhonesDropdown');
+            const select2 = byId('newAccountSavedPhonesDropdown');
+            const list = Array.isArray(phones) ? phones : [];
+            const ignoredPlaceholders = new Set(['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام']);
+
+            const populateSelect = (selectElem) => {
+                if (!selectElem) return;
+                const prevVal = selectElem.value;
+                selectElem.innerHTML = '<option value="">-- اضغط لاختيار رقم أو تسجيل برقم آخر --</option>';
+                list.forEach(item => {
+                    if (!item || !item.phone_number) return;
+                    const opt = document.createElement('option');
+                    opt.value = item.phone_number;
+                    const nameDisplay = (item.account_name || item.label || '').trim();
+                    opt.setAttribute('data-name', nameDisplay);
+                    let badge = '';
+                    if (nameDisplay && !ignoredPlaceholders.has(nameDisplay)) {
+                        badge = `⭐ ${nameDisplay}`;
+                    } else if (item.is_default) {
+                        badge = '⭐ حساب معتمد';
+                    } else {
+                        badge = '📱 محفوظ';
+                    }
+                    opt.textContent = `${item.phone_number} (${badge})`;
+                    selectElem.appendChild(opt);
+                });
+                const customOpt = document.createElement('option');
+                customOpt.value = '__custom__';
+                customOpt.textContent = '➕ تسجيل برقم آخر...';
+                selectElem.appendChild(customOpt);
+                if (prevVal) selectElem.value = prevVal;
+            };
+
+            populateSelect(select1);
+            populateSelect(select2);
+        };
+
         window.loadSavedPhones = async function() {
             try {
-                const res = await fetch('/api/saved_phone_numbers');
+                const res = await fetch('/api/saved_phone_numbers', { cache: 'no-store', credentials: 'same-origin' });
                 const data = await res.json();
                 if (!data.success) return;
-                
-                const select1 = byId('savedPhonesDropdown');
-                const select2 = byId('newAccountSavedPhonesDropdown');
-                const phones = data.phones || [];
-
-                const populateSelect = (selectElem) => {
-                    if (!selectElem) return;
-                    const prevVal = selectElem.value;
-                    selectElem.innerHTML = '<option value="">-- اضغط لاختيار رقم أو تسجيل برقم آخر --</option>';
-                    phones.forEach(item => {
-                        const opt = document.createElement('option');
-                        opt.value = item.phone_number;
-                        const nameDisplay = item.account_name || item.label || '';
-                        opt.setAttribute('data-name', nameDisplay);
-                        let badge = '';
-                        if (nameDisplay && nameDisplay !== 'رقم أساسي' && nameDisplay !== 'رقم محفوظ') {
-                            badge = `⭐ ${nameDisplay}`;
-                        } else if (item.is_default) {
-                            badge = '⭐ حساب معتمد';
-                        } else {
-                            badge = '📱 محفوظ';
-                        }
-                        opt.textContent = `${item.phone_number} (${badge})`;
-                        selectElem.appendChild(opt);
-                    });
-                    const customOpt = document.createElement('option');
-                    customOpt.value = '__custom__';
-                    customOpt.textContent = '➕ تسجيل برقم آخر...';
-                    selectElem.appendChild(customOpt);
-                    if (prevVal) selectElem.value = prevVal;
-                };
-
-                populateSelect(select1);
-                populateSelect(select2);
+                window.renderSavedPhones(data.phones || []);
             } catch (e) {
                 console.error('Error loading saved phones:', e);
             }
@@ -11371,14 +11538,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pauseRow) pauseRow.style.display = 'block';
         if (pauseBtn) {
             pauseBtn.disabled = false;
-            pauseBtn.className = 'btn btn-warning w-100 fw-bold shadow-sm';
-            pauseBtn.innerHTML = '<i class="fas fa-pause-circle me-2"></i>إيقاف مؤقت للإرسال';
+            pauseBtn.className = 'btn btn-danger w-100 fw-bold shadow-sm';
+            pauseBtn.innerHTML = '<i class="fas fa-stop-circle me-2"></i><span id="btnPauseResumeSendText">إيقاف الإرسال</span>';
         }
         if (stopBtn) {
             stopBtn.disabled = false;
             stopBtn.style.display = 'inline-block';
-            stopBtn.className = 'btn btn-sm btn-warning';
-            stopBtn.innerHTML = '<i class="fas fa-pause me-1"></i>إيقاف مؤقت';
+            stopBtn.className = 'btn btn-sm btn-danger';
+            stopBtn.innerHTML = '<i class="fas fa-stop-circle me-1"></i><span id="stopSendNowBtnText">إيقاف الإرسال</span>';
         }
         if (cancelBtn) cancelBtn.style.display = 'none';
         if (bar) bar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-info';
@@ -11402,30 +11569,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const remLabel = rem > 0 ? ` (متبقي ${rem} مجموعة)` : '';
         if (sendBtn) {
             sendBtn.disabled = false;
-            sendBtn.className = 'btn btn-info w-100 fw-bold';
+            sendBtn.className = 'btn btn-success w-100 fw-bold';
             sendBtn.innerHTML = `<i class="fas fa-play-circle me-2"></i>استئناف الإرسال${remLabel}`;
         }
         if (pauseRow) pauseRow.style.display = 'block';
         if (pauseBtn) {
             pauseBtn.disabled = false;
-            pauseBtn.className = 'btn btn-info w-100 fw-bold shadow-sm';
-            pauseBtn.innerHTML = `<i class="fas fa-play-circle me-2"></i>استئناف الإرسال${remLabel}`;
+            pauseBtn.className = 'btn btn-success w-100 fw-bold shadow-sm';
+            pauseBtn.innerHTML = `<i class="fas fa-play-circle me-2"></i><span id="btnPauseResumeSendText">استئناف الإرسال${remLabel}</span>`;
         }
         if (stopBtn) {
             stopBtn.disabled = false;
             stopBtn.style.display = 'inline-block';
-            stopBtn.className = 'btn btn-sm btn-info';
-            stopBtn.innerHTML = '<i class="fas fa-play me-1"></i>استئناف';
+            stopBtn.className = 'btn btn-sm btn-success';
+            stopBtn.innerHTML = '<i class="fas fa-play-circle me-1"></i><span id="stopSendNowBtnText">استئناف</span>';
         }
         if (cancelBtn) cancelBtn.style.display = 'inline-block';
         if (bar) bar.className = 'progress-bar bg-warning';
-        if (title) title.innerHTML = '<i class="fas fa-pause-circle text-warning me-2"></i>تم إيقاف الإرسال مؤقتاً';
+        if (title) title.innerHTML = '<i class="fas fa-stop-circle text-danger me-2"></i>تم إيقاف الإرسال';
         if (badge && tot > 0) {
             badge.className = 'badge bg-warning text-dark';
-            badge.textContent = `موقوف (${idx}/${tot})`;
+            badge.textContent = `متوقف (${idx}/${tot})`;
         }
         if (curStatus) {
-            curStatus.innerHTML = `<span class="text-warning fw-bold">⏸️ الإرسال متوقف مؤقتاً عند المجموعة ${idx} من ${tot}. اضغط "استئناف" للمتابعة.</span>`;
+            curStatus.innerHTML = `<span class="text-warning fw-bold">⏸️ توقف الإرسال فوراً عند المجموعة ${idx} من ${tot}. اضغط "استئناف" للمتابعة من حيث توقفت.</span>`;
         }
     }
 
@@ -11447,60 +11614,64 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cancelBtn) cancelBtn.style.display = 'none';
     }
 
-    async function togglePauseResumeSend() {
-        if (window.batchSenderState === 'sending') {
-            const pauseBtn = byId('btnPauseResumeSend');
-            const stopBtn = byId('stopSendNowBtn');
-            if (pauseBtn) {
-                pauseBtn.disabled = true;
-                pauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإيقاف فوراً...';
-            }
-            if (stopBtn) {
-                stopBtn.disabled = true;
-                stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الإيقاف...';
-            }
-            try {
-                const res = await requestJson('/api/send_now/pause', {});
-                window.showAlert('warning', res.message || '⏸️ تم إيقاف الإرسال مؤقتاً فوراً', 4000);
-                applyBatchPausedUI(res.remaining || 0, res.current_index || 0, res.total || 0);
-            } catch (err) {
-                window.showAlert('danger', 'تعذر إيقاف الإرسال: ' + err.message);
-                if (pauseBtn) pauseBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = false;
-            }
-        } else if (window.batchSenderState === 'paused') {
-            const pauseBtn = byId('btnPauseResumeSend');
-            const stopBtn = byId('stopSendNowBtn');
-            const sendBtn = byId('sendNowBtn');
-            if (pauseBtn) {
-                pauseBtn.disabled = true;
-                pauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستئناف...';
-            }
-            if (stopBtn) {
-                stopBtn.disabled = true;
-                stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الاستئناف...';
-            }
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الإرسال...';
-            }
-            try {
-                const res = await requestJson('/api/send_now/resume', {});
-                if (res.success) {
-                    window.showAlert('info', res.message || '▶️ بدأ استئناف الإرسال بنجاح', 4000);
-                    applyBatchSendingUI();
-                } else {
-                    window.showAlert('danger', '❌ ' + (res.message || 'تعذر الاستئناف'));
+    window._togglePauseInFlight = false;
+    async function togglePauseResumeSend(ev) {
+        if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+        if (window._togglePauseInFlight) return;
+        window._togglePauseInFlight = true;
+        try {
+            if (window.batchSenderState === 'sending') {
+                const pauseBtn = byId('btnPauseResumeSend');
+                const stopBtn = byId('stopSendNowBtn');
+                if (pauseBtn) {
+                    pauseBtn.disabled = true;
+                    pauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإيقاف فوراً...';
+                }
+                if (stopBtn) {
+                    stopBtn.disabled = true;
+                    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الإيقاف...';
+                }
+                try {
+                    const res = await requestJson('/api/send_now/stop', {});
+                    window.showAlert('warning', res.message || '⏸️ تم إيقاف الإرسال فوراً', 4500);
+                    applyBatchPausedUI(res.remaining || 0, res.current_index || 0, res.total || 0);
+                } catch (err) {
+                    window.showAlert('danger', 'تعذر إيقاف الإرسال: ' + err.message);
                     if (pauseBtn) pauseBtn.disabled = false;
                     if (stopBtn) stopBtn.disabled = false;
-                    if (sendBtn) sendBtn.disabled = false;
                 }
-            } catch (err) {
-                window.showAlert('danger', 'تعذر استئناف الإرسال: ' + err.message);
-                if (pauseBtn) pauseBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = false;
-                if (sendBtn) sendBtn.disabled = false;
+            } else if (window.batchSenderState === 'paused') {
+                const pauseBtn = byId('btnPauseResumeSend');
+                const stopBtn = byId('stopSendNowBtn');
+                const sendBtn = byId('sendNowBtn');
+                if (pauseBtn) {
+                    pauseBtn.disabled = true;
+                    pauseBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستئناف...';
+                }
+                if (stopBtn) {
+                    stopBtn.disabled = true;
+                    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الاستئناف...';
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الاستئناف...';
+                }
+                try {
+                    const res = await requestJson('/api/send_now/resume', {});
+                    if (res.success) {
+                        window.showAlert('success', res.message || '▶️ بدأ استئناف الإرسال من حيث توقف', 4000);
+                        applyBatchSendingUI();
+                    } else {
+                        window.showAlert('danger', '❌ ' + (res.message || 'تعذر الاستئناف'));
+                        applyBatchPausedUI(window.batchRemaining || 0, 0, 0);
+                    }
+                } catch (err) {
+                    window.showAlert('danger', 'تعذر استئناف الإرسال: ' + err.message);
+                    applyBatchPausedUI(window.batchRemaining || 0, 0, 0);
+                }
             }
+        } finally {
+            window._togglePauseInFlight = false;
         }
     }
 
@@ -11646,9 +11817,55 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+    function bindBatchControlsOnce() {
+        if (window._batchControlsBound) return;
+        window._batchControlsBound = true;
+        byId('btnPauseResumeSend')?.addEventListener('click', togglePauseResumeSend);
+        byId('stopSendNowBtn')?.addEventListener('click', togglePauseResumeSend);
+        byId('cancelSendNowBtn')?.addEventListener('click', async () => {
+            if (!confirm('هل تريد إلغاء دفعة الإرسال الحالية نهائياً؟')) return;
+            try {
+                await requestJson('/api/send_now/cancel', {});
+                applyBatchCompletedUI('تم إلغاء الإرسال نهائياً');
+                const card = byId('sendLiveProgressCard');
+                const curStatus = byId('sendLiveCurrentStatus');
+                if (curStatus) curStatus.innerHTML = '<span class="text-danger fw-bold">🛑 تم إلغاء دفعة الإرسال نهائياً.</span>';
+                if (card) setTimeout(() => { card.style.display = 'none'; }, 2500);
+                window.showAlert('info', 'تم إلغاء الإرسال نهائياً');
+            } catch(e) {}
+        });
+    }
+
+    async function restoreBatchSenderState() {
+        try {
+            const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
+            const resp = await fetch(`/api/send_now/status?user_id=${encodeURIComponent(activeUser)}`, { cache: 'no-store', credentials: 'same-origin' });
+            if (!resp.ok) return;
+            const st = await resp.json();
+            if (!st || !st.has_batch) return;
+            const card = byId('sendLiveProgressCard');
+            const badge = byId('sendLiveProgressBadge');
+            const bar = byId('sendLiveProgressBar');
+            if (st.status === 'sending') {
+                if (card) card.style.display = 'block';
+                applyBatchSendingUI();
+                const pct = st.total > 0 ? Math.round((st.index / st.total) * 100) : 0;
+                if (badge) badge.textContent = `${pct}% (${st.index}/${st.total})`;
+                if (bar) bar.style.width = `${pct}%`;
+            } else if (st.status === 'paused' && (st.remaining || 0) > 0) {
+                if (card) card.style.display = 'block';
+                applyBatchPausedUI(st.remaining || 0, st.index || 0, st.total || 0);
+                const pct = st.total > 0 ? Math.round((st.index / st.total) * 100) : 0;
+                if (bar) bar.style.width = `${pct}%`;
+            }
+        } catch(_) {}
+    }
+
     function bindSocket() {
         const socket = window.socket;
         if (!socket) { window.setTimeout(bindSocket, 300); return; }
+        if (socket._batchProgressBound) return;
+        socket._batchProgressBound = true;
         socket.on('monitoring_status', (data) => setButtonState(Boolean(data && (data.is_running || data.monitoring_active))));
         socket.on('update_monitoring_buttons', (data) => setButtonState(Boolean(data && data.is_running)));
 
@@ -11661,8 +11878,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const bar = byId('sendLiveProgressBar');
             const curStatus = byId('sendLiveCurrentStatus');
             const log = byId('sendLiveProgressLog');
-            const sendBtn = byId('sendNowBtn');
-            const stopBtn = byId('stopSendNowBtn');
 
             if (card) card.style.display = 'block';
 
@@ -11672,6 +11887,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (data.status === 'resumed') {
                 applyBatchSendingUI();
+                return;
+            }
+            if (data.status === 'cancelled') {
+                applyBatchCompletedUI();
+                if (curStatus) curStatus.innerHTML = `<span class="text-danger fw-bold">${data.message || '🛑 تم إلغاء الإرسال'}</span>`;
                 return;
             }
 
@@ -11749,18 +11969,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.showAlert('danger', displayMsg, 5000);
             }
         });
-
-        // ربط أحداث زر إيقاف / استئناف الإرسال
-        byId('btnPauseResumeSend')?.addEventListener('click', togglePauseResumeSend);
-        byId('stopSendNowBtn')?.addEventListener('click', togglePauseResumeSend);
-        byId('cancelSendNowBtn')?.addEventListener('click', async () => {
-            if (!confirm('هل تريد إلغاء دفعة الإرسال الحالية نهائياً؟')) return;
-            try {
-                await requestJson('/api/send_now/pause', {});
-                applyBatchCompletedUI('تم إلغاء الإرسال نهائياً');
-                window.showAlert('info', 'تم إلغاء الإرسال نهائياً');
-            } catch(e) {}
-        });
     }
     document.addEventListener('DOMContentLoaded', () => {
         const type = byId('sendType');
@@ -11787,7 +11995,9 @@ document.addEventListener('DOMContentLoaded', function() {
         byId('stopMonitoringBtn')?.addEventListener('click', handleStop);
         byId('sendNowBtn')?.addEventListener('click', handleSendNow);
         byId('scanGroupsBtn')?.addEventListener('click', handleScanGroupsAI);
+        bindBatchControlsOnce();
         bindSocket();
+        restoreBatchSenderState();
     });
 })();
 </script>

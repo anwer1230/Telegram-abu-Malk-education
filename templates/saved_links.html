@@ -328,31 +328,43 @@ function escHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── تطبيق بيانات الروابط مباشرة على الواجهة بدون طلبات مكررة ────────────────
+function applyLinksPayload(data) {
+    allLinks = Array.isArray(data.links) ? data.links : [];
+    const cats = Array.isArray(data.categories) ? data.categories : [];
+
+    const filter = document.getElementById('categoryFilter');
+    const cur = filter.value;
+    let opts = '<option value="all">جميع التصنيفات</option>';
+    cats.forEach(cat => {
+        opts += `<option value="${escHtml(cat)}">${escHtml(cat)}</option>`;
+    });
+    filter.innerHTML = opts;
+    filter.value = cats.includes(cur) ? cur : 'all';
+
+    document.getElementById('statTotal').textContent = allLinks.length;
+    document.getElementById('statCats').textContent = cats.length;
+    filterLinks();
+}
+
 // ── تحميل الروابط ──────────────────────────────────────────────────────────
-function refreshLinks() {
-    document.getElementById('linksBody').innerHTML =
-        '<tr><td colspan="7" style="text-align:center;padding:40px;color:#4b5563;"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>';
-    fetch('/api/saved_links')
+function refreshLinks(force = false) {
+    if (!allLinks.length) {
+        document.getElementById('linksBody').innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:40px;color:#4b5563;"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>';
+    }
+    const url = force ? '/api/saved_links?force=1' : '/api/saved_links';
+    return fetch(url)
         .then(r => r.json())
         .then(data => {
-            if (!data.success) return;
-            allLinks = data.links || [];
-            // تحديث قائمة التصنيفات
-            const filter = document.getElementById('categoryFilter');
-            const cur = filter.value;
-            filter.innerHTML = '<option value="all">جميع التصنيفات</option>';
-            (data.categories || []).forEach(cat => {
-                filter.innerHTML += `<option value="${escHtml(cat)}">${escHtml(cat)}</option>`;
-            });
-            filter.value = (data.categories || []).includes(cur) ? cur : 'all';
-            // الإحصائيات
-            document.getElementById('statTotal').textContent = allLinks.length;
-            document.getElementById('statCats').textContent = (data.categories || []).length;
-            filterLinks();
+            if (!data || !data.success) {
+                throw new Error((data && data.message) || 'تعذر قراءة الروابط');
+            }
+            applyLinksPayload(data);
         })
-        .catch(() => {
+        .catch(err => {
             document.getElementById('linksBody').innerHTML =
-                '<tr><td colspan="7" style="text-align:center;padding:40px;color:#f87171;">❌ فشل تحميل الروابط</td></tr>';
+                `<tr><td colspan="7" style="text-align:center;padding:40px;color:#f87171;">❌ فشل تحميل الروابط: ${escHtml(err.message || '')}</td></tr>`;
         });
 }
 
@@ -444,10 +456,17 @@ function renderLinks() {
     updateSelectionUI();
 }
 
-// ── تحديد / إلغاء ─────────────────────────────────────────────────────────
+// ── تحديد / إلغاء (تحديث الصف المحدد فقط لسرعة فائقة) ───────────────────────
 function toggleSelect(id) {
     if (selectedIds.has(id)) { selectedIds.delete(id); } else { selectedIds.add(id); }
-    renderLinks();
+    const row = document.querySelector(`#linksBody tr[data-id="${CSS.escape(String(id))}"]`);
+    if (row) {
+        row.classList.toggle('selected-row', selectedIds.has(id));
+    }
+    const checkAllEl = document.getElementById('selectAllCheck');
+    if (checkAllEl) {
+        checkAllEl.checked = filteredLinks.length > 0 && selectedIds.size > 0 && filteredLinks.every(l => selectedIds.has(l.id));
+    }
     updateSelectionUI();
 }
 
@@ -515,49 +534,64 @@ function copySelected() {
     });
 }
 
-// ── فحص واستعراض قاعدة البيانات الخارجية الحقيقية ──
+// ── فحص واستعراض قاعدة البيانات الحقيقية في طلب واحد سريع ──
 async function inspectAndShowCloudLinks() {
     const banner = document.getElementById('cloudStatusBanner');
     const icon = document.getElementById('cloudStatusIcon');
     const text = document.getElementById('cloudStatusText');
     const badge = document.getElementById('cloudStatusBadge');
+    const btn = document.getElementById('btnInspectCloudLinks');
 
-    if (banner) banner.style.display = 'flex';
+    if (banner) { banner.classList.remove('d-none'); banner.classList.add('d-flex'); }
     if (icon) { icon.className = 'spinner-border spinner-border-sm text-info'; }
-    if (text) { text.textContent = '🔄 جارٍ استعلام قاعدة البيانات الخارجية السحابية وفحص حالة الروابط الحقيقية...'; }
+    if (text) { text.textContent = '🔄 جارٍ استعلام قاعدة البيانات واستعراض الروابط الحقيقية...'; }
     if (badge) { badge.className = 'badge bg-info'; badge.textContent = 'جارٍ الفحص'; }
-
-    showToast('🔄 جارٍ فحص واستعراض كافة روابط قاعدة البيانات الخارجية...', 'info');
+    if (btn) btn.disabled = true;
 
     try {
         const res = await fetch('/api/saved_links/inspect_status');
         const data = await res.json();
 
-        if (data.success) {
-            refreshLinks();
-            if (data.total_links > 0) {
-                if (icon) { icon.className = 'fas fa-check-circle text-success fs-5'; }
-                if (text) {
-                    text.innerHTML = `🟢 <strong>قاعدة البيانات الخارجية نشطة وممتلئة:</strong> تم استعراض وفحص <strong>${data.total_links}</strong> رابط محفوظ بنجاح موزعة على <strong>${data.categories_count}</strong> تصنيف.`;
-                }
-                if (badge) { badge.className = 'badge bg-success'; badge.textContent = 'متصلة وبها روابط'; }
-                showToast(`🎉 تم استعراض ${data.total_links} رابط محفوظ من قاعدة البيانات الخارجية بنجاح!`, 'success');
-            } else {
-                if (icon) { icon.className = 'fas fa-info-circle text-warning fs-5'; }
-                if (text) {
-                    text.innerHTML = `🟡 <strong>قاعدة البيانات الخارجية متصلة وجاهزة:</strong> لا توجد أي روابط محفوظة حالياً. يمكنك إضافة روابط أو حفظ نتائج البحث لتظهر هنا فوراً.`;
-                }
-                if (badge) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'فارغة حالياً'; }
-                showToast(`ℹ️ تم فحص قاعدة البيانات: لا توجد أي روابط محفوظة حالياً`, 'warning');
+        if (!data || !data.success) {
+            throw new Error((data && data.message) || 'فشل الفحص');
+        }
+
+        // عرض الروابط فوراً من نفس الاستجابة دون طلب ثانٍ
+        applyLinksPayload(data);
+
+        const total = Number(data.total_links || allLinks.length || 0);
+        const catsCount = Number(data.categories_count || (data.categories || []).length || 0);
+
+        if (total > 0 && data.firestore_live) {
+            if (icon) { icon.className = 'fas fa-check-circle text-success fs-5'; }
+            if (text) {
+                text.innerHTML = `🟢 <strong>قاعدة البيانات السحابية والمحلية نشطة:</strong> تم استعراض <strong>${total}</strong> رابط محفوظ موزعة على <strong>${catsCount}</strong> تصنيف.`;
             }
+            if (badge) { badge.className = 'badge bg-success'; badge.textContent = 'سحابي + محلي متصل'; }
+            showToast(`✅ تم استعراض ${total} رابط محفوظ بسرعة بنجاح!`, 'success');
+        } else if (total > 0) {
+            const errNote = data.firestore_error ? ` <span style="color:#fbbf24;font-weight:500;">(تنبيه السحابة: ${escHtml(data.firestore_error)})</span>` : '';
+            if (icon) { icon.className = 'fas fa-database text-warning fs-5'; }
+            if (text) {
+                text.innerHTML = `🟡 <strong>تم الاستعراض بسرعة (${total} رابط / ${catsCount} تصنيف):</strong> محمّلة من قاعدة البيانات المحلية/PostgreSQL.${errNote}`;
+            }
+            if (badge) { badge.className = 'badge bg-warning text-dark'; badge.textContent = `محلي / DB (${total})`; }
+            showToast(`✅ تم عرض ${total} رابط محفوظ بنجاح`, 'success');
         } else {
-            throw new Error(data.message || 'فشل الفحص');
+            if (icon) { icon.className = 'fas fa-info-circle text-warning fs-5'; }
+            if (text) {
+                text.innerHTML = `🟡 <strong>قاعدة البيانات متصلة وجاهزة:</strong> لا توجد أي روابط محفوظة حالياً. يمكنك إضافة روابط أو حفظ نتائج البحث لتظهر هنا فوراً.`;
+            }
+            if (badge) { badge.className = 'badge bg-warning text-dark'; badge.textContent = 'فارغة حالياً'; }
+            showToast('ℹ️ تم فحص قاعدة البيانات: لا توجد روابط محفوظة حالياً', 'warning');
         }
     } catch (err) {
         if (icon) { icon.className = 'fas fa-exclamation-triangle text-danger fs-5'; }
         if (text) { text.textContent = '❌ تعذر فحص قاعدة البيانات: ' + err.message; }
         if (badge) { badge.className = 'badge bg-danger'; badge.textContent = 'خطأ اتصال'; }
-        showToast('❌ تعذر استعراض قاعدة البيانات الخارجية: ' + err.message, 'error');
+        showToast('❌ تعذر استعراض قاعدة البيانات: ' + err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -685,7 +719,7 @@ function openAddModal() {
 
 function saveNewLink() {
     const url = document.getElementById('newUrl').value.trim();
-    if (!url) { alert('الرجاء إدخال الرابط'); return; }
+    if (!url) { showToast('⚠️ الرجاء إدخال الرابط', 'warning'); return; }
     fetch('/api/saved_links/add', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
@@ -698,7 +732,7 @@ function saveNewLink() {
             bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
             refreshLinks();
             showToast('✅ تم حفظ الرابط');
-        } else { alert('❌ ' + d.message); }
+        } else { showToast('❌ ' + (d.message || 'فشل الحفظ'), 'error'); }
     });
 }
 
@@ -728,7 +762,7 @@ function saveEditLink() {
             bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
             refreshLinks();
             showToast('✅ تم تحديث الرابط');
-        } else { alert('❌ ' + d.message); }
+        } else { showToast('❌ ' + (d.message || 'فشل التحديث'), 'error'); }
     });
 }
 
@@ -761,7 +795,7 @@ function readImportFile() {
 function processImport() {
     const rawText = document.getElementById('importUrls').value;
     const urls = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (!urls.length) { alert('الرجاء إدخال روابط'); return; }
+    if (!urls.length) { showToast('⚠️ الرجاء إدخال روابط', 'warning'); return; }
     const category = document.getElementById('importCategory').value;
     const resDiv = document.getElementById('importResult');
     resDiv.className = 'alert alert-secondary mt-3';

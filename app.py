@@ -16020,9 +16020,9 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "Anwer")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "772997043a*anwer")
 
 # ---- إعدادات GitHub الخاصة بالبصمة والملفات ----
-BIO_REPO_OWNER  = "anwer1230"
-BIO_REPO_NAME   = "Web-browser"
-BIO_BRANCH      = "main"
+BIO_REPO_OWNER  = os.environ.get("GITHUB_REPO_OWNER", "anwer1230")
+BIO_REPO_NAME   = os.environ.get("GITHUB_REPO_NAME", "Telegram-abu-Malk-education")
+BIO_BRANCH      = os.environ.get("GITHUB_BRANCH", "main")
 BIOMETRIC_PATH  = "data/biometric_devices.json"
 UPLOADS_FOLDER  = "uploads"
 
@@ -16135,159 +16135,204 @@ def download_from_github(file_path_in_repo):
 
 SAVED_LINKS_FILE = os.path.join(DATA_DIR, 'saved_links.json')
 
-def load_saved_links():
-    """تحميل الروابط المحفوظة من Firestore أولاً ثم الملف المحلي أو GitHub"""
-    def _sanitize(d):
-        if not isinstance(d, dict):
-            return {"links": []}
-        val = d.get("links", [])
-        while isinstance(val, dict):
-            val = val.get("links", [])
-        if not isinstance(val, list):
-            val = []
-        return {"links": [l for l in val if isinstance(l, dict) and "url" in l]}
+def _sanitize_saved_links_payload(d):
+    if not isinstance(d, dict):
+        return {"links": []}
+    val = d.get("links", [])
+    while isinstance(val, dict):
+        val = val.get("links", [])
+    if not isinstance(val, list):
+        val = []
+    clean = [
+        l for l in val
+        if isinstance(l, dict)
+        and l.get("url")
+        and not str(l.get("id", "")).startswith("report_")
+        and l.get("category") != "safety_report"
+        and l.get("type") != "safety_report"
+    ]
+    return {"links": clean}
 
+
+def load_saved_links(force_refresh=False):
+    """تحميل الروابط المحفوظة بسرعة فائقة مع الدمج الآمن عبر الذاكرة وPostgreSQL والملف المحلي وFirestore"""
     try:
         import firestore_sync
-        fs_links = firestore_sync.get_firestore_links()
-        if fs_links:
-            data = _sanitize({"links": fs_links})
-            try:
-                with open(SAVED_LINKS_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-            except Exception:
-                pass
-            return data
+        merged = firestore_sync.get_merged_saved_links(force_refresh=force_refresh)
+        if merged:
+            return {"links": merged}
     except Exception as e:
-        logger.error(f"Error loading links from Firestore: {e}")
+        logger.error(f"Error loading merged saved_links: {e}")
 
     try:
         if os.path.exists(SAVED_LINKS_FILE):
             with open(SAVED_LINKS_FILE, 'r', encoding='utf-8') as f:
-                return _sanitize(json.load(f))
+                local_data = _sanitize_saved_links_payload(json.load(f))
+                if local_data["links"]:
+                    return local_data
     except Exception:
         pass
+
     try:
         content = download_from_github("data/saved_links.json")
         if content:
-            data = _sanitize(json.loads(content.decode("utf-8")))
+            data = _sanitize_saved_links_payload(json.loads(content.decode("utf-8")))
             with open(SAVED_LINKS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            try:
+                import firestore_sync
+                firestore_sync.invalidate_links_cache()
+                firestore_sync._bg_sync_links_to_pg(data["links"])
+            except Exception:
+                pass
             return data
     except Exception:
         pass
     return {"links": []}
 
-def save_saved_links(data):
-    """حفظ الروابط المحفوظة محلياً وفي GitHub"""
+
+def _bg_upload_saved_links_to_github(raw_bytes):
     try:
+        upload_to_github("data/saved_links.json", raw_bytes, "تحديث الروابط المحفوظة")
+    except Exception as e:
+        logger.debug(f"Background saved_links GitHub sync notice: {e}")
+
+
+def save_saved_links(data):
+    """حفظ الروابط المحفوظة محلياً فوراً ومزامنتها خلفياً مع GitHub دون تعطيل الطلبات"""
+    clean_data = _sanitize_saved_links_payload(data)
+    try:
+        os.makedirs(os.path.dirname(SAVED_LINKS_FILE), exist_ok=True)
         with open(SAVED_LINKS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            json.dump(clean_data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.error(f"Error saving saved_links locally: {e}")
     try:
-        raw = json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8')
-        upload_to_github("data/saved_links.json", raw, "تحديث الروابط المحفوظة")
+        if GITHUB_TOKEN:
+            raw = json.dumps(clean_data, ensure_ascii=False, indent=2).encode('utf-8')
+            threading.Thread(target=_bg_upload_saved_links_to_github, args=(raw,), daemon=True).start()
     except Exception as e:
-        logger.error(f"Error saving saved_links to GitHub: {e}")
+        logger.debug(f"GitHub thread spawn notice: {e}")
+
 
 def add_saved_link(url, title=None, category='عام', notes='', source='يدوي'):
-    data = load_saved_links()
+    url = str(url or '').strip()
+    if not url:
+        return False, "الرابط مطلوب"
+    data = load_saved_links(force_refresh=False)
     for link in data["links"]:
-        if link["url"] == url:
+        if link["url"].strip().lower() == url.lower():
             return False, "الرابط موجود بالفعل"
     new_link = {
         "id": str(uuid.uuid4())[:8],
         "url": url,
         "title": title or url,
-        "category": category,
+        "category": category or 'عام',
         "date_saved": datetime.now().isoformat(),
-        "source": source,
-        "notes": notes
+        "source": source or 'يدوي',
+        "notes": notes or ''
     }
-    data["links"].append(new_link)
+    data["links"].insert(0, new_link)
     save_saved_links(data)
     try:
         import firestore_sync
         firestore_sync.add_firestore_link(new_link)
     except Exception as e:
-        logger.error(f"Error syncing new link to Firestore: {e}")
+        logger.error(f"Error syncing new link: {e}")
     return True, new_link
 
+
 def add_multiple_links(urls, category='عام', source='دفعة'):
-    data = load_saved_links()
+    data = load_saved_links(force_refresh=False)
+    existing_lower = {l["url"].strip().lower() for l in data["links"] if l.get("url")}
     added = []
     skipped = []
+    new_records = []
     for url in urls:
-        url = url.strip()
+        url = str(url or '').strip()
         if not url:
             continue
-        exists = any(l["url"] == url for l in data["links"])
-        if exists:
+        if url.lower() in existing_lower:
             skipped.append(url)
             continue
+        existing_lower.add(url.lower())
         new_link = {
             "id": str(uuid.uuid4())[:8],
             "url": url,
             "title": url,
-            "category": category,
+            "category": category or 'عام',
             "date_saved": datetime.now().isoformat(),
-            "source": source,
+            "source": source or 'دفعة',
             "notes": ""
         }
-        data["links"].append(new_link)
+        data["links"].insert(0, new_link)
         added.append(url)
+        new_records.append(new_link)
+
+    if new_records:
+        save_saved_links(data)
         try:
             import firestore_sync
-            firestore_sync.add_firestore_link(new_link)
+            for rec in new_records:
+                firestore_sync.add_firestore_link(rec)
         except Exception:
             pass
-    save_saved_links(data)
     return added, skipped
 
+
 def delete_saved_link(link_id):
-    data = load_saved_links()
-    data["links"] = [l for l in data["links"] if l["id"] != link_id]
+    data = load_saved_links(force_refresh=False)
+    data["links"] = [l for l in data["links"] if str(l.get("id", "")) != str(link_id)]
     save_saved_links(data)
     try:
         import firestore_sync
         firestore_sync.delete_firestore_link(link_id)
     except Exception as e:
-        logger.error(f"Error deleting link from Firestore: {e}")
+        logger.error(f"Error deleting link: {e}")
     return True
+
 
 def delete_multiple_links(link_ids):
-    data = load_saved_links()
-    data["links"] = [l for l in data["links"] if l["id"] not in link_ids]
+    id_set = {str(x) for x in (link_ids or [])}
+    data = load_saved_links(force_refresh=False)
+    data["links"] = [l for l in data["links"] if str(l.get("id", "")) not in id_set]
     save_saved_links(data)
-    for lid in link_ids:
-        try:
-            import firestore_sync
-            firestore_sync.delete_firestore_link(lid)
-        except Exception:
-            pass
+    try:
+        import firestore_sync
+        firestore_sync.delete_firestore_links_batch(list(id_set))
+    except Exception:
+        pass
     return True
 
+
 def update_saved_link(link_id, updates):
-    data = load_saved_links()
+    data = load_saved_links(force_refresh=False)
     for link in data["links"]:
-        if link["id"] == link_id:
+        if str(link.get("id", "")) == str(link_id):
             if "title" in updates: link["title"] = updates["title"]
             if "category" in updates: link["category"] = updates["category"]
             if "notes" in updates: link["notes"] = updates["notes"]
             save_saved_links(data)
+            try:
+                import firestore_sync
+                firestore_sync.update_firestore_link(link)
+            except Exception as e:
+                logger.error(f"Error syncing updated link: {e}")
             return True, link
     return False, None
 
+
 def get_saved_links_by_category(category=None):
-    data = load_saved_links()
+    data = load_saved_links(force_refresh=False)
     if category:
-        return [l for l in data["links"] if l["category"] == category]
+        return [l for l in data["links"] if l.get("category") == category]
     return data["links"]
 
+
 def get_categories():
-    data = load_saved_links()
-    return sorted(set(l["category"] for l in data["links"]))
+    data = load_saved_links(force_refresh=False)
+    return sorted(set(l.get("category", "عام") for l in data["links"] if l.get("category")))
+
 
 # ── مسارات الروابط المحفوظة ──────────────────────────────────────────────────
 
@@ -16295,12 +16340,34 @@ def get_categories():
 def saved_links_page():
     return render_template('saved_links.html')
 
+
 @app.route("/api/saved_links", methods=["GET"])
 def api_get_saved_links():
     category = request.args.get('category')
-    links = get_saved_links_by_category(category)
-    categories = get_categories()
-    return jsonify({"success": True, "links": links, "categories": categories, "total": len(links)})
+    force = str(request.args.get('force', '')).lower() in ('1', 'true', 'yes')
+    data = load_saved_links(force_refresh=force)
+    all_links = data.get("links", [])
+    categories = sorted(set(l.get("category", "عام") for l in all_links if l.get("category")))
+    links = [l for l in all_links if l.get("category") == category] if category else all_links
+
+    sync_info = {}
+    try:
+        import firestore_sync
+        sync_info = firestore_sync.get_links_sync_status()
+    except Exception:
+        pass
+
+    return jsonify({
+        "success": True,
+        "links": links,
+        "categories": categories,
+        "total": len(links),
+        "firestore_live": sync_info.get("firestore_live", False),
+        "firestore_error": sync_info.get("firestore_error"),
+        "pg_count": sync_info.get("pg_count", 0),
+        "local_count": sync_info.get("local_count", len(all_links)),
+    })
+
 
 @app.route("/api/saved_links/add", methods=["POST"])
 def api_add_saved_link():
@@ -16317,6 +16384,7 @@ def api_add_saved_link():
         return jsonify({"success": True, "link": result})
     return jsonify({"success": False, "message": result})
 
+
 @app.route("/api/saved_links/add_batch", methods=["POST"])
 def api_add_saved_links_batch():
     data = request.json or {}
@@ -16329,6 +16397,7 @@ def api_add_saved_links_batch():
     return jsonify({"success": True, "added": added, "skipped": skipped,
                     "added_count": len(added), "skipped_count": len(skipped)})
 
+
 @app.route("/api/saved_links/delete", methods=["POST"])
 def api_delete_saved_link():
     data = request.json or {}
@@ -16338,6 +16407,7 @@ def api_delete_saved_link():
     delete_saved_link(link_id)
     return jsonify({"success": True})
 
+
 @app.route("/api/saved_links/delete_batch", methods=["POST"])
 def api_delete_saved_links_batch():
     data = request.json or {}
@@ -16346,6 +16416,7 @@ def api_delete_saved_links_batch():
         return jsonify({"success": False, "message": "لا توجد معرفات"})
     delete_multiple_links(link_ids)
     return jsonify({"success": True})
+
 
 @app.route("/api/saved_links/update", methods=["POST"])
 def api_update_saved_link():
@@ -16503,32 +16574,46 @@ def api_export_saved_links_pdf():
 
 @app.route("/api/saved_links/inspect_status", methods=["GET"])
 def api_inspect_saved_links_status():
-    """فحص واستعراض الحالة الفعلية الحقيقية لقاعدة البيانات الخارجية وروابطها"""
+    """فحص واستعراض الحالة الفعلية الحقيقية لقاعدة البيانات وروابطها وإرجاع القائمة مباشرة في طلب واحد"""
     try:
-        data_links = load_saved_links()
+        data_links = load_saved_links(force_refresh=True)
         links = data_links.get("links", [])
         cats = sorted(list(set(l.get("category", "عام") for l in links if l.get("category"))))
 
-        firestore_live = False
+        sync_info = {}
         try:
             import firestore_sync
-            fs_links = firestore_sync.get_firestore_links()
-            if fs_links is not None:
-                firestore_live = True
+            sync_info = firestore_sync.get_links_sync_status()
         except Exception:
-            firestore_live = False
+            sync_info = {}
 
-        status_text = "نشطة وممتلئة" if len(links) > 0 else "متصلة ولكن فارغة"
-        if len(links) > 0:
-            msg = f"🟢 قاعدة البيانات الخارجية نشطة ومتصلة بنجاح! تحتوي على {len(links)} رابط محفوظ موزعة على {len(cats)} تصنيف."
+        firestore_live = bool(sync_info.get("firestore_live", False))
+        firestore_error = sync_info.get("firestore_error")
+
+        if firestore_live and len(links) > 0:
+            status_text = "السحابة والمحلي متصلة وممتلئة"
+            msg = f"🟢 قاعدة البيانات السحابية (Firestore) والمحلية نشطة ومتصلة بنجاح! تم استعراض {len(links)} رابط محفوظ موزعة على {len(cats)} تصنيف."
+        elif len(links) > 0:
+            status_text = "تم الاستعراض من القاعدة المحلية/PostgreSQL"
+            err_hint = f" ({firestore_error})" if firestore_error else ""
+            msg = f"🟡 تم تحميل وعرض {len(links)} رابط محفوظ بسرعة من قاعدة البيانات المحلية/PostgreSQL ({len(cats)} تصنيف). السحابة غير متاحة حالياً{err_hint}."
+        elif firestore_live:
+            status_text = "متصلة ولكن فارغة"
+            msg = "🟡 قاعدة البيانات متصلة وجاهزة، ولكن لا يوجد أي رابط محفوظ حالياً."
         else:
-            msg = "🟡 قاعدة البيانات الخارجية متصلة وجاهزة، ولكن لا يوجد أي رابط محفوظ حالياً."
+            status_text = "فارغة والسحابة مقيدة"
+            msg = f"⚠️ لا توجد روابط محفوظة محلياً حالياً وتعذر الوصول لـ Firestore: {firestore_error or 'غير متصل'}"
 
         return jsonify({
             "success": True,
             "connected": True,
             "firestore_live": firestore_live,
+            "firestore_error": firestore_error,
+            "cloud_count": sync_info.get("cloud_count", 0),
+            "pg_count": sync_info.get("pg_count", 0),
+            "local_count": sync_info.get("local_count", len(links)),
             "total_links": len(links),
+            "links": links,
             "categories": cats,
             "categories_count": len(cats),
             "status": "has_links" if len(links) > 0 else "empty",

@@ -44,9 +44,21 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     PRIMARY KEY (user_id, endpoint)
 );
 
+CREATE TABLE IF NOT EXISTS saved_links (
+    id TEXT PRIMARY KEY,
+    url TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'عام',
+    date_saved TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'يدوي',
+    notes TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_sent_batches_user_sent_at ON sent_batches(user_id, sent_at DESC);
 CREATE INDEX IF NOT EXISTS idx_schedule_events_user_recorded_at ON schedule_events(user_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_schedule_events_phase ON schedule_events(phase);
+CREATE INDEX IF NOT EXISTS idx_saved_links_category ON saved_links(category);
 
 INSERT INTO schema_migrations(version)
 VALUES (1)

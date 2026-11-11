@@ -238,3 +238,131 @@ def migrate_json_settings(sessions_dir: str) -> int:
     if imported:
         logger.info("Imported %s JSON user settings into PostgreSQL", imported)
     return imported
+
+
+def get_saved_links() -> Optional[list[dict]]:
+    if not is_enabled():
+        return None
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, url, title, category, date_saved, source, notes "
+                "FROM saved_links ORDER BY date_saved DESC"
+            )
+            rows = cursor.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "url": r[1],
+                    "title": r[2] or r[1],
+                    "category": r[3] or "عام",
+                    "date_saved": r[4] or "",
+                    "source": r[5] or "يدوي",
+                    "notes": r[6] or "",
+                }
+                for r in rows
+            ]
+
+    return _run(operation, default=None)
+
+
+def upsert_saved_link(link: dict) -> bool:
+    if not is_enabled() or not isinstance(link, dict) or not link.get("url"):
+        return False
+
+    import hashlib
+    url = str(link.get("url") or "").strip()
+    link_id = str(link.get("id") or "").strip() or hashlib.sha1(url.encode("utf-8")).hexdigest()[:8]
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO saved_links (id, url, title, category, date_saved, source, notes, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (url) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    category = EXCLUDED.category,
+                    notes = EXCLUDED.notes,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                link_id,
+                url,
+                str(link.get("title") or url),
+                str(link.get("category") or "عام"),
+                str(link.get("date_saved") or ""),
+                str(link.get("source") or "يدوي"),
+                str(link.get("notes") or ""),
+            ))
+        return True
+
+    return bool(_run(operation, default=False))
+
+
+def upsert_saved_links_batch(links: list[dict]) -> int:
+    if not is_enabled() or not links:
+        return 0
+
+    import hashlib
+    rows = []
+    seen_urls = set()
+    seen_ids = set()
+    for link in links:
+        if not isinstance(link, dict) or not link.get("url"):
+            continue
+        url = str(link.get("url") or "").strip()
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        link_id = str(link.get("id") or "").strip()
+        if not link_id or link_id in seen_ids:
+            link_id = hashlib.sha1(url.encode("utf-8")).hexdigest()[:10]
+        seen_ids.add(link_id)
+        rows.append((
+            link_id,
+            url,
+            str(link.get("title") or url),
+            str(link.get("category") or "عام"),
+            str(link.get("date_saved") or ""),
+            str(link.get("source") or "يدوي"),
+            str(link.get("notes") or ""),
+        ))
+
+    if not rows:
+        return 0
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.executemany("""
+                INSERT INTO saved_links (id, url, title, category, date_saved, source, notes, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (url) DO NOTHING
+            """, rows)
+        return len(rows)
+
+    return int(_run(operation, default=0) or 0)
+
+
+def delete_saved_link(link_id: str) -> bool:
+    if not is_enabled() or not link_id:
+        return False
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM saved_links WHERE id = %s", (str(link_id),))
+        return True
+
+    return bool(_run(operation, default=False))
+
+
+def delete_saved_links_batch(link_ids: list[str]) -> bool:
+    if not is_enabled() or not link_ids:
+        return False
+
+    def operation(conn):
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM saved_links WHERE id = ANY(%s)", ([str(x) for x in link_ids],))
+        return True
+
+    return bool(_run(operation, default=False))
+

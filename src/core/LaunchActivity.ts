@@ -248,8 +248,8 @@ export class LaunchActivity {
       }
     }
 
-    // WhatsApp detection
-    if (clean.includes('wa.me/') || clean.includes('chat.whatsapp.com/')) {
+    // WhatsApp group link detection only (ignore wa.me personal links)
+    if (/(?:^|\/\/|\.)chat\.whatsapp\.com\/(?:invite\/)?[A-Za-z0-9_-]{6,}/i.test(clean)) {
       return {
         scheme: 'https',
         host: 'whatsapp',

@@ -2244,8 +2244,8 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   ) => {
     if (!text) return;
 
-    // Combined regex for WhatsApp and Telegram links
-    const combinedRegex = /(https?:\/\/(?:chat\.whatsapp\.com\/[A-Za-z0-9_-]+|wa\.me\/[0-9+]+|api\.whatsapp\.com\/send\?[^\s]+)|https?:\/\/(?:t\.me|telegram\.me)\/(?:[^\s<>"'()]+)|tg:\/\/join\?invite=[a-zA-Z0-9_-]+)/gi;
+    // Combined regex for WhatsApp group links and Telegram links (ignore wa.me personal links)
+    const combinedRegex = /(https?:\/\/(?:www\.)?chat\.whatsapp\.com\/(?:invite\/)?[A-Za-z0-9_-]{6,}(?:\?[^\s<>"'()]*)?|https?:\/\/(?:t\.me|telegram\.me)\/(?:[^\s<>"'()]+)|tg:\/\/join\?invite=[a-zA-Z0-9_-]+)/gi;
     const matches = text.match(combinedRegex);
     if (!matches || matches.length === 0) return;
 
@@ -2255,10 +2255,7 @@ export const TelegramProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const exists = prev.find((l) => l.url.toLowerCase() === url.toLowerCase());
         if (exists) return prev;
 
-        const isWhatsApp =
-          url.includes('chat.whatsapp.com') ||
-          url.includes('wa.me') ||
-          url.includes('api.whatsapp.com');
+        const isWhatsApp = /chat\.whatsapp\.com\/(?:invite\/)?[A-Za-z0-9_-]{6,}/i.test(url);
 
         const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const nowDateStr = new Date().toISOString().split('T')[0];

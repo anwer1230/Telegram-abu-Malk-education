@@ -16328,6 +16328,12 @@ def api_link_radar_test():
     url = (body.get("link") or "").strip()
     if not url:
         return jsonify({"success": False, "message": "الرابط مطلوب"}), 400
+    if radar_manager.is_ignored_whatsapp_link(url):
+        return jsonify({
+            "success": False,
+            "ignored": True,
+            "message": "تم تجاهل الرابط: رادار الروابط يعالج روابط مجموعات الواتساب (chat.whatsapp.com/...) فقط ويتجاهل روابط المحادثات المباشرة مثل wa.me"
+        })
 
     user_id = session.get("user_id") or "user_1"
     client_mgr = USERS.get(user_id, {}).get("client_manager")

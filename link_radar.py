@@ -33,6 +33,18 @@ _RADAR_LOCK = Lock()
 _PROCESSED_LINKS_CACHE = {}  # {url: timestamp}
 _CACHE_TTL_SECONDS = 900  # 15 دقيقة
 
+# نمط روابط مجموعات الواتساب المعتمدة فقط (chat.whatsapp.com/...)
+_WA_GROUP_LINK_RE = re.compile(
+    r'^(?:https?://)?(?:www\.)?chat\.whatsapp\.com/(?:invite/)?([A-Za-z0-9_-]{6,})(?:[/?#][^\s\n\r<>"\'`]*)?$',
+    re.IGNORECASE,
+)
+
+# نمط أي رابط واتساب آخر يُتجاهل كلياً (مثل wa.me/+... أو wa.me/message/... أو api.whatsapp.com أو القنوات)
+_WA_ANY_DOMAIN_RE = re.compile(
+    r'(?:^|://|\.)(?:wa\.me|whatsapp\.com)(?:/|\?|:|$)|^whatsapp:',
+    re.IGNORECASE,
+)
+
 
 class LinkRadarManager:
     def __init__(self):
@@ -138,16 +150,16 @@ class LinkRadarManager:
                 if url_ent and url_ent.startswith("http"):
                     found_links.append(url_ent.strip())
 
-        # 2. روابط الواتساب
+        # 2. روابط مجموعات الواتساب المعتمدة فقط (https://chat.whatsapp.com/...)
         wa_patterns = [
-            r'https?://chat\.whatsapp\.com/(?:invite/)?[A-Za-z0-9_-]+',
-            r'https?://wa\.me/(?:message/)?[A-Za-z0-9+_-]+(?:\?[^\s\n\r<>"\'`]*)?',
-            r'https?://api\.whatsapp\.com/send\?[^\s\n\r<>"\'`]+',
-            r'https?://(?:www\.)?whatsapp\.com/channel/[A-Za-z0-9_-]+',
+            r'(?:https?://)?(?:www\.)?chat\.whatsapp\.com/(?:invite/)?[A-Za-z0-9_-]{6,}(?:\?[^\s\n\r<>"\'`]*)?',
         ]
         for pat in wa_patterns:
             for m in re.finditer(pat, text, re.IGNORECASE):
-                found_links.append(m.group(0).strip())
+                matched_wa = m.group(0).strip()
+                if not matched_wa.lower().startswith(('http://', 'https://')):
+                    matched_wa = f"https://{matched_wa}"
+                found_links.append(matched_wa)
 
         # 3. روابط تيليجرام الخاصة (Invite hashes)
         tg_inv_patterns = [
@@ -177,8 +189,12 @@ class LinkRadarManager:
             'proxy', 'bg', 'iv', 'login', 'c', 's', 'contact', 'invoice'
         }
         for link in found_links:
-            link = re.sub(r'[.,;:!?)]+$', '', link)
+            link = re.sub(r'[.,;:!?)\]\'"»،]+$', '', link)
             if not link or link in clean:
+                continue
+
+            # تجاهل تام لروابط الواتساب الشخصية/المباشرة/القنوات مثل wa.me/+966...
+            if LinkRadarManager.is_ignored_whatsapp_link(link):
                 continue
 
             # استبعاد مسارات تيليجرام غير المخصصة للمجموعات/القنوات
@@ -194,9 +210,20 @@ class LinkRadarManager:
 
     @staticmethod
     def is_whatsapp_link(url):
-        """فحص ما إذا كان الرابط تابعاً لواتساب"""
-        url_lower = url.lower()
-        return ("whatsapp.com" in url_lower or "wa.me" in url_lower)
+        """فحص ما إذا كان الرابط رابط مجموعة واتساب رسمي فقط (chat.whatsapp.com/...)"""
+        if not url:
+            return False
+        return bool(_WA_GROUP_LINK_RE.match(url.strip()))
+
+    @staticmethod
+    def is_ignored_whatsapp_link(url):
+        """فحص ما إذا كان الرابط تابعاً لواتساب ولكنه ليس رابط مجموعة (مثل wa.me/+... أو api.whatsapp.com)"""
+        if not url:
+            return False
+        u = url.strip()
+        if LinkRadarManager.is_whatsapp_link(u):
+            return False
+        return bool(_WA_ANY_DOMAIN_RE.search(u))
 
     @staticmethod
     def is_telegram_link(url):
@@ -245,6 +272,13 @@ class LinkRadarManager:
         - حفظه في قاعدة البيانات.
         - تحديث الإحصائيات الفورية وإرسال إشعار WebSocket.
         """
+        link = (link or "").strip()
+        if not link or self.is_ignored_whatsapp_link(link):
+            logger.debug(f"[LinkRadar] تم تجاهل رابط واتساب غير مخصص للمجموعات: {link}")
+            return None
+        if link.lower().startswith("chat.whatsapp.com/"):
+            link = f"https://{link}"
+
         now = time.time()
         current_time_str = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
 
@@ -297,10 +331,10 @@ class LinkRadarManager:
 
             # تكوين إشعار فوري للرسائل المحفوظة
             notif_text = (
-                "🟢 <b>رادار الروابط | رصد رابط واتساب جديد</b>\n"
+                "🟢 <b>رادار الروابط | رصد رابط مجموعة واتساب جديد</b>\n"
                 "━━━━━━━━━━━━━━━━━━━━\n"
                 f"🔗 <b>الرابط:</b> {link}\n"
-                f"📌 <b>النوع:</b> رابط مجموعة / محادثة واتساب\n"
+                f"📌 <b>النوع:</b> رابط مجموعة واتساب\n"
                 f"💬 <b>المصدر:</b> {chat_name}\n"
                 f"👤 <b>المرسل:</b> {sender_name}\n"
                 f"⏰ <b>الوقت:</b> {current_time_str}\n"
@@ -323,7 +357,7 @@ class LinkRadarManager:
                 try:
                     save_to_db_func(
                         url=link,
-                        title=f"واتساب من {chat_name}",
+                        title=f"مجموعة واتساب من {chat_name}",
                         category="واتساب",
                         notes=f"المرسل: {sender_name} | المصدر: {chat_name}",
                         source="رادار الروابط"
@@ -711,6 +745,8 @@ class LinkRadarManager:
             return
 
         text = getattr(message, "text", "") or getattr(message, "message", "") or ""
+        if "رادار الروابط |" in text:
+            return
         entities = getattr(message, "entities", None)
 
         links = self.extract_links_from_text(text, entities)

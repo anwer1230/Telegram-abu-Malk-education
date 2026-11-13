@@ -20,6 +20,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
+from config import get_gemini_api_key
 
 logger = logging.getLogger("html_word_engine")
 logger.setLevel(logging.INFO)
@@ -702,9 +703,9 @@ def convert_html_to_docx(
 def call_gemini_api(prompt: str, system_instruction: str = "") -> Optional[str]:
     """استدعاء Gemini API عبر مفاتيح وموديلات متعددة مع إعادة المحاولة التلقائية"""
     import time
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
     if not api_key:
-        logger.warning("No GEMINI_API_KEY available in environment")
+        logger.warning("No GEMINI_API_KEY available in environment or config pool")
         return None
 
     # قائمة الموديلات الموصى بها حسب الترتيب

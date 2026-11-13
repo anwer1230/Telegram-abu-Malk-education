@@ -1,0 +1,107 @@
+{
+  "app_name": "مركز سرعة إنجاز — Abu Malk Services",
+  "version": "unified-config-v1",
+  "source_of_truth": "config.py",
+  "server": {
+    "default_app_port": 3000,
+    "render_default_port": 10000,
+    "python_version": "3.11.9",
+    "sessions_dir": "sessions",
+    "render_sessions_dir": "/tmp/sessions",
+    "data_dir": "data"
+  },
+  "telegram": {
+    "api_id": 22043994,
+    "api_hash": "56f64582b363d367280db96586b97801"
+  },
+  "databases": {
+    "firebase": {
+      "projectId": "ai-studio-applet-webapp-6ca05",
+      "appId": "1:831479486818:web:2d4852c27e59c1687af43b",
+      "apiKey": "AIzaSyBS8tkvOHguwZbOJbExqcVzXy9WKCptJWg",
+      "authDomain": "ai-studio-applet-webapp-6ca05.firebaseapp.com",
+      "firestoreDatabaseId": "ai-studio-abumalkservices-146ed89f-4b12-47be-a435-d0940e796236",
+      "storageBucket": "ai-studio-applet-webapp-6ca05.firebasestorage.app",
+      "messagingSenderId": "831479486818",
+      "oAuthClientId": "831479486818-m28p2k55vs5rlp3p3o5lcbc5vot37b8q.apps.googleusercontent.com",
+      "collections": [
+        "saved_links",
+        "saved_phone_numbers",
+        "group_safety_reports",
+        "verification_codes"
+      ]
+    },
+    "postgresql": {
+      "schema_file": "schema.sql",
+      "connect_timeout": 10,
+      "retries": 2,
+      "env_var": "DATABASE_URL",
+      "tables": [
+        "schema_migrations",
+        "app_users",
+        "user_settings",
+        "sent_batches",
+        "schedule_events",
+        "push_subscriptions",
+        "saved_links",
+        "saved_phone_numbers"
+      ]
+    },
+    "local_json_mirrors": {
+      "saved_links": "data/saved_links.json",
+      "saved_phones": "data/saved_phones.json",
+      "group_safety_cache": "data/group_safety_cache.json",
+      "accounts": "data/accounts.json",
+      "cards": "data/cards.json",
+      "invites": "data/invite_tokens.json",
+      "promo_messages": "data/promo_messages.json",
+      "update_settings": "data/update_settings.json",
+      "speed_enjaz_usage": "data/speed_enjaz_usage.json",
+      "rag_db_path": "data/rag/embeddings.db"
+    }
+  },
+  "ai": {
+    "gemini_pool_source": "config.PERMANENT_GEMINI_KEYS_SPEC",
+    "gemini_keys_count": 9,
+    "gemini_encoded_keys": [
+      {"id": "key_1", "hint": "...vtTYLQ", "encoded_key": "QVEuQWI4Uk42TFNDZ0lKNEkyaUN2YWduN25KZU0tdXhnNDJxV3l4TU9BOVdzQV92dFRZTFE="},
+      {"id": "key_2", "hint": "...cebEXA", "encoded_key": "QVEuQWI4Uk42THNnbWtDTUVxRHR2blV2MlhoNGJvNFNhbjVfbmdmeUpNTVpvS0RjZWJFWEE="},
+      {"id": "key_3", "hint": "...TeUs0A", "encoded_key": "QVEuQWI4Uk42Szh5OEtvek1pdEw1YjhIdmpLSjJJRHF0WnBjdXFhT2xFLXFaTXhUZVVzMEE="},
+      {"id": "key_4", "hint": "...5P0z2A", "encoded_key": "QVEuQWI4Uk42SnR4Y1lRZ3ExblZRd0FaNnlqZkFMU3hQcFpxRUE5TGtXVUlqWlA1UDB6MkE="},
+      {"id": "key_5", "hint": "...ljU4Yw", "encoded_key": "QVEuQWI4Uk42S3JDWUVLMlRQbWRFOWFrUFdndFVDUG01bklJa1gzZXhCWVhUZjdsalU0WXc="},
+      {"id": "key_6", "hint": "...LHAiEQ", "encoded_key": "QVEuQWI4Uk42TDIxcWJIX25CeDdBeEFCaklrdjY3bG81Wjh5TEtNNWZRU1ZJX1RMSEFpRVE="},
+      {"id": "key_7", "hint": "...3cebvA", "encoded_key": "QVEuQWI4Uk42S2dSakRWXzhsVUpLMHNBYUFGVVhNeFQ5b2JiSzRMV19xVWhPd0czY2VidkE="},
+      {"id": "key_8", "hint": "...O-dj6w", "encoded_key": "QVEuQWI4Uk42S2hST0Q0VFQxYWpjWHFlWnpyRzVRMmc5aUJVRjNGcFNudUkwVkFPLWRqNnc="},
+      {"id": "key_9", "hint": "...ojVg", "encoded_key": "QVEuQWI4Uk42TGV6MW9TVk03dFRPM1UydHc3b2I0UUNGV2pPU2VzdmNydmJsbjV0Zm9qVmc="}
+    ],
+    "models": {
+      "text": "allam-2-7b",
+      "logic": "qwen/qwen3.8-27b",
+      "code": "qwen/qwen3.8-27b",
+      "fast": "allam-2-7b"
+    },
+    "groq_env_var": "GROQ_API_KEY"
+  },
+  "github": {
+    "repo_owner": "anwer1230",
+    "repo_name": "Telegram-abu-Malk-education",
+    "repo": "anwer1230/Telegram-abu-Malk-education",
+    "branch": "main",
+    "token_env_var": "GITHUB_TOKEN"
+  },
+  "render": {
+    "deploy_hook_url": "https://api.render.com/deploy/srv-davr5su7bikc73f5978g?key=hZAEDlsJijM"
+  },
+  "web_push": {
+    "vapid_public_key": "BIkbfhrnC0MgiZk3KJ8fPTUX300SviFxsJguvQjx6q-TNMxK23yhqhyr5Q5vqad8-k3aD1J7NPWg3GbKHuJdpOc",
+    "vapid_claims_sub": "mailto:admin@abumalik.app"
+  },
+  "automation_tunables": {
+    "SMART_SALAM_WAIT_SECONDS": 60,
+    "BATCH_SEND_INTERVAL_SECONDS": 5,
+    "JOIN_MIN_DELAY_SECONDS": 3.0,
+    "JOIN_MAX_DELAY_SECONDS": 10.0,
+    "JOIN_MAX_PER_MINUTE": 15,
+    "JOIN_MAX_PER_HOUR": 150
+  }
+}

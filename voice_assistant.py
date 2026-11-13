@@ -20,6 +20,8 @@ try:
 except ImportError:
     request = jsonify = session = None
 
+from config import get_gemini_api_key, get_groq_api_key
+
 logger = logging.getLogger('voice_assistant')
 
 # خريطة تحويل الأرقام المنطوقة بالعربية إلى أرقام عددية
@@ -118,7 +120,7 @@ def extract_time_seconds(text: str) -> int:
 
 def call_gemini_nlu(transcript: str, active_step: str, context: dict) -> dict:
     """استدعاء نموذج Gemini لفهم النوايا صوتياً إذا توفر المفتاح"""
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    gemini_key = get_gemini_api_key()
     if not gemini_key:
         return None
         
@@ -172,7 +174,7 @@ def call_gemini_nlu(transcript: str, active_step: str, context: dict) -> dict:
 
 def call_groq_nlu(transcript: str, active_step: str, context: dict) -> dict:
     """استدعاء Groq API لفهم النوايا كبديل ثانٍ إذا توفر المفتاح"""
-    groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+    groq_key = get_groq_api_key()
     if not groq_key:
         return None
     try:

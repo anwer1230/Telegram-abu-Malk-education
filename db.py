@@ -14,17 +14,12 @@ from typing import Any, Iterator, Optional
 
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-def _env_int(name: str, default: int, minimum: int) -> int:
-    try:
-        return max(minimum, int(os.environ.get(name, str(default)) or default))
-    except (TypeError, ValueError):
-        return default
-
-
-DB_CONNECT_TIMEOUT = _env_int("DB_CONNECT_TIMEOUT", 10, 1)
-DB_RETRIES = _env_int("DB_RETRIES", 2, 0)
-SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
+from config import (
+    DATABASE_URL,
+    DB_CONNECT_TIMEOUT,
+    DB_RETRIES,
+    SCHEMA_PATH,
+)
 
 
 def is_enabled() -> bool:

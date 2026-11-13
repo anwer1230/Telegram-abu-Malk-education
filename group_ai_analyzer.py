@@ -15,6 +15,7 @@ import logging
 import asyncio
 import requests
 from datetime import datetime
+from config import get_gemini_api_key
 
 logger = logging.getLogger("GroupAiAnalyzer")
 
@@ -271,7 +272,7 @@ def analyze_group_conversations_with_ai(group_data):
     if not messages:
         return _heuristic_analysis(group_data)
 
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_key()
     if not api_key:
         return _heuristic_analysis(group_data)
 

@@ -26,6 +26,10 @@ services:
         value: "22043994"
       - key: TELEGRAM_API_HASH
         value: "56f64582b363d367280db96586b97801"
+      - key: FIREBASE_PROJECT_ID
+        value: "ai-studio-applet-webapp-6ca05"
+      - key: FIRESTORE_DATABASE_ID
+        value: "ai-studio-abumalkservices-146ed89f-4b12-47be-a435-d0940e796236"
       - key: GROQ_API_KEY
         sync: false
       - key: GEMINI_API_KEY
@@ -34,6 +38,10 @@ services:
         sync: false
       - key: GITHUB_TOKEN
         sync: false
+      - key: GITHUB_REPO_OWNER
+        value: "anwer1230"
+      - key: GITHUB_REPO_NAME
+        value: "Telegram-abu-Malk-education"
       - key: GITHUB_REPO
         value: "anwer1230/Telegram-abu-Malk-education"
       - key: GITHUB_BRANCH
@@ -48,6 +56,18 @@ services:
         value: "10"
       - key: DB_RETRIES
         value: "2"
+      - key: SMART_SALAM_WAIT_SECONDS
+        value: "60"
+      - key: BATCH_SEND_INTERVAL_SECONDS
+        value: "5"
+      - key: JOIN_MIN_DELAY_SECONDS
+        value: "3"
+      - key: JOIN_MAX_DELAY_SECONDS
+        value: "10"
+      - key: JOIN_MAX_PER_MINUTE
+        value: "15"
+      - key: JOIN_MAX_PER_HOUR
+        value: "150"
       - key: VAPID_PUBLIC_KEY
         value: "BIkbfhrnC0MgiZk3KJ8fPTUX300SviFxsJguvQjx6q-TNMxK23yhqhyr5Q5vqad8-k3aD1J7NPWg3GbKHuJdpOc"
       - key: VAPID_PRIVATE_B64

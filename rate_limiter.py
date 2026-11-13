@@ -11,14 +11,21 @@ import logging
 import asyncio
 from collections import deque
 
+from config import (
+    JOIN_MAX_PER_MINUTE,
+    JOIN_MAX_PER_HOUR,
+    JOIN_MIN_DELAY_SECONDS,
+    JOIN_MAX_DELAY_SECONDS,
+)
+
 logger = logging.getLogger("JoinRateLimiter")
 
 class JoinRateLimiter:
     def __init__(self, max_per_minute=None, max_per_hour=None, min_delay=None, max_delay=None):
-        self.max_per_minute = max_per_minute if max_per_minute is not None else int(os.getenv('JOIN_MAX_PER_MINUTE', 5))
-        self.max_per_hour = max_per_hour if max_per_hour is not None else int(os.getenv('JOIN_MAX_PER_HOUR', 30))
-        self.min_delay = min_delay if min_delay is not None else float(os.getenv('JOIN_MIN_DELAY_SECONDS', 5))
-        self.max_delay = max_delay if max_delay is not None else float(os.getenv('JOIN_MAX_DELAY_SECONDS', 10))
+        self.max_per_minute = max_per_minute if max_per_minute is not None else JOIN_MAX_PER_MINUTE
+        self.max_per_hour = max_per_hour if max_per_hour is not None else JOIN_MAX_PER_HOUR
+        self.min_delay = min_delay if min_delay is not None else JOIN_MIN_DELAY_SECONDS
+        self.max_delay = max_delay if max_delay is not None else JOIN_MAX_DELAY_SECONDS
 
         self.minute_window = deque()
         self.hour_window = deque()

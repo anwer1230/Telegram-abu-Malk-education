@@ -41,63 +41,28 @@ def _decode_secret(val: str) -> str:
         return val.strip()
 
 
-CONFIG_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gemini_keys_config.json")
-UPLOADS_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ai_docs_uploads")
+from config import (
+    AI_DOCS_UPLOADS_DIR as UPLOADS_CACHE_DIR,
+    GEMINI_KEYS_CONFIG_FILE as CONFIG_FILE_PATH,
+    get_permanent_gemini_keys_records,
+    get_gemini_api_key as _cfg_get_gemini_api_key,
+)
+
 os.makedirs(UPLOADS_CACHE_DIR, exist_ok=True)
 
 DEFAULT_KEYS_TEMPLATE = [
     {
-        "id": "key_1",
-        "name": "Gemini Flash Key 1",
-        "hint": "...ojVg",
-        "key": _decode_secret("QVEuQWI4Uk42TGV6MW9TVk03dFRPM1UydHc3b2I0UUNGV2pPU2VzdmNydmJsbjV0Zm9qVmc="),
-        "encoded_key": "QVEuQWI4Uk42TGV6MW9TVk03dFRPM1UydHc3b2I0UUNGV2pPU2VzdmNydmJsbjV0Zm9qVmc=",
-        "project_id": "gen-lang-client-0197022210",
-        "tier": "Free tier",
+        "id": item["id"],
+        "name": item["name"],
+        "hint": item["hint"],
+        "key": item["key"],
+        "encoded_key": item["encoded_key"],
+        "project_id": item.get("project_id", "gen-lang-client-0197022210"),
+        "tier": item.get("tier", "Free tier"),
         "active": True,
-        "priority": 1
-    },
-    {
-        "id": "key_2",
-        "name": "Gemini Flash Key 2",
-        "hint": "...Us0A",
-        "key": _decode_secret("QVEuQWI4Uk42Szh5OEtvek1pdEw1YjhIdmpLSjJJRHF0WnBjdXFhT2xFLXFaTXhUZVVzMEE="),
-        "encoded_key": "QVEuQWI4Uk42Szh5OEtvek1pdEw1YjhIdmpLSjJJRHF0WnBjdXFhT2xFLXFaTXhUZVVzMEE=",
-        "project_id": "gen-lang-client-0197022210",
-        "tier": "Free tier",
-        "active": True,
-        "priority": 2
-    },
-    {
-        "id": "key_3",
-        "name": "Gemini Backup Key 3",
-        "hint": "...Erkk",
-        "key": "",
-        "project_id": "gen-lang-client-0197022210",
-        "tier": "Free tier",
-        "active": True,
-        "priority": 3
-    },
-    {
-        "id": "key_4",
-        "name": "Gemini Backup Key 4",
-        "hint": "...zJ8E",
-        "key": "",
-        "project_id": "gen-lang-client-0197022210",
-        "tier": "Free tier",
-        "active": True,
-        "priority": 4
-    },
-    {
-        "id": "key_5",
-        "name": "Gemini Backup Key 5",
-        "hint": "...DYu0",
-        "key": "",
-        "project_id": "gen-lang-client-0197022210",
-        "tier": "Free tier",
-        "active": True,
-        "priority": 5
+        "priority": item["priority"],
     }
+    for item in get_permanent_gemini_keys_records(include_env=False)
 ]
 
 

@@ -18,6 +18,7 @@ import json
 import logging
 import asyncio
 from datetime import datetime
+from config import get_gemini_api_key
 
 logger = logging.getLogger('ai_group_analyzer')
 
@@ -269,7 +270,7 @@ def analyze_group_with_ai(group_data, user_message=""):
     """
     تحليل المجموعة بواسطة Gemini 3.8 Flash مع دمج الاستدلال الاحتياطي
     """
-    api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    api_key = get_gemini_api_key()
     
     # إذا لم يتوفر مفتاح أو SDK، استخدم المحرك الاحترافي المدمج مباشرة
     if not api_key or not GENAI_AVAILABLE:

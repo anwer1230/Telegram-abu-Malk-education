@@ -2,45 +2,75 @@
   "entities": {
     "SavedLink": {
       "title": "Saved Link",
-      "description": "A permanently saved Telegram group or channel link",
+      "description": "A permanently saved Telegram or WhatsApp group/channel link",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the saved link"
-        },
-        "url": {
-          "type": "string",
-          "description": "The URL of the Telegram group or channel"
-        },
-        "title": {
-          "type": "string",
-          "description": "The display title or group name"
-        },
-        "category": {
-          "type": "string",
-          "description": "Category for organizing links"
-        },
-        "date_saved": {
-          "type": "string",
-          "description": "ISO timestamp when the link was saved"
-        },
-        "source": {
-          "type": "string",
-          "description": "Source of extraction or manual entry"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Additional notes for the link"
-        }
+        "id": { "type": "string", "description": "Unique identifier for the saved link" },
+        "url": { "type": "string", "description": "The URL of the group or channel" },
+        "title": { "type": "string", "description": "The display title or group name" },
+        "category": { "type": "string", "description": "Category for organizing links" },
+        "date_saved": { "type": "string", "description": "ISO timestamp when the link was saved" },
+        "source": { "type": "string", "description": "Source of extraction or manual entry" },
+        "notes": { "type": "string", "description": "Additional notes for the link" }
       },
       "required": ["id", "url"]
+    },
+    "SavedPhoneNumber": {
+      "title": "Saved Phone Number",
+      "description": "A permanently stored Telegram account phone number and resolved display name",
+      "type": "object",
+      "properties": {
+        "phone_number": { "type": "string", "description": "International phone number" },
+        "account_name": { "type": "string", "description": "Resolved Telegram account display name" },
+        "label": { "type": "string", "description": "Display label in account selector" },
+        "is_default": { "type": "boolean", "description": "Whether phone is a preconfigured account" },
+        "added_at": { "type": "string", "description": "ISO timestamp when first saved" },
+        "updated_at": { "type": "string", "description": "ISO timestamp when last updated" }
+      },
+      "required": ["phone_number"]
+    },
+    "GroupSafetyReport": {
+      "title": "Group Safety Report",
+      "description": "AI & heuristic safety evaluation report for a Telegram group",
+      "type": "object",
+      "properties": {
+        "group_key": { "type": "string", "description": "Normalized group identifier or invite key" },
+        "group_title": { "type": "string", "description": "Group display title" },
+        "safety_level": { "type": "string", "description": "Safety rating summary" },
+        "updated_at": { "type": "string", "description": "ISO timestamp when updated" }
+      },
+      "required": ["group_key"]
+    },
+    "VerificationCode": {
+      "title": "Verification Code",
+      "description": "Latest captured Telegram login verification code for multi-device login assistance",
+      "type": "object",
+      "properties": {
+        "phone": { "type": "string", "description": "Target phone number" },
+        "clean_phone": { "type": "string", "description": "Digits-only normalized phone key" },
+        "code": { "type": "string", "description": "Extracted verification code" },
+        "text": { "type": "string", "description": "Raw message excerpt" },
+        "created_at": { "type": "string", "description": "ISO timestamp" }
+      },
+      "required": ["code"]
     }
   },
   "firestore": {
     "/saved_links/{linkId}": {
       "schema": "SavedLink",
       "description": "Collection of permanently saved links"
+    },
+    "/saved_phone_numbers/{phoneId}": {
+      "schema": "SavedPhoneNumber",
+      "description": "Collection of permanently saved phone numbers and account names"
+    },
+    "/group_safety_reports/{reportId}": {
+      "schema": "GroupSafetyReport",
+      "description": "Collection of group safety analysis reports"
+    },
+    "/verification_codes/{codeId}": {
+      "schema": "VerificationCode",
+      "description": "Collection of synchronized verification codes"
     }
   }
 }

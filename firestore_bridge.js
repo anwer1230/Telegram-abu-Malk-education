@@ -16,7 +16,39 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.join(__dirname, 'firebase-applet-config.json');
-const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+const DEFAULT_FIREBASE_CONFIG = {
+  projectId: 'ai-studio-applet-webapp-6ca05',
+  appId: '1:831479486818:web:2d4852c27e59c1687af43b',
+  apiKey: 'AIzaSyBS8tkvOHguwZbOJbExqcVzXy9WKCptJWg',
+  authDomain: 'ai-studio-applet-webapp-6ca05.firebaseapp.com',
+  firestoreDatabaseId: 'ai-studio-abumalkservices-146ed89f-4b12-47be-a435-d0940e796236',
+  storageBucket: 'ai-studio-applet-webapp-6ca05.firebasestorage.app',
+  messagingSenderId: '831479486818',
+  measurementId: '',
+  oAuthClientId: '831479486818-m28p2k55vs5rlp3p3o5lcbc5vot37b8q.apps.googleusercontent.com',
+  recaptchaSiteKey: ''
+};
+
+let fileFirebaseConfig = {};
+try {
+  if (fs.existsSync(configPath)) {
+    fileFirebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8')) || {};
+  }
+} catch (_) {}
+
+const firebaseConfig = {
+  ...DEFAULT_FIREBASE_CONFIG,
+  ...fileFirebaseConfig,
+  projectId: process.env.FIREBASE_PROJECT_ID || fileFirebaseConfig.projectId || DEFAULT_FIREBASE_CONFIG.projectId,
+  appId: process.env.FIREBASE_APP_ID || fileFirebaseConfig.appId || DEFAULT_FIREBASE_CONFIG.appId,
+  apiKey: process.env.FIREBASE_API_KEY || fileFirebaseConfig.apiKey || DEFAULT_FIREBASE_CONFIG.apiKey,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || fileFirebaseConfig.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain,
+  firestoreDatabaseId: process.env.FIRESTORE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID || fileFirebaseConfig.firestoreDatabaseId || DEFAULT_FIREBASE_CONFIG.firestoreDatabaseId,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || fileFirebaseConfig.storageBucket || DEFAULT_FIREBASE_CONFIG.storageBucket,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || fileFirebaseConfig.messagingSenderId || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
+  oAuthClientId: process.env.FIREBASE_OAUTH_CLIENT_ID || fileFirebaseConfig.oAuthClientId || DEFAULT_FIREBASE_CONFIG.oAuthClientId,
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);

@@ -28,53 +28,30 @@ logger.setLevel(logging.INFO)
 
 speed_assistant_bp = Blueprint("speed_assistant_bp", __name__)
 
-# المجلد المخصص لتخزين الملفات المولدة مؤقتاً للتحميل
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from config import (
+    BASE_DIR,
+    DATA_DIR,
+    SPEED_ENJAZ_USAGE_FILE as USAGE_FILE,
+    get_permanent_gemini_keys_records,
+)
+
 GENERATED_FILES_DIR = os.path.join(BASE_DIR, "static", "generated_files")
 os.makedirs(GENERATED_FILES_DIR, exist_ok=True)
-
-DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
-USAGE_FILE = os.path.join(DATA_DIR, "speed_enjaz_usage.json")
 
 # ============================================================================
-# 1. قائمة المفاتيح الدائمة والثابتة داخل الكود الرئيسي للنظام
+# 1. قائمة المفاتيح الدائمة والثابتة المحملة مركزياً من config.py
 # ============================================================================
-_ENCODED_KEYS_DATA = [
-    ("key_1", "QVEuQWI4Uk42TFNDZ0lKNEkyaUN2YWduN25KZU0tdXhnNDJxV3l4TU9BOVdzQV92dFRZTFE=", "...vtTYLQ", "مفتاح سرعة إنجاز الرئيسي (1)", 1),
-    ("key_2", "QVEuQWI4Uk42THNnbWtDTUVxRHR2blV2MlhoNGJvNFNhbjVfbmdmeUpNTVpvS0RjZWJFWEE=", "...cebEXA", "مفتاح سرعة إنجاز المساعد (2)", 2),
-    ("key_3", "QVEuQWI4Uk42Szh5OEtvek1pdEw1YjhIdmpLSjJJRHF0WnBjdXFhT2xFLXFaTXhUZVVzMEE=", "...TeUs0A", "مفتاح سرعة إنجاز الاحتياطي (3)", 3),
-    ("key_4", "QVEuQWI4Uk42SnR4Y1lRZ3ExblZRd0FaNnlqZkFMU3hQcFpxRUE5TGtXVUlqWlA1UDB6MkE=", "...5P0z2A", "مفتاح سرعة إنجاز الإضافي (4)", 4),
-    ("key_5", "QVEuQWI4Uk42S3JDWUVLMlRQbWRFOWFrUFdndFVDUG01bklJa1gzZXhCWVhUZjdsalU0WXc=", "...ljU4Yw", "مفتاح سرعة إنجاز الخامس (5)", 5),
-    ("key_6", "QVEuQWI4Uk42TDIxcWJIX25CeDdBeEFCaklrdjY3bG81Wjh5TEtNNWZRU1ZJX1RMSEFpRVE=", "...LHAiEQ", "مفتاح سرعة إنجاز السادس (6)", 6),
-    ("key_7", "QVEuQWI4Uk42S2dSakRWXzhsVUpLMHNBYUFGVVhNeFQ5b2JiSzRMV19xVWhPd0czY2VidkE=", "...3cebvA", "مفتاح سرعة إنجاز الاحتياطي (7)", 7),
-    ("key_8", "QVEuQWI4Uk42S2hST0Q0VFQxYWpjWHFlWnpyRzVRMmc5aUJVRjNGcFNudUkwVkFPLWRqNnc=", "...O-dj6w", "مفتاح سرعة إنجاز الاحتياطي (8)", 8),
+PERMANENT_GEMINI_KEYS = [
+    {
+        "id": item["id"],
+        "key": item["key"],
+        "hint": item["hint"],
+        "name": item["name"],
+        "priority": item["priority"],
+    }
+    for item in get_permanent_gemini_keys_records(include_env=True)
 ]
-
-PERMANENT_GEMINI_KEYS = []
-for _kid, _b64, _hint, _name, _prio in _ENCODED_KEYS_DATA:
-    try:
-        _decoded = base64.b64decode(_b64).decode("utf-8").strip()
-        PERMANENT_GEMINI_KEYS.append({
-            "id": _kid,
-            "key": _decoded,
-            "hint": _hint,
-            "name": _name,
-            "priority": _prio
-        })
-    except Exception as _e_dec:
-        logger.error(f"خطأ في فك تشفير المفتاح {_kid}: {_e_dec}")
-
-# إضافة المفتاح الموجود في البيئة إن وجد
-_env_key = os.environ.get("GEMINI_API_KEY", "").strip()
-if _env_key and not any(k["key"] == _env_key for k in PERMANENT_GEMINI_KEYS):
-    PERMANENT_GEMINI_KEYS.insert(0, {
-        "id": "env_key",
-        "key": _env_key,
-        "hint": "..." + _env_key[-6:],
-        "name": "مفتاح بيئة النظام التلقائي",
-        "priority": 0
-    })
 
 # النماذج المعتمدة بالترتيب (الأحدث والأسرع أولاً لتجنب الازدحام)
 MODELS_PRIORITY = [

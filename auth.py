@@ -19,14 +19,13 @@ from telethon.sessions import StringSession
 
 logger = logging.getLogger('auth')
 
-# ── إعدادات Telegram API ─────────────────────────────────────
-TELEGRAM_API_ID   = 22043994
-TELEGRAM_API_HASH = '56f64582b363d367280db96586b97801'
-API_ID   = int(os.environ.get('TELEGRAM_API_ID', TELEGRAM_API_ID) or TELEGRAM_API_ID)
-API_HASH = os.environ.get('TELEGRAM_API_HASH', TELEGRAM_API_HASH) or TELEGRAM_API_HASH
-
-# ── مسار مجلد الجلسات ──────────────────────────────────────
-SESSIONS_DIR = os.path.join('/tmp', 'sessions') if os.environ.get('RENDER') else "sessions"
+from config import (
+    TELEGRAM_API_ID,
+    TELEGRAM_API_HASH,
+    API_ID,
+    API_HASH,
+    SESSIONS_DIR,
+)
 if not os.path.exists(SESSIONS_DIR):
     os.makedirs(SESSIONS_DIR, exist_ok=True)
 

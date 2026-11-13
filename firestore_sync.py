@@ -32,15 +32,22 @@ except Exception:
 
 logger = logging.getLogger('firestore_sync')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-BRIDGE_SCRIPT = os.path.join(BASE_DIR, 'firestore_bridge.js')
-FIREBASE_CONFIG_FILE = os.path.join(BASE_DIR, 'firebase-applet-config.json')
-NODE_FIREBASE_INSTALLED = os.path.isdir(os.path.join(BASE_DIR, 'node_modules', 'firebase'))
+from config import (
+    BASE_DIR,
+    DATA_DIR,
+    FIREBASE_CONFIG_FILE,
+    GITHUB_BRANCH,
+    GITHUB_REPO_NAME,
+    GITHUB_REPO_OWNER,
+    GITHUB_TOKEN,
+    SAVED_LINKS_FILE as LOCAL_LINKS_CACHE_FILE,
+    SAVED_PHONES_FILE as LOCAL_PHONES_CACHE_FILE,
+    GROUP_SAFETY_CACHE_FILE as LOCAL_SAFETY_CACHE_FILE,
+    get_firebase_config,
+)
 
-LOCAL_SAFETY_CACHE_FILE = os.path.join(DATA_DIR, 'group_safety_cache.json')
-LOCAL_LINKS_CACHE_FILE = os.path.join(DATA_DIR, 'saved_links.json')
-LOCAL_PHONES_CACHE_FILE = os.path.join(DATA_DIR, 'saved_phones.json')
+BRIDGE_SCRIPT = os.path.join(BASE_DIR, 'firestore_bridge.js')
+NODE_FIREBASE_INSTALLED = os.path.isdir(os.path.join(BASE_DIR, 'node_modules', 'firebase'))
 
 _SAFETY_CACHE_LOCK = threading.Lock()
 _LINKS_CACHE_LOCK = threading.Lock()
@@ -104,7 +111,7 @@ def _save_json_file(file_path, data):
 def _get_firebase_config():
     global _FIREBASE_CFG_CACHE
     if _FIREBASE_CFG_CACHE is None:
-        _FIREBASE_CFG_CACHE = _load_json_file(FIREBASE_CONFIG_FILE, {}) or {}
+        _FIREBASE_CFG_CACHE = get_firebase_config()
     return _FIREBASE_CFG_CACHE
 
 
@@ -449,11 +456,11 @@ def _bg_sync_phones_remote(phones_snapshot, target_entry=None, target_digits=Non
     # نسخ احتياطي في GitHub إذا كان التوكن متوفراً لضمان عدم الفقدان عند إعادة نشر Render
     try:
         import base64
-        gh_tok = os.environ.get("GITHUB_TOKEN", "").strip()
+        gh_tok = GITHUB_TOKEN or os.environ.get("GITHUB_TOKEN", "").strip()
         if gh_tok and requests and phones_snapshot:
-            owner = os.environ.get("GITHUB_REPO_OWNER", "anwer1230")
-            repo = os.environ.get("GITHUB_REPO_NAME", "Telegram-abu-Malk-education")
-            branch = os.environ.get("GITHUB_BRANCH", "main")
+            owner = GITHUB_REPO_OWNER
+            repo = GITHUB_REPO_NAME
+            branch = GITHUB_BRANCH
             api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/data/saved_phones.json"
             hdrs = {"Authorization": f"token {gh_tok}", "Accept": "application/vnd.github.v3+json"}
             sha = None

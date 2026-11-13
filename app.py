@@ -57,11 +57,7 @@ import threading as _pre_patch_threading
 _OSThread = _pre_patch_threading.Thread
 
 import os
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
+import config as _cfg
 import json
 import uuid
 import time
@@ -600,7 +596,7 @@ class SafeSessionInterface(SecureCookieSessionInterface):
             return self.session_class()
 
 app.session_interface = SafeSessionInterface()
-app.secret_key = os.environ.get("SESSION_SECRET", "abu_malk_stable_secret_session_key_2026")
+app.secret_key = _cfg.SESSION_SECRET
 app.config['MAX_CONTENT_LENGTH'] = 150 * 1024 * 1024  # حد أقصى 150 ميغابايت للرفع فائق السرعة للملفات الكبيرة
 app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
@@ -698,14 +694,9 @@ socketio = SocketIO(
 # تفعيل الدفع الفوري للسجلات عبر Socket.IO
 _mem_log_handler._socketio = socketio
 
-# إعدادات النظام
-SESSIONS_DIR = os.path.join('/tmp', 'sessions') if os.environ.get('RENDER') else "sessions"
-if not os.path.exists(SESSIONS_DIR):
-    os.makedirs(SESSIONS_DIR)
-
-# ── مجلد البيانات الدائمة (مستقل عن الجلسات ولا يُحذف معها) ──
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-os.makedirs(DATA_DIR, exist_ok=True)
+# إعدادات النظام (مُحمّلة مركزياً من config.py)
+SESSIONS_DIR = _cfg.SESSIONS_DIR
+DATA_DIR = _cfg.DATA_DIR
 
 # ── قاعدة PostgreSQL الاختيارية: تصبح أساسية عند ضبط DATABASE_URL ──
 _DB_READY = False
@@ -799,18 +790,10 @@ try:
 except ImportError:
     WEBPUSH_AVAILABLE = False
 
-_VAPID_PUB_D  = "BIkbfhrnC0MgiZk3KJ8fPTUX300SviFxsJguvQjx6q-TNMxK23yhqhyr5Q5vqad8-k3aD1J7NPWg3GbKHuJdpOc"
-_VAPID_PRV_B64 = (
-    "LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSURmeGQ0SUZkSHNrQlFNVjd0RD"
-    "VodXVZZlIyOXhtU1ZOMzk5clhhNXYrTTFvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFaVJ0K0d1Y0xR"
-    "eUNKbVRjb254ODlOUmZmVFJLK0lYR3dtQzY5Q1BIcXI1TTB6RXJiZktHcQpIS3ZsRG0rcHAzejZUZG"
-    "9QVW5zMDlhRGNac29lNGwyazV3PT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo"
-)
-VAPID_PUBLIC_KEY  = os.environ.get("VAPID_PUBLIC_KEY",  _VAPID_PUB_D)
-_vapid_prv_raw    = os.environ.get("VAPID_PRIVATE_B64", _VAPID_PRV_B64)
-import base64 as _b64mod
-VAPID_PRIVATE_PEM = _b64mod.b64decode(_vapid_prv_raw + "==").decode()
-VAPID_CLAIMS      = {"sub": "mailto:admin@abumalik.app"}
+VAPID_PUBLIC_KEY  = _cfg.VAPID_PUBLIC_KEY
+_vapid_prv_raw    = _cfg.VAPID_PRIVATE_B64
+VAPID_PRIVATE_PEM = _cfg.VAPID_PRIVATE_PEM
+VAPID_CLAIMS      = _cfg.VAPID_CLAIMS
 
 PUSH_SUBS_FILE = os.path.join(SESSIONS_DIR, "push_subscriptions.json")
 
@@ -1287,11 +1270,11 @@ def _ensure_shared_login_loop():
             _SHARED_LOGIN_LOOP_READY.wait(timeout=10)
     return _SHARED_LOGIN_LOOP
 
-# ── مفاتيح تيليجرام الدائمة والثابتة داخل الكود الرئيسي ───────────────
-TELEGRAM_API_ID   = 22043994
-TELEGRAM_API_HASH = '56f64582b363d367280db96586b97801'
-API_ID       = int(os.environ.get('TELEGRAM_API_ID', TELEGRAM_API_ID) or TELEGRAM_API_ID)
-API_HASH     = os.environ.get('TELEGRAM_API_HASH', TELEGRAM_API_HASH) or TELEGRAM_API_HASH
+# ── مفاتيح تيليجرام الدائمة والثابتة عبر الوحدة المركزية config.py ───────
+TELEGRAM_API_ID   = _cfg.TELEGRAM_API_ID
+TELEGRAM_API_HASH = _cfg.TELEGRAM_API_HASH
+API_ID            = _cfg.API_ID
+API_HASH          = _cfg.API_HASH
 
 # ── دوال التطبيع العربي الدقيق لمطابقة كلمات المراقبة (بدون حساسية للهمزات والتشكيل والنقاط) ──
 def normalize_arabic_text(text: str) -> str:
@@ -1390,16 +1373,16 @@ def get_effective_watch_words(user_settings_or_words=None):
             combined.append(norm)
     return combined
 
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+GROQ_API_KEY = _cfg.GROQ_API_KEY
 os.environ.setdefault('GROQ_API_KEY', GROQ_API_KEY)
 
-GITHUB_TOKEN  = os.environ.get('GITHUB_TOKEN', '')
-GITHUB_REPO   = os.environ.get('GITHUB_REPO',   'anwer1230/Anwer_Telegram-')
-GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', 'main')
+GITHUB_TOKEN  = _cfg.GITHUB_TOKEN
+GITHUB_REPO   = _cfg.GITHUB_REPO
+GITHUB_BRANCH = _cfg.GITHUB_BRANCH
 
 # ── رابط النشر التلقائي الثابت Render Deploy Hook ─────────────────────
-RENDER_DEPLOY_HOOK_URL = os.environ.get('RENDER_DEPLOY_HOOK_URL') or os.environ.get('RENDER_DEPLOY_HOOK') or "https://api.render.com/deploy/srv-davr5su7bikc73f5978g?key=hZAEDlsJijM"
-RENDER_DEPLOY_HOOK = os.environ.get('RENDER_DEPLOY_HOOK', RENDER_DEPLOY_HOOK_URL)
+RENDER_DEPLOY_HOOK_URL = _cfg.RENDER_DEPLOY_HOOK_URL
+RENDER_DEPLOY_HOOK     = _cfg.RENDER_DEPLOY_HOOK
 
 def trigger_render_deploy(hook_url=None):
     """إرسال طلب إلى Render Deploy Hook لإعادة بناء ونشر التطبيق فورياً على منصة Render"""
@@ -1447,7 +1430,7 @@ def get_current_commit():
 
 def get_latest_commit():
     try:
-        repo = GITHUB_REPO or "anwer1230/-Anwer_program"
+        repo = GITHUB_REPO or _cfg.GITHUB_REPO
         if '/' in repo:
             owner, name = repo.split('/', 1)
         else:
@@ -6198,7 +6181,7 @@ class TelegramManager:
                 start_time = time.time()
                 last_id = msg.id
                 messages_after = 0
-                salam_env_wait = int(os.getenv('SMART_SALAM_WAIT_SECONDS', 60))
+                salam_env_wait = _cfg.SMART_SALAM_WAIT_SECONDS
                 max_cycle_wait = min(cycle_duration, salam_env_wait)
 
                 while (time.time() - start_time) < max_cycle_wait:
@@ -8502,8 +8485,22 @@ def api_database_status():
     """إرجاع حالة اتصال قاعدة البيانات دون كشف بيانات الاتصال."""
     if 'user_id' not in session:
         return jsonify({"success": False, "message": "❌ الجلسة غير صالحة"}), 401
-    database_status = _app_db.status() if _DB_READY else {"configured": bool(os.environ.get("DATABASE_URL")), "connected": False}
-    return jsonify({"success": True, "database": database_status})
+    database_status = _app_db.status() if _DB_READY else {"configured": bool(_cfg.get_database_url()), "connected": False}
+    return jsonify({
+        "success": True,
+        "database": database_status,
+        "firebase": {
+            "project_id": _cfg.FIREBASE_PROJECT_ID,
+            "database_id": _cfg.FIRESTORE_DATABASE_ID,
+            "collections": list(_cfg.FIRESTORE_COLLECTIONS.values()),
+        },
+    })
+
+
+@app.route("/api/config/summary", methods=["GET"])
+def api_config_summary():
+    """ملخص موحد لإعدادات التطبيق وقواعد البيانات دون كشف الأسرار."""
+    return jsonify({"success": True, "config": _cfg.get_config_summary()})
 
 
 @app.route("/api/user_logout", methods=["POST"])
@@ -9686,7 +9683,7 @@ def api_send_now():
     send_to_all = bool(data.get('send_to_all', False))
     pre_scan_action = data.get('action', None)
     force_salam = bool(data.get('force_salam', False))
-    batch_interval = int(data.get('interval') or os.getenv('BATCH_SEND_INTERVAL_SECONDS', 7))
+    batch_interval = int(data.get('interval') or _cfg.BATCH_SEND_INTERVAL_SECONDS)
 
     if not message and not images:
         return jsonify({
@@ -16519,14 +16516,14 @@ def api_push_settings_post():
 #  نظام الإدارة + المصادقة البيومترية + التخزين عبر GitHub
 # ============================================================
 
-# ---- بيانات تسجيل الدخول الإدارية ----
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "Anwer")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "772997043a*anwer")
+# ---- بيانات تسجيل الدخول الإدارية (من config.py) ----
+ADMIN_USERNAME = _cfg.ADMIN_USERNAME
+ADMIN_PASSWORD = _cfg.ADMIN_PASSWORD
 
-# ---- إعدادات GitHub الخاصة بالبصمة والملفات ----
-BIO_REPO_OWNER  = os.environ.get("GITHUB_REPO_OWNER", "anwer1230")
-BIO_REPO_NAME   = os.environ.get("GITHUB_REPO_NAME", "Telegram-abu-Malk-education")
-BIO_BRANCH      = os.environ.get("GITHUB_BRANCH", "main")
+# ---- إعدادات GitHub الخاصة بالبصمة والملفات (من config.py) ----
+BIO_REPO_OWNER  = _cfg.GITHUB_REPO_OWNER
+BIO_REPO_NAME   = _cfg.GITHUB_REPO_NAME
+BIO_BRANCH      = _cfg.GITHUB_BRANCH
 BIOMETRIC_PATH  = "data/biometric_devices.json"
 UPLOADS_FOLDER  = "uploads"
 
@@ -20606,11 +20603,7 @@ except Exception as _e_ai_eng:
 
 
 if __name__ == '__main__':
-    env_port = os.environ.get("PORT")
-    if env_port and env_port != "8080":
-        port = int(env_port)
-    else:
-        port = int(os.environ.get("DEFAULT_APP_PORT", 3000))
+    port = _cfg.resolve_app_port()
     print(f"🌐 تشغيل الخادم على المنفذ {port}...")
     print(f"🔗 رابط التطبيق: http://0.0.0.0:{port}")
     print("🛡️ نظام الاستمرارية الدائم مُفعل — يعمل حتى الإيقاف اليدوي")

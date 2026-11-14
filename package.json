@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "PORT=3000 python3 main.py",
     "start": "PORT=3000 python3 main.py",
-    "build": "python3 -m py_compile main.py app.py"
+    "build": "python3 -m py_compile main.py app.py config.py pptx_app/modules/*.py",
+    "lint": "python3 -m py_compile main.py app.py config.py pptx_app/modules/*.py"
   },
   "dependencies": {
     "firebase": "^12.19.0"

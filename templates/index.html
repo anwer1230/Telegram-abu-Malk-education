@@ -1478,6 +1478,13 @@
                                         <span id="savedLinksCountBadge" class="badge bg-primary mt-1" style="font-size:0.62rem;">🌐 قاعدة البيانات</span>
                                     </button>
                                 </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-danger w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnQuickPresentationCreator" data-bs-toggle="modal" data-bs-target="#presentationModal" onclick="openPresentationStudio('text')">
+                                        <i class="fas fa-file-powerpoint fa-2x mb-2" style="color:#d24726;"></i>
+                                        <span class="small fw-bold">منشئ العروض (PPTX + Canva)</span>
+                                        <span class="badge bg-danger mt-1" style="font-size:0.6rem;">✨ قوالب كانفا + AI</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1818,6 +1825,57 @@
             </div>
         </div>
 
+        <!-- ===== أيقونة وبطاقة منشئ ومنسق العروض التقديمية في الواجهة الرئيسية ===== -->
+        <div class="row mb-4" id="mainPresentationLauncherRow">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius:16px; background:linear-gradient(135deg,#0f2942 0%,#1d4e89 55%,#008b94 100%);">
+                    <div class="card-body p-3 p-md-4 text-white">
+                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex align-items-center justify-content-center rounded-4 shadow"
+                                     style="width:62px;height:62px;min-width:62px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);">
+                                    <i class="fas fa-file-powerpoint fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                        <h4 class="mb-0 fw-bold text-white" style="font-size:1.2rem;">منشئ ومنسق العروض التقديمية (PowerPoint + Canva)</h4>
+                                        <span class="badge bg-warning text-dark fw-bold">النسخة المتكاملة AI</span>
+                                    </div>
+                                    <p class="mb-0 text-white-50 small">
+                                        إنشاء عروض .pptx احترافية · ربط كانفا وحسابات Google وتطبيق الجوال · رفع وتحليل وتحديث ملفات PowerPoint الحالية
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                                <button type="button"
+                                        id="mainHomeOpenPptxBtn"
+                                        class="btn btn-warning fw-bold px-3 py-2 rounded-3 shadow-sm text-dark"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#presentationModal"
+                                        onclick="openPresentationStudio('text')">
+                                    <i class="fas fa-magic me-1"></i> فتح منشئ العروض
+                                </button>
+                                <button type="button"
+                                        class="btn btn-light fw-bold px-3 py-2 rounded-3 shadow-sm text-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#presentationModal"
+                                        onclick="openPresentationStudio('canva')">
+                                    <i class="fas fa-palette me-1"></i> قوالب كانفا
+                                </button>
+                                <button type="button"
+                                        class="btn btn-outline-light fw-bold px-3 py-2 rounded-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#presentationModal"
+                                        onclick="openPresentationStudio('analyze')">
+                                    <i class="fas fa-file-upload me-1"></i> تحليل وتحديث .pptx
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== الأدوات الأكاديمية والتحليلية ===== -->
         <div class="row mb-4">
             <div class="col-12">
@@ -1925,17 +1983,19 @@
                                         </span>
                                     </a>
                                 </li>
-                                <!-- 6. استخراج عرض باوربوينت -->
+                                <!-- 6. منشئ ومنسق العروض التقديمية (PowerPoint + Canva) -->
                                 <li>
                                     <a class="dropdown-item py-3 d-flex align-items-center gap-3"
                                        href="#"
-                                       data-bs-toggle="modal" data-bs-target="#presentationModal" style="border-bottom:1px solid #f0f0f0;">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#8e44ad,#6c3483);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-desktop text-white"></i>
+                                       data-bs-toggle="modal" data-bs-target="#presentationModal"
+                                       onclick="openPresentationStudio('text')"
+                                       style="border-bottom:1px solid #f0f0f0;">
+                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#0f2942,#008b94);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fas fa-file-powerpoint text-warning"></i>
                                         </span>
                                         <span>
-                                            <strong class="d-block">استخراج عرض باوربوينت من ملف أو نص</strong>
-                                            <small class="text-muted">إنشاء عرض PowerPoint احترافي تلقائياً</small>
+                                            <strong class="d-block">منشئ ومنسق العروض (PowerPoint + Canva + AI)</strong>
+                                            <small class="text-muted">إنشاء عروض · قوالب كانفا وحسابات Google · تحليل وتحديث .pptx</small>
                                         </span>
                                     </a>
                                 </li>
@@ -5054,266 +5114,521 @@
     </div>
 
 
-    <!-- ===== مودال منشئ العروض التقديمية (PowerPoint) ===== -->
+    <!-- ===== مودال منشئ ومنسق العروض التقديمية (PowerPoint + Canva + AI) ===== -->
     <div class="modal fade" id="presentationModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header text-white" style="background:linear-gradient(135deg,#764ba2,#667eea)">
-            <h5 class="modal-title"><i class="fas fa-file-powerpoint me-2"></i>منشئ العروض التقديمية الاحترافية (PowerPoint)</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
+          <div class="modal-header text-white border-0" style="background:linear-gradient(135deg,#0f2942 0%,#1d4e89 60%,#008b94 100%);">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-file-powerpoint fa-lg text-warning"></i>
+              <div>
+                <h5 class="modal-title mb-0 fw-bold">منشئ ومنسق العروض التقديمية (PowerPoint + Canva)</h5>
+                <small class="text-white-50" style="font-size:0.75rem;">توليد ذكي · قوالب كانفا التلقائية · تحليل وتحديث ملفات .pptx</small>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
           </div>
-          <div class="modal-body p-4">
 
-            <!-- حالة الذكاء الاصطناعي -->
-            <div id="pptxAiStatus" class="alert alert-secondary py-2 mb-3 d-flex align-items-center gap-2">
-              <div class="spinner-border spinner-border-sm" role="status"></div>
-              <span>جاري التحقق من حالة الذكاء الاصطناعي...</span>
+          <div class="modal-body p-3 p-md-4" dir="rtl">
+            <!-- شريط إشعار فوري لحالة التشغيل والجاهزية -->
+            <div id="pptxToastBanner" class="alert alert-success py-2 px-3 mb-3 d-none align-items-center justify-content-between gap-2 shadow-sm" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-bell text-success"></i>
+                <span id="pptxToastText" class="fw-bold small"></span>
+              </div>
+              <button type="button" class="btn btn-sm btn-success fw-bold" id="pptxToastQuickDownload" onclick="pptxDownloadCurrentFile()" style="display:none;">
+                <i class="fas fa-download me-1"></i>تحميل الآن
+              </button>
             </div>
 
-            <!-- تبويبات: من نص / من ملف -->
-            <ul class="nav nav-tabs mb-3" id="pptxInputTabs">
-              <li class="nav-item">
-                <button class="nav-link active" id="pptxTabTextBtn" data-bs-toggle="tab" data-bs-target="#pptxTabText">
-                  <i class="fas fa-keyboard me-1"></i>من نص
+            <!-- حالة الذكاء الاصطناعي + القالب النشط -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+              <div id="pptxAiStatus" class="alert alert-secondary py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small">
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                <span>جاري التحقق من حالة الذكاء الاصطناعي...</span>
+              </div>
+              <div id="pptxActiveDesignBadge" class="border rounded-3 px-3 py-2 bg-light small fw-bold d-flex align-items-center gap-2">
+                <span id="pptxActiveDesignSwatch" style="width:14px;height:14px;border-radius:4px;background:#1e3a8a;display:inline-block;"></span>
+                <span>القالب النشط: <span id="pptxActiveDesignLabel" class="text-primary">أزرق احترافي</span></span>
+              </div>
+            </div>
+
+            <!-- تبويبات الاستوديو الخمسة -->
+            <ul class="nav nav-pills mb-3 gap-1 flex-wrap bg-light p-2 rounded-3" id="pptxInputTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold small" id="pptxTabTextBtn" data-bs-toggle="tab" data-bs-target="#pptxTabText" type="button" role="tab">
+                  <i class="fas fa-magic me-1"></i>إنشاء عرض (نص / ملف)
                 </button>
               </li>
-              <li class="nav-item">
-                <button class="nav-link" id="pptxTabFileBtn" data-bs-toggle="tab" data-bs-target="#pptxTabFile">
-                  <i class="fas fa-file-upload me-1"></i>من ملف (Word/PDF)
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabAnalyzeBtn" data-bs-toggle="tab" data-bs-target="#pptxTabAnalyze" type="button" role="tab">
+                  <i class="fas fa-file-upload me-1"></i>تحليل وتحديث .pptx ذكياً
                 </button>
               </li>
-              <li class="nav-item">
-                <button class="nav-link" id="pptxTabHtmlBtn" data-bs-toggle="tab" data-bs-target="#pptxTabHtml">
-                  <i class="fas fa-code me-1"></i>من كود HTML
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabCanvaBtn" data-bs-toggle="tab" data-bs-target="#pptxTabCanva" type="button" role="tab" onclick="pptxLoadCanvaData()">
+                  <i class="fas fa-palette me-1"></i>كانفا وحسابات Google
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabHtmlBtn" data-bs-toggle="tab" data-bs-target="#pptxTabHtml" type="button" role="tab">
+                  <i class="fas fa-code me-1"></i>HTML إلى PPTX
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabChatBtn" data-bs-toggle="tab" data-bs-target="#pptxTabChat" type="button" role="tab">
+                  <i class="fas fa-robot me-1"></i>مستشار العروض AI
                 </button>
               </li>
             </ul>
 
             <div class="tab-content mb-3">
-              <!-- تاب: من نص -->
-              <div class="tab-pane fade show active" id="pptxTabText">
+              <!-- ===== التاب 1: إنشاء عرض جديد من نص أو ملف ===== -->
+              <div class="tab-pane fade show active" id="pptxTabText" role="tabpanel">
                 <div class="row g-2 mb-2">
-                  <div class="col-md-8">
-                    <label class="form-label fw-bold small">عنوان العرض (اختياري):</label>
+                  <div class="col-md-7">
+                    <label class="form-label fw-bold small mb-1">عنوان العرض (اختياري):</label>
                     <input type="text" id="pptxTitle" class="form-control form-control-sm"
-                           placeholder="اتركه فارغاً ليُستخرج تلقائياً من النص" dir="rtl">
+                           placeholder="اتركه فارغاً ليُستخرج تلقائياً من المحتوى" dir="rtl">
                   </div>
-                  <div class="col-md-4">
-                    <label class="form-label fw-bold small">نوع العرض:</label>
+                  <div class="col-md-5">
+                    <label class="form-label fw-bold small mb-1">نوع العرض:</label>
                     <select id="pptxPtype" class="form-select form-select-sm">
-                      <option value="general">عام</option>
-                      <option value="educational">تعليمي / أكاديمي</option>
-                      <option value="business">تجاري / مؤسسي</option>
-                      <option value="sales">تسويقي</option>
+                      <option value="general">عرض عام متكامل</option>
+                      <option value="educational">تعليمي / أكاديمي / بحث</option>
+                      <option value="business">تجاري / خطة عمل / تنفيذي</option>
+                      <option value="sales">تسويقي / عرض منتج</option>
                     </select>
                   </div>
                 </div>
-                <label class="form-label fw-bold small">محتوى / نص العرض:</label>
-                <textarea id="pptxText" class="form-control" rows="8" dir="rtl"
-                  placeholder="الصق هنا أي نص: بحث، تقرير، مقال، ملاحظات دراسية...
-سيقوم الذكاء الاصطناعي بتقسيمه إلى شرائح احترافية تلقائياً."></textarea>
-              </div>
 
-              <!-- تاب: من ملف -->
-              <div class="tab-pane fade" id="pptxTabFile">
-                <div class="alert alert-info py-2 small">
-                  <i class="fas fa-info-circle me-2"></i>
-                  ارفع ملف Word (.docx) أو PDF وسيتم استخراج النصوص والجداول تلقائياً لبناء العرض.
+                <!-- استيراد سريع من ملف Word/PDF/TXT -->
+                <div class="card bg-light border-0 mb-2">
+                  <div class="card-body py-2 px-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                      <div class="small fw-bold text-secondary">
+                        <i class="fas fa-paperclip me-1 text-primary"></i>أو ارفع ملفاً (Word / PDF / TXT / PPTX):
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width:460px;">
+                        <input type="file" id="pptxFile" class="form-control form-control-sm" accept=".docx,.doc,.pdf,.txt,.pptx">
+                        <button type="button" class="btn btn-outline-primary btn-sm text-nowrap" onclick="pptxExtractFile()">
+                          <i class="fas fa-file-import me-1"></i>استخراج
+                        </button>
+                      </div>
+                    </div>
+                    <div id="pptxFileResult" class="mt-1 small"></div>
+                  </div>
                 </div>
-                <input type="file" id="pptxFile" class="form-control form-control-sm mb-2"
-                       accept=".docx,.doc,.pdf,.txt">
-                <button class="btn btn-outline-secondary btn-sm" onclick="pptxExtractFile()">
-                  <i class="fas fa-file-import me-1"></i>استخراج محتوى الملف
-                </button>
-                <div id="pptxFileResult" class="mt-2 small"></div>
+
+                <label class="form-label fw-bold small mb-1">محتوى / نص العرض:</label>
+                <textarea id="pptxText" class="form-control mb-3" rows="6" dir="rtl"
+                  placeholder="الصق هنا أي نص أو بحث أو أفكار رئيسية...
+أو اختر ملفاً من الأعلى ثم اضغط زر البدء مباشرة وسيقوم النظام بتنظيمه إلى شرائح احترافية وتصميمها فوراً."></textarea>
+
+                <!-- إعدادات الشرائح والألوان -->
+                <div class="row g-2 mb-3">
+                  <div class="col-6 col-md-3">
+                    <label class="form-label fw-bold small mb-1">عدد الشرائح:</label>
+                    <input type="number" id="pptxNumSlides" class="form-control form-control-sm" value="7" min="3" max="24">
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label fw-bold small mb-1">حجم الخط:</label>
+                    <input type="number" id="pptxFontSize" class="form-control form-control-sm" value="22" min="14" max="34">
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label fw-bold small mb-1">نوع الخط:</label>
+                    <select id="pptxFontName" class="form-select form-select-sm">
+                      <option value="Dubai">Dubai (حديث)</option>
+                      <option value="Traditional Arabic">Traditional Arabic</option>
+                      <option value="Simplified Arabic">Simplified Arabic</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Calibri">Calibri</option>
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-3 d-flex flex-column justify-content-end pb-1">
+                    <div class="form-check form-check-sm mb-1">
+                      <input type="checkbox" id="pptxIncTables" class="form-check-input">
+                      <label for="pptxIncTables" class="form-check-label small">تضمين جداول ذكية</label>
+                    </div>
+                    <div class="form-check form-check-sm">
+                      <input type="checkbox" id="pptxIncCharts" class="form-check-input">
+                      <label for="pptxIncCharts" class="form-check-label small">تضمين رسوم بيانية</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- اختيار سريع لقالب الألوان أو كانفا -->
+                <div class="mb-3">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label fw-bold small mb-0">قالب التصميم والألوان:</label>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold" onclick="openPresentationStudio('canva')">
+                      <i class="fas fa-palette me-1"></i>تصفح جميع قوالب كانفا ←
+                    </button>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="blue" data-label="أزرق احترافي" data-color="#1e3a8a"
+                      style="background:linear-gradient(135deg,#2563eb,#1e3a8a);color:#fff;border:3px solid #f59e0b;border-radius:8px">
+                      🔵 أزرق احترافي
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="green" data-label="أخضر طبيعي" data-color="#15803d"
+                      style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:2px solid transparent;border-radius:8px">
+                      🟢 أخضر طبيعي
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="red" data-label="أحمر حيوي" data-color="#dc2626"
+                      style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:2px solid transparent;border-radius:8px">
+                      🔴 أحمر حيوي
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="purple" data-label="بنفسجي ملكي" data-color="#6d28d9"
+                      style="background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;border:2px solid transparent;border-radius:8px">
+                      🟣 بنفسجي ملكي
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="canva_teal_modern" data-label="كانفا تيل العصري" data-color="#008b94"
+                      style="background:linear-gradient(135deg,#00c4cc,#008b94);color:#fff;border:2px solid transparent;border-radius:8px">
+                      🎨 كانفا تيل
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="canva_dark_midnight" data-label="كانفا منتصف الليل الداكن" data-color="#0f172a"
+                      style="background:linear-gradient(135deg,#0f172a,#1e293b);color:#38bdf8;border:2px solid transparent;border-radius:8px">
+                      🌑 كانفا داكن
+                    </button>
+                    <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="canva_royal_gold" data-label="كانفا الذهبي الفاخر" data-color="#b45309"
+                      style="background:linear-gradient(135deg,#1c1917,#78350f);color:#fbbf24;border:2px solid transparent;border-radius:8px">
+                      ✨ كانفا فاخر
+                    </button>
+                  </div>
+                </div>
+
+                <!-- إعدادات صفحة الغلاف -->
+                <div class="accordion mb-3" id="pptxCoverAccordion">
+                  <div class="accordion-item border rounded">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button collapsed py-2 small fw-bold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#pptxCoverCollapse">
+                        <i class="fas fa-id-card me-2 text-primary"></i>إعدادات صفحة الغلاف (اختياري)
+                      </button>
+                    </h2>
+                    <div id="pptxCoverCollapse" class="accordion-collapse collapse">
+                      <div class="accordion-body pt-2">
+                        <div class="row g-2">
+                          <div class="col-md-6">
+                            <input type="text" id="pptxCoverOrg" class="form-control form-control-sm" placeholder="اسم الجهة / المؤسسة / الجامعة" dir="rtl">
+                          </div>
+                          <div class="col-md-6">
+                            <input type="text" id="pptxCoverPresenter" class="form-control form-control-sm" placeholder="اسم المعد / المقدِّم" dir="rtl">
+                          </div>
+                          <div class="col-md-5">
+                            <input type="text" id="pptxCoverSubtitle" class="form-control form-control-sm" placeholder="العنوان الفرعي للغلاف" dir="rtl">
+                          </div>
+                          <div class="col-md-4">
+                            <input type="text" id="pptxCoverDate" class="form-control form-control-sm" placeholder="التاريخ (اختياري)" dir="rtl">
+                          </div>
+                          <div class="col-md-3">
+                            <input type="text" id="pptxCoverLogo" class="form-control form-control-sm" placeholder="شعار نصي أو رمز 📊">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- تاب: من كود HTML -->
-              <div class="tab-pane fade" id="pptxTabHtml">
+              <!-- ===== التاب 2: رفع ملف .pptx حالي وتحليله وإعادة تصميمه ===== -->
+              <div class="tab-pane fade" id="pptxTabAnalyze" role="tabpanel">
+                <div class="card border-primary border-opacity-25 bg-light mb-3">
+                  <div class="card-body">
+                    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                      <div>
+                        <h6 class="fw-bold mb-1 text-primary"><i class="fas fa-microscope me-2"></i>رفع عرض PowerPoint (.pptx) للتحليل والتحسين الذكي</h6>
+                        <p class="text-muted small mb-0">يقرأ النظام جميع الشرائح والنصوص والجداول، ويقدّم تقييماً شاملاً واقتراحات تحسين المحتوى + أنسب قوالب كانفا مع إعادة بناء تلقائية.</p>
+                      </div>
+                      <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <input type="file" id="pptxAnalyzeFile" class="form-control form-control-sm" accept=".pptx" style="max-width:250px;">
+                        <button type="button" id="pptxAnalyzeStartBtn" class="btn btn-primary btn-sm fw-bold px-3" onclick="pptxUploadAndAnalyze()">
+                          <i class="fas fa-wand-magic-sparkles me-1"></i>بدء التحليل الذكي
+                        </button>
+                      </div>
+                    </div>
+                    <div id="pptxAnalyzeProgress" class="mt-3" style="display:none;">
+                      <div class="progress mb-1" style="height:6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%;"></div>
+                      </div>
+                      <div class="small text-muted text-center"><i class="fas fa-spinner fa-spin me-1"></i>جاري فحص شرائح ملف PowerPoint وتوليد توصيات الذكاء الاصطناعي...</div>
+                    </div>
+                    <div id="pptxAnalyzeError" class="alert alert-danger mt-2 mb-0 small py-2" style="display:none;"></div>
+                  </div>
+                </div>
+
+                <div id="pptxAnalyzeResultsArea" style="display:none;">
+                  <!-- ملخص إحصائي -->
+                  <div class="row g-2 mb-3" id="pptxAnalyzeMetrics"></div>
+
+                  <!-- التقييم العام + نقاط القوة والضعف -->
+                  <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold mb-0"><i class="fas fa-clipboard-check text-success me-2"></i>تقييم الذكاء الاصطناعي للمحتوى والتصميم</h6>
+                        <span class="badge bg-primary fs-6" id="pptxAnalyzeScoreBadge">التقييم: 8/10</span>
+                      </div>
+                      <p id="pptxAnalyzeSummary" class="small text-dark mb-2"></p>
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <div class="p-2 rounded bg-success bg-opacity-10 border border-success border-opacity-25 h-100">
+                            <div class="fw-bold small text-success mb-1"><i class="fas fa-check-circle me-1"></i>نقاط القوة</div>
+                            <ul id="pptxAnalyzeStrengths" class="small mb-0 ps-3"></ul>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25 h-100">
+                            <div class="fw-bold small text-dark mb-1"><i class="fas fa-lightbulb text-warning me-1"></i>فرص التحسين</div>
+                            <ul id="pptxAnalyzeWeaknesses" class="small mb-0 ps-3"></ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- قوالب كانفا المقترحة لهذا العرض -->
+                  <div class="mb-3">
+                    <h6 class="fw-bold small mb-2"><i class="fas fa-palette text-info me-1"></i>قوالب كانفا الأنسب لهذا العرض (اضغط لتطبيق فوري):</h6>
+                    <div id="pptxRecommendedCanvaCards" class="row g-2"></div>
+                  </div>
+
+                  <!-- خيارات إعادة التصميم والتحميل -->
+                  <div class="card border-success mb-3">
+                    <div class="card-body py-3">
+                      <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                          <label class="form-label fw-bold small mb-1">اختر قالب كانفا للتحديث:</label>
+                          <select id="pptxRedesignTemplateSelect" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label fw-bold small mb-1">عنوان جديد للعرض (اختياري):</label>
+                          <input type="text" id="pptxRedesignTitleInput" class="form-control form-control-sm" placeholder="الإبقاء على العنوان الحالي" dir="rtl">
+                        </div>
+                        <div class="col-md-4 d-flex flex-column justify-content-end">
+                          <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" id="pptxUseAiRewriteCheck" checked>
+                            <label class="form-check-label small fw-bold" for="pptxUseAiRewriteCheck">تطبيق تحسينات الصياغة بالذكاء الاصطناعي</label>
+                          </div>
+                          <button type="button" id="pptxRedesignBtn" class="btn btn-success btn-sm fw-bold w-100" onclick="pptxRedesignUploaded()">
+                            <i class="fas fa-sync-alt me-1"></i>إعادة التصميم وتحميل الملف المحدث
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- اقتراحات التحسين شريحة بشريحة -->
+                  <h6 class="fw-bold small mb-2"><i class="fas fa-list-ol me-1 text-primary"></i>الاقتراحات التفصيلية لكل شريحة:</h6>
+                  <div id="pptxAnalyzeSlideSuggestions" class="d-flex flex-column gap-2" style="max-height:300px;overflow-y:auto;"></div>
+                </div>
+              </div>
+
+              <!-- ===== التاب 3: كانفا وحسابات Google وتطبيق الجوال ===== -->
+              <div class="tab-pane fade" id="pptxTabCanva" role="tabpanel">
+                <!-- دليل كيفية الدخول إلى كانفا -->
+                <div class="accordion mb-3" id="canvaGuideAccordion">
+                  <div class="accordion-item border rounded-3 overflow-hidden">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button py-2 small fw-bold bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#canvaGuideCollapse">
+                        <i class="fas fa-book-open text-primary me-2"></i>📖 دليل كيفية الدخول إلى كانفا وتطبيق القوالب تلقائياً
+                      </button>
+                    </h2>
+                    <div id="canvaGuideCollapse" class="accordion-collapse collapse show">
+                      <div class="accordion-body small py-2">
+                        <ol class="mb-0 ps-3">
+                          <li>اختر حساب <strong>Google</strong> من جهازك عبر زر <strong>"جلب/اختيار حساب Google"</strong> أو أضف بريدك مرة واحدة ليُحفظ دائماً.</li>
+                          <li>اضغط زر <strong>"فتح تطبيق كانفا في جوالي"</strong> لفتح التطبيق المثبّت على هاتفك مباشرة بالحساب المسجل فيه دون إعادة تسجيل دخول، أو افتح كانفا في المتصفح بالحساب المحدد.</li>
+                          <li>تصفح قوالب وعروض كانفا أدناه (أو الصق رابط أي تصميم من كانفا)، وعند <strong>الضغط على أي قالب</strong> يقوم النظام بتطبيقه وبناء ملف <code>.pptx</code> تلقائياً وإعلامك فور جاهزيته للتحميل.</li>
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- إدارة حسابات Google + فتح تطبيق كانفا -->
+                <div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#f8fafc,#eef6ff);">
+                  <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                      <div>
+                        <h6 class="fw-bold mb-0 text-dark"><i class="fab fa-google text-danger me-2"></i>حسابات Google الموجودة والربط السريع مع كانفا</h6>
+                        <small class="text-muted">اختر حساباً للتبديل السريع أو افتح تطبيق كانفا في هاتفك مباشرة بالحساب المسجّل</small>
+                      </div>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-danger btn-sm fw-bold" id="pptxPickGoogleBtn" onclick="pptxChooseDeviceGoogleAccount()">
+                          <i class="fab fa-google me-1"></i>جلب / اختيار حساب Google من الجهاز
+                        </button>
+                        <a id="canvaMobileAppLink"
+                           href="intent://www.canva.com/presentations/#Intent;scheme=https;package=com.canva.editor;S.browser_fallback_url=https%3A%2F%2Fwww.canva.com%2Fpresentations%2F;end"
+                           class="btn btn-info text-white btn-sm fw-bold">
+                          <i class="fas fa-mobile-alt me-1"></i>فتح تطبيق كانفا في جوالي (بالحساب المسجل)
+                        </a>
+                        <a id="canvaWebAccountLink"
+                           href="https://www.canva.com/your-designs"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-outline-primary btn-sm fw-bold">
+                          <i class="fas fa-external-link-alt me-1"></i>فتح كانفا بالمتصفح
+                        </a>
+                      </div>
+                    </div>
+
+                    <div id="pptxGoogleStatusMsg" class="small mb-2" style="display:none;"></div>
+
+                    <!-- قائمة حسابات Google المحفوظة -->
+                    <div id="pptxGoogleAccountsList" class="d-flex flex-wrap gap-2 mb-2"></div>
+
+                    <!-- إضافة سريعة بالبريد -->
+                    <div class="row g-2 align-items-center mt-1">
+                      <div class="col-md-5">
+                        <input type="email" id="pptxGoogleEmailInput" class="form-control form-control-sm" placeholder="أدخل بريد Google (example@gmail.com)" dir="ltr">
+                      </div>
+                      <div class="col-md-4">
+                        <input type="text" id="pptxGoogleNameInput" class="form-control form-control-sm" placeholder="الاسم المعروض (اختياري)" dir="rtl">
+                      </div>
+                      <div class="col-md-3">
+                        <button type="button" class="btn btn-dark btn-sm w-100 fw-bold" onclick="pptxSaveManualGoogleAccount()">
+                          <i class="fas fa-plus-circle me-1"></i>حفظ وتفعيل الحساب
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- استيراد رابط كانفا أو مزامنة API -->
+                <div class="row g-2 mb-3">
+                  <div class="col-md-7">
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-white fw-bold"><i class="fas fa-link text-info me-1"></i>رابط Canva</span>
+                      <input type="url" id="pptxCanvaUrlInput" class="form-control" dir="ltr" placeholder="https://www.canva.com/design/...">
+                      <input type="text" id="pptxCanvaCustomName" class="form-control" style="max-width:160px;" placeholder="اسم القالب (اختياري)" dir="rtl">
+                      <button type="button" class="btn btn-info text-white fw-bold" onclick="pptxImportCanvaUrl()">
+                        <i class="fas fa-download me-1"></i>استيراد
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-5">
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-white fw-bold"><i class="fas fa-key text-warning me-1"></i>Canva Token</span>
+                      <input type="password" id="pptxCanvaTokenInput" class="form-control" dir="ltr" placeholder="رمز Canva API (اختياري لجلب تصاميمك)">
+                      <button type="button" class="btn btn-outline-secondary fw-bold" onclick="pptxConnectCanvaToken()">
+                        مزامنة
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- تصفية قوالب وعروض كانفا -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                  <div class="d-flex flex-wrap gap-1" id="pptxCanvaCategoryFilters">
+                    <button type="button" class="btn btn-sm btn-primary canva-cat-btn" data-cat="all" onclick="pptxFilterCanvaCategory('all', this)">الكل</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="أعمال" onclick="pptxFilterCanvaCategory('أعمال', this)">أعمال</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="تعليمي" onclick="pptxFilterCanvaCategory('تعليمي', this)">تعليمي</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="تسويق" onclick="pptxFilterCanvaCategory('تسويق', this)">تسويق</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="تقنية" onclick="pptxFilterCanvaCategory('تقنية', this)">تقنية</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="فاخر" onclick="pptxFilterCanvaCategory('فاخر', this)">فاخر</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="إبداعي" onclick="pptxFilterCanvaCategory('إبداعي', this)">إبداعي</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary canva-cat-btn" data-cat="تصاميمي" onclick="pptxFilterCanvaCategory('تصاميمي', this)">تصاميمي</button>
+                  </div>
+                  <input type="text" id="pptxCanvaSearchInput" class="form-control form-control-sm" style="max-width:210px;" placeholder="ابحث عن قالب..." oninput="pptxRenderCanvaGallery()">
+                </div>
+
+                <!-- معرض قوالب كانفا (اضغط أي قالب للتطبيق وبناء الملف تلقائياً) -->
+                <div id="pptxCanvaGallery" class="row g-2" style="max-height:360px;overflow-y:auto;"></div>
+              </div>
+
+              <!-- ===== التاب 4: HTML إلى PPTX ===== -->
+              <div class="tab-pane fade" id="pptxTabHtml" role="tabpanel">
                 <div class="alert alert-info py-2 small mb-2">
                   <i class="fas fa-code me-2"></i>
-                  الصق كود HTML — سيتم معاينته، قراءة روابطه الخارجية، ثم تحويله لملف PowerPoint كما هو.
+                  الصق كود HTML — سيتم معاينته وقراءة روابطه الخارجية، ثم تحويله إلى ملف PowerPoint بالتصميم المختار.
                 </div>
-                <textarea id="pptxHtmlCode" class="form-control font-monospace" rows="9" dir="ltr"
+                <textarea id="pptxHtmlCode" class="form-control font-monospace" rows="8" dir="ltr"
                   style="font-size:0.8rem"
-                  placeholder="&lt;html&gt;...&lt;/html&gt;  — الصق الكود هنا"></textarea>
+                  placeholder="<html>...</html> — الصق الكود هنا"></textarea>
                 <div class="d-flex gap-2 mt-2">
-                  <button class="btn btn-outline-primary btn-sm flex-grow-1" onclick="pptxPreviewHtml()">
+                  <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="pptxPreviewHtml()">
                     <i class="fas fa-eye me-1"></i>معاينة HTML وقراءة الروابط
                   </button>
-                  <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('pptxHtmlCode').value='';(function(){var e=document.getElementById('pptxHtmlPreviewArea');if(e)e.style.display='none';})()">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('pptxHtmlCode').value=''; var a=document.getElementById('pptxHtmlPreviewArea'); if(a) a.style.display='none';">
                     <i class="fas fa-trash me-1"></i>مسح
                   </button>
                 </div>
 
-                <!-- منطقة المعاينة -->
                 <div id="pptxHtmlPreviewArea" style="display:none" class="mt-3">
-                  <!-- iframe للعرض -->
-                  <div class="border rounded mb-3" style="overflow:hidden">
+                  <div class="border rounded mb-2" style="overflow:hidden">
                     <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center gap-2">
                       <i class="fas fa-globe text-primary"></i>
                       <strong class="small">معاينة HTML</strong>
                       <span id="pptxHtmlFrameStatus" class="ms-auto badge bg-success" style="font-size:0.7rem">✓ معاينة جاهزة</span>
                     </div>
-                    <iframe id="pptxHtmlIframe" style="width:100%;height:600px;border:none;min-height:400px"
-                      sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+                    <iframe id="pptxHtmlIframe" style="width:100%;height:340px;border:none;"
+                      sandbox="allow-same-origin allow-scripts"></iframe>
                   </div>
-                  <!-- قائمة الروابط -->
                   <div id="pptxHtmlLinksArea"></div>
                 </div>
               </div>
-            </div>
 
-            <!-- إعدادات الشرائح -->
-            <div class="row g-2 mb-3">
-              <div class="col-6 col-md-3">
-                <label class="form-label fw-bold small">عدد الشرائح:</label>
-                <input type="number" id="pptxNumSlides" class="form-control form-control-sm"
-                       value="6" min="3" max="20">
-              </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label fw-bold small">حجم خط المحتوى:</label>
-                <input type="number" id="pptxFontSize" class="form-control form-control-sm"
-                       value="22" min="14" max="32">
-              </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label fw-bold small">نوع الخط:</label>
-                <select id="pptxFontName" class="form-select form-select-sm">
-                  <option value="Traditional Arabic">Traditional Arabic</option>
-                  <option value="Simplified Arabic">Simplified Arabic</option>
-                  <option value="Dubai">Dubai</option>
-                  <option value="Arial">Arial</option>
-                  <option value="Calibri">Calibri</option>
-                </select>
-              </div>
-              <div class="col-6 col-md-3 d-flex flex-column justify-content-end pb-1">
-                <div class="form-check form-check-sm mb-1">
-                  <input type="checkbox" id="pptxIncTables" class="form-check-input">
-                  <label for="pptxIncTables" class="form-check-label small">تضمين جداول</label>
+              <!-- ===== التاب 5: مساعد العروض الذكي ===== -->
+              <div class="tab-pane fade" id="pptxTabChat" role="tabpanel">
+                <div id="pptxChatMessages" class="bg-light rounded p-3 mb-2 border"
+                     style="min-height:190px;max-height:280px;overflow-y:auto;direction:rtl;font-size:0.86rem">
+                  <div class="text-muted small">👋 أهلاً بك! اسألني عن هيكلة العرض، صياغة الشرائح، أو اختيار أنسب قالب كانفا لموضوعك.</div>
                 </div>
-                <div class="form-check form-check-sm">
-                  <input type="checkbox" id="pptxIncCharts" class="form-check-input">
-                  <label for="pptxIncCharts" class="form-check-label small">تضمين رسوم بيانية</label>
-                </div>
-              </div>
-            </div>
-
-            <!-- اختيار قالب الألوان -->
-            <div class="mb-3">
-              <label class="form-label fw-bold small">قالب الألوان:</label>
-              <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="blue"
-                  style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:3px solid #667eea;border-radius:8px">
-                  🔵 أزرق احترافي
-                </button>
-                <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="green"
-                  style="background:linear-gradient(135deg,#119955,#007a3d);color:#fff;border:2px solid transparent;border-radius:8px">
-                  🟢 أخضر طبيعي
-                </button>
-                <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="red"
-                  style="background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;border:2px solid transparent;border-radius:8px">
-                  🔴 أحمر حيوي
-                </button>
-                <button type="button" class="btn btn-sm pptx-theme-btn" data-theme="purple"
-                  style="background:linear-gradient(135deg,#6a1b9a,#4a148c);color:#fff;border:2px solid transparent;border-radius:8px">
-                  🟣 بنفسجي ملكي
-                </button>
-              </div>
-            </div>
-
-            <!-- إعدادات صفحة الغلاف -->
-            <div class="accordion mb-3" id="pptxCoverAccordion">
-              <div class="accordion-item border rounded">
-                <h2 class="accordion-header">
-                  <button class="accordion-button collapsed py-2 small fw-bold" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#pptxCoverCollapse">
-                    <i class="fas fa-image me-2 text-purple"></i>إعدادات صفحة الغلاف (اختياري)
+                <div class="input-group input-group-sm">
+                  <input type="text" id="pptxChatInput" class="form-control" dir="rtl"
+                    placeholder="اكتب سؤالك هنا (مثال: اقترح هيكل عرض من 7 شرائح عن الأمن السيبراني)..."
+                    onkeydown="if(event.key==='Enter')pptxChat()">
+                  <button type="button" class="btn btn-primary fw-bold" onclick="pptxChat()">
+                    <i class="fas fa-paper-plane me-1"></i>إرسال
                   </button>
-                </h2>
-                <div id="pptxCoverCollapse" class="accordion-collapse collapse">
-                  <div class="accordion-body pt-2">
-                    <div class="row g-2">
-                      <div class="col-md-6">
-                        <input type="text" id="pptxCoverOrg" class="form-control form-control-sm"
-                               placeholder="اسم الجهة / المؤسسة" dir="rtl">
-                      </div>
-                      <div class="col-md-6">
-                        <input type="text" id="pptxCoverPresenter" class="form-control form-control-sm"
-                               placeholder="اسم المعد / المقدِّم" dir="rtl">
-                      </div>
-                      <div class="col-md-5">
-                        <input type="text" id="pptxCoverSubtitle" class="form-control form-control-sm"
-                               placeholder="العنوان الفرعي للغلاف" dir="rtl">
-                      </div>
-                      <div class="col-md-4">
-                        <input type="text" id="pptxCoverDate" class="form-control form-control-sm"
-                               placeholder="التاريخ (مثال: يناير 2025)" dir="rtl">
-                      </div>
-                      <div class="col-md-3">
-                        <input type="text" id="pptxCoverLogo" class="form-control form-control-sm"
-                               placeholder="رمز إيموجي 📊">
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- زر الإنشاء -->
-            <button id="pptxGenerateBtn" class="btn px-5 py-2 text-white fw-bold w-100"
-              style="background:linear-gradient(135deg,#764ba2,#667eea);font-size:1.05rem"
-              onclick="pptxGenerate()">
-              <i class="fas fa-magic me-2"></i>إنشاء العرض التقديمي (PowerPoint .pptx)
-            </button>
-
-            <!-- شريط التقدم -->
-            <div id="pptxProgress" class="mt-3" style="display:none">
-              <div class="progress mb-2" style="height:6px">
-                <div class="progress-bar progress-bar-striped progress-bar-animated"
-                     style="width:100%;background:linear-gradient(135deg,#764ba2,#667eea)"></div>
-              </div>
-              <p class="text-center text-muted small mb-0">
-                <i class="fas fa-cog fa-spin me-1"></i>جاري إنشاء العرض التقديمي... قد يستغرق حتى 30 ثانية
-              </p>
-            </div>
-
-            <!-- النتيجة -->
-            <div id="pptxResult" class="mt-3" style="display:none">
-              <div class="alert alert-success d-flex align-items-center gap-3 flex-wrap">
-                <i class="fas fa-check-circle fa-2x text-success flex-shrink-0"></i>
-                <div class="flex-grow-1">
-                  <strong>تم إنشاء العرض بنجاح!</strong>
-                  <div id="pptxResultInfo" class="small text-muted mt-1"></div>
-                </div>
-                <a id="pptxDownloadBtn" href="#" class="btn btn-success px-4 flex-shrink-0">
-                  <i class="fas fa-download me-2"></i>تحميل .pptx
-                </a>
-              </div>
-              <!-- معاينة الشرائح -->
-              <div id="pptxSlidesPreview" class="border rounded p-3 bg-light" style="max-height:280px;overflow-y:auto"></div>
-            </div>
-
-            <!-- خطأ -->
-            <div id="pptxError" class="alert alert-danger mt-3" style="display:none"></div>
-
-            <!-- مساعد الذكاء الاصطناعي -->
-            <hr class="my-3">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <i class="fas fa-robot" style="color:#764ba2"></i>
-              <strong class="small">مساعد الذكاء الاصطناعي للعروض (يحتاج GROQ_API_KEY)</strong>
-            </div>
-            <div id="pptxChatMessages" class="bg-light rounded p-3 mb-2"
-                 style="min-height:70px;max-height:180px;overflow-y:auto;direction:rtl;font-size:0.85rem"></div>
-            <div class="input-group input-group-sm">
-              <input type="text" id="pptxChatInput" class="form-control" dir="rtl"
-                placeholder="اسألني عن تحسين عرضك، أو اطلب أفكاراً جديدة..."
-                onkeydown="if(event.key==='Enter')pptxChat()">
-              <button class="btn text-white" style="background:linear-gradient(135deg,#764ba2,#667eea)"
-                      onclick="pptxChat()">
-                <i class="fas fa-paper-plane"></i>
+            <!-- زر البدء الرئيسي الموحّد -->
+            <div class="d-grid gap-2 mt-2" id="pptxMainStartWrap">
+              <button type="button" id="pptxGenerateBtn" class="btn btn-lg text-white fw-bold shadow-sm"
+                style="background:linear-gradient(135deg,#0f2942,#008b94);font-size:1.05rem;border-radius:12px;"
+                onclick="pptxGenerate()">
+                <i class="fas fa-play-circle me-2"></i>بدء إنشاء العرض التقديمي (PowerPoint .pptx)
               </button>
             </div>
 
+            <!-- شريط التقدم -->
+            <div id="pptxProgress" class="mt-3" style="display:none">
+              <div class="progress mb-2" style="height:8px;border-radius:8px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:100%"></div>
+              </div>
+              <p class="text-center text-muted small mb-0" id="pptxProgressText">
+                <i class="fas fa-cog fa-spin me-1"></i>جاري إنشاء وتصميم شرائح PowerPoint... يرجى الانتظار
+              </p>
+            </div>
+
+            <!-- منطقة الخطأ -->
+            <div id="pptxError" class="alert alert-danger mt-3 small" style="display:none"></div>
+
+            <!-- نتيجة التوليد والتحميل -->
+            <div id="pptxResult" class="mt-3" style="display:none">
+              <div class="alert alert-success border-success d-flex align-items-center justify-content-between gap-3 flex-wrap shadow-sm">
+                <div class="d-flex align-items-center gap-3">
+                  <i class="fas fa-check-circle fa-2x text-success flex-shrink-0"></i>
+                  <div>
+                    <strong class="d-block">🎉 العرض جاهز للتحميل الآن!</strong>
+                    <div id="pptxResultInfo" class="small text-dark mt-1"></div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" id="pptxDownloadBtn" class="btn btn-success fw-bold px-4 shadow-sm" onclick="pptxDownloadCurrentFile()">
+                    <i class="fas fa-download me-2"></i>تحميل ملف PowerPoint (.pptx)
+                  </button>
+                  <a id="pptxDirectHrefFallback" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm align-self-center" title="رابط تحميل مباشر احتياطي">
+                    <i class="fas fa-external-link-alt"></i>
+                  </a>
+                </div>
+              </div>
+              <!-- معاينة الشرائح -->
+              <div id="pptxSlidesPreview" class="border rounded-3 p-3 bg-light" style="max-height:260px;overflow-y:auto"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -5377,187 +5692,402 @@
         }
       }
 
-      /* ===== منشئ العروض التقديمية (PowerPoint) ===== */
+      /* ===== منشئ ومنسق العروض التقديمية (PowerPoint + Canva + AI Analyzer) ===== */
       let _pptxSelectedTheme = 'blue';
+      let _pptxSelectedThemeLabel = 'أزرق احترافي';
       let _pptxExtractedTables = [];
       let _pptxChatHistory = [];
+      let _pptxCurrentSlides = [];
+      let _pptxLastFilename = '';
+      let _pptxLastDownloadUrl = '';
+      let _pptxCanvaTemplates = [];
+      let _pptxCanvaCategory = 'all';
+      let _pptxGoogleAccounts = [];
+      let _pptxActiveGoogleEmail = '';
+      let _pptxFirebaseConfig = null;
+      let _pptxAnalyzedPayload = null;
+      let _pptxCanvaLoadedOnce = false;
 
-      // تحقق من حالة AI عند فتح المودال
-      document.getElementById('presentationModal').addEventListener('show.bs.modal', pptxCheckAiStatus);
+      function _pptxEsc(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
 
-      // أزرار اختيار القالب
+      function pptxPlayReadyChime() {
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          const ctx = new Ctx();
+          const now = ctx.currentTime;
+          [523.25, 659.25, 783.99].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.09);
+            gain.gain.setValueAtTime(0.08, now + i * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.09);
+            osc.stop(now + i * 0.09 + 0.26);
+          });
+        } catch(e) {}
+      }
+
+      function pptxShowToast(msg, showDownloadBtn = false) {
+        const banner = document.getElementById('pptxToastBanner');
+        const txt = document.getElementById('pptxToastText');
+        const btn = document.getElementById('pptxToastQuickDownload');
+        if (!banner || !txt) return;
+        txt.textContent = msg;
+        banner.classList.remove('d-none');
+        banner.classList.add('d-flex');
+        if (btn) btn.style.display = showDownloadBtn && _pptxLastDownloadUrl ? 'inline-block' : 'none';
+      }
+
+      function pptxShowError(msg) {
+        const err = document.getElementById('pptxError');
+        if (!err) return;
+        err.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + _pptxEsc(msg);
+        err.style.display = 'block';
+        err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function pptxClearMessages() {
+        const err = document.getElementById('pptxError');
+        if (err) err.style.display = 'none';
+      }
+
+      function openPresentationStudio(tabKey) {
+        const tabMap = {
+          text: 'pptxTabTextBtn',
+          analyze: 'pptxTabAnalyzeBtn',
+          canva: 'pptxTabCanvaBtn',
+          html: 'pptxTabHtmlBtn',
+          chat: 'pptxTabChatBtn',
+        };
+        const btnId = tabMap[tabKey || 'text'] || 'pptxTabTextBtn';
+        const tabEl = document.getElementById(btnId);
+        if (tabEl) {
+          try {
+            if (window.bootstrap && bootstrap.Tab) {
+              bootstrap.Tab.getOrCreateInstance(tabEl).show();
+            } else {
+              tabEl.click();
+            }
+          } catch(e) { tabEl.click(); }
+        }
+        if (tabKey === 'canva') pptxLoadCanvaData();
+      }
+
+      function pptxSelectTheme(themeId, label, swatchColor) {
+        _pptxSelectedTheme = themeId || 'blue';
+        _pptxSelectedThemeLabel = label || themeId || 'أزرق احترافي';
+        document.querySelectorAll('.pptx-theme-btn').forEach(b => {
+          const isMatch = b.dataset.theme === _pptxSelectedTheme;
+          b.style.borderWidth = isMatch ? '3px' : '2px';
+          b.style.borderColor = isMatch ? '#f59e0b' : 'transparent';
+        });
+        const lbl = document.getElementById('pptxActiveDesignLabel');
+        const sw = document.getElementById('pptxActiveDesignSwatch');
+        if (lbl) lbl.textContent = _pptxSelectedThemeLabel;
+        if (sw && swatchColor) sw.style.background = swatchColor;
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('presentationModal');
+        if (modalEl) {
+          modalEl.addEventListener('show.bs.modal', function() {
+            pptxCheckAiStatus();
+            if (!_pptxCanvaLoadedOnce) pptxLoadCanvaData();
+          });
+        }
+
         document.querySelectorAll('.pptx-theme-btn').forEach(btn => {
           btn.addEventListener('click', function() {
-            document.querySelectorAll('.pptx-theme-btn').forEach(b => b.style.borderWidth = '2px');
-            this.style.borderWidth = '3px';
-            _pptxSelectedTheme = this.dataset.theme;
+            pptxSelectTheme(this.dataset.theme, this.dataset.label, this.dataset.color);
           });
         });
+
+        // إظهار/إخفاء زر البدء الموحد بحسب التبويب المناسب
+        document.querySelectorAll('#pptxInputTabs [data-bs-toggle="tab"]').forEach(tBtn => {
+          tBtn.addEventListener('shown.bs.tab', function(ev) {
+            const target = ev.target && ev.target.getAttribute('data-bs-target');
+            const startWrap = document.getElementById('pptxMainStartWrap');
+            if (startWrap) {
+              startWrap.style.display = (target === '#pptxTabText' || target === '#pptxTabHtml') ? 'grid' : 'none';
+            }
+          });
+        });
+
+        // ضبط رابط تطبيق كانفا حسب نظام الهاتف
+        const mobileLink = document.getElementById('canvaMobileAppLink');
+        if (mobileLink) {
+          const ua = navigator.userAgent || '';
+          if (/iPhone|iPad|iPod/i.test(ua)) {
+            mobileLink.href = 'https://www.canva.com/presentations/';
+          }
+        }
       });
 
       async function pptxCheckAiStatus() {
         const el = document.getElementById('pptxAiStatus');
+        if (!el) return;
         try {
-          const res = await fetch('/tools/pptx/ai_status');
+          const res = await fetch('/api/pptx/ai_status');
           const d = await res.json();
           if (d.available) {
-            el.className = 'alert alert-success py-2 mb-3';
-            el.innerHTML = '<i class="fas fa-check-circle me-2"></i><strong>الذكاء الاصطناعي (Groq) متاح ✅</strong> — سيتم إنشاء محتوى ذكي ومخصص';
+            el.className = 'alert alert-success py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small';
+            el.innerHTML = `<i class="fas fa-check-circle me-1"></i><strong>الذكاء الاصطناعي متاح (${_pptxEsc(d.provider)})</strong> — جاهز لبناء وتحليل العروض`;
           } else {
-            el.className = 'alert alert-warning py-2 mb-3';
-            el.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>الذكاء الاصطناعي غير متاح — أضف <strong>GROQ_API_KEY</strong> في الأسرار للتفعيل (احصل عليه مجاناً من console.groq.com) — سيُستخدم المعالج المحلي حالياً';
+            el.className = 'alert alert-warning py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small';
+            el.innerHTML = '<i class="fas fa-info-circle me-1"></i>يعمل حالياً بالمعالج الذكي المحلي — يمكنك الإنشاء والتحويل بالكامل';
           }
         } catch(e) {
-          el.className = 'alert alert-secondary py-2 mb-3';
-          el.innerHTML = '<i class="fas fa-question-circle me-2"></i>لا يمكن التحقق من حالة الذكاء الاصطناعي';
+          el.className = 'alert alert-secondary py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small';
+          el.innerHTML = '<i class="fas fa-plug me-1"></i>تعذر فحص حالة AI';
         }
       }
 
-      async function pptxExtractFile() {
+      async function pptxExtractFile(silentSwitch = false) {
         const fileInput = document.getElementById('pptxFile');
-        if (!fileInput.files.length) { alert('اختر ملفاً أولاً'); return; }
         const resultEl = document.getElementById('pptxFileResult');
-        resultEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري استخراج الملف...';
+        if (!fileInput || !fileInput.files.length) {
+          if (resultEl) resultEl.innerHTML = '<span class="text-danger">يرجى اختيار ملف أولاً</span>';
+          return false;
+        }
+        if (resultEl) resultEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري استخراج محتوى الملف...';
         try {
           const fd = new FormData();
           fd.append('file', fileInput.files[0]);
-          const res = await fetch('/tools/pptx/extract_file', { method: 'POST', body: fd });
+          const res = await fetch('/api/pptx/extract_file', { method: 'POST', body: fd });
           const d = await res.json();
-          if (d.error) throw new Error(d.error);
+          if (!res.ok || d.error) throw new Error(d.error || 'تعذر قراءة الملف');
           _pptxExtractedTables = d.tables || [];
-          document.getElementById('pptxText').value = d.full_text;
-          document.getElementById('pptxTabTextBtn').click();
-          resultEl.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>تم استخراج <strong>${d.word_count}</strong> كلمة و<strong>${_pptxExtractedTables.length}</strong> جدول — انتقل لتاب "من نص" لمراجعة المحتوى`;
+          if (Array.isArray(d.slides) && d.slides.length) {
+            _pptxCurrentSlides = d.slides;
+          }
+          document.getElementById('pptxText').value = d.full_text || '';
+          if (resultEl) {
+            resultEl.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>تم استخراج ${d.word_count || 0} كلمة و${_pptxExtractedTables.length} جدول بنجاح</span>`;
+          }
+          return true;
         } catch(e) {
-          resultEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${e.message}</span>`;
+          if (resultEl) resultEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${_pptxEsc(e.message)}</span>`;
+          return false;
         }
       }
 
-      /* ───── معاينة HTML وقراءة روابطه ───── */
       async function pptxPreviewHtml() {
-        const html = document.getElementById('pptxHtmlCode').value.trim();
-        if (!html) { alert('الرجاء لصق كود HTML أولاً'); return; }
-
+        pptxClearMessages();
+        const html = (document.getElementById('pptxHtmlCode').value || '').trim();
+        if (!html) {
+          pptxShowError('الرجاء لصق كود HTML أولاً قبل المعاينة.');
+          return;
+        }
         const previewArea = document.getElementById('pptxHtmlPreviewArea');
-        const iframe      = document.getElementById('pptxHtmlIframe');
-        const linksArea   = document.getElementById('pptxHtmlLinksArea');
-
-        // عرض الـiframe فوراً
+        const iframe = document.getElementById('pptxHtmlIframe');
+        const linksArea = document.getElementById('pptxHtmlLinksArea');
         previewArea.style.display = '';
         iframe.srcdoc = html;
-
-        // تغيير حجم الـ iframe تلقائياً بعد التحميل
-        iframe.onload = function() {
-          try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            const h = Math.max(iframeDoc.documentElement.scrollHeight, iframeDoc.body.scrollHeight, 400);
-            iframe.style.height = Math.min(h + 20, 1600) + 'px';
-          } catch(e) {}
-        };
-
-        // قراءة الروابط
-        linksArea.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i> جاري قراءة الروابط الموجودة في HTML...</div>';
+        linksArea.innerHTML = '<div class="text-center text-muted py-2 small"><i class="fas fa-spinner fa-spin me-1"></i>جاري فحص الروابط داخل HTML...</div>';
         try {
-          const res = await fetch('/tools/pptx/preview_html_links', {
+          const res = await fetch('/api/pptx/preview_html_links', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ html })
           });
           const d = await res.json();
           if (!d.links || d.links.length === 0) {
-            linksArea.innerHTML = '<div class="alert alert-secondary py-2 small"><i class="fas fa-info-circle me-1"></i> لا توجد روابط خارجية في هذا HTML.</div>';
+            linksArea.innerHTML = '<div class="alert alert-secondary py-2 small mb-0">لا توجد روابط خارجية في هذا الكود.</div>';
             return;
           }
-          let out = `<div class="mb-2 fw-bold small"><i class="fas fa-link me-1 text-primary"></i>الروابط المكتشفة في HTML (${d.links.length}):</div><div class="list-group">`;
+          let out = `<div class="mb-1 fw-bold small">الروابط المكتشفة (${d.links.length}):</div><div class="list-group list-group-flush border rounded">`;
           for (const lk of d.links) {
-            const icon = lk.error
-              ? 'fa-exclamation-circle text-danger'
-              : (lk.title ? 'fa-check-circle text-success' : 'fa-external-link-alt text-secondary');
-            out += `<div class="list-group-item py-2 px-3">
-              <div class="d-flex align-items-start gap-2">
-                <i class="fas ${icon} mt-1 flex-shrink-0"></i>
-                <div class="flex-grow-1 overflow-hidden">
-                  <div class="fw-bold small text-truncate">${lk.title || lk.anchor_text || lk.url}</div>
-                  <div class="text-muted" style="font-size:0.73rem;direction:ltr" class="text-truncate">${lk.url}</div>
-                  ${lk.snippet ? `<div class="mt-1 text-secondary" style="font-size:0.78rem;direction:rtl">${lk.snippet}</div>` : ''}
-                  ${lk.error ? `<div class="text-danger" style="font-size:0.73rem">⚠ ${lk.error}</div>` : ''}
-                </div>
-              </div>
+            out += `<div class="list-group-item py-1 px-2 small">
+              <div class="fw-bold text-truncate">${_pptxEsc(lk.title || lk.anchor_text || lk.url)}</div>
+              <div class="text-muted text-truncate" dir="ltr" style="font-size:0.72rem">${_pptxEsc(lk.url)}</div>
             </div>`;
           }
           out += '</div>';
           linksArea.innerHTML = out;
         } catch(e) {
-          linksArea.innerHTML = `<div class="alert alert-danger py-2 small"><i class="fas fa-times-circle me-1"></i>${e.message}</div>`;
+          linksArea.innerHTML = `<div class="alert alert-danger py-2 small mb-0">${_pptxEsc(e.message)}</div>`;
         }
       }
 
-      /* ───── توليد العرض (نص / ملف / HTML) ───── */
-      async function pptxGenerate() {
-        // تحديد التبويب النشط
-        const htmlTabActive = document.getElementById('pptxTabHtmlBtn').classList.contains('active');
-        const htmlCode = htmlTabActive ? document.getElementById('pptxHtmlCode').value.trim() : '';
-        const text     = htmlTabActive ? '' : document.getElementById('pptxText').value.trim();
+      function pptxRenderResultAndSlides(d, labelOverride) {
+        const filename = d.filename;
+        const downloadUrl = d.download_url || ('/api/pptx/download/' + encodeURIComponent(filename));
+        _pptxLastFilename = filename;
+        _pptxLastDownloadUrl = downloadUrl;
+        _pptxCurrentSlides = Array.isArray(d.slides) ? d.slides : [];
 
-        if (htmlTabActive && !htmlCode) { alert('الرجاء لصق كود HTML أولاً'); return; }
-        if (!htmlTabActive && !text)    { alert('أدخل نصاً أو ارفع ملفاً أولاً'); return; }
+        const directLink = document.getElementById('pptxDirectHrefFallback');
+        if (directLink) {
+          directLink.href = downloadUrl;
+          directLink.setAttribute('download', filename);
+        }
+
+        const infoEl = document.getElementById('pptxResultInfo');
+        if (infoEl) {
+          const themeUsed = labelOverride || (d.applied_design && d.applied_design.name) || d.theme_applied || _pptxSelectedThemeLabel;
+          infoEl.textContent = `${_pptxCurrentSlides.length} شريحة · ${filename} · التصميم: ${themeUsed}`;
+        }
+
+        const typeIcons = { title:'🎯', bullets:'📌', table:'📊', chart:'📈', conclusion:'✅', content:'📄' };
+        const preview = document.getElementById('pptxSlidesPreview');
+        if (preview) {
+          preview.innerHTML = '<div class="fw-bold small text-muted mb-2">معاينة الشرائح الجاهزة:</div>' +
+            _pptxCurrentSlides.map((s, i) => `
+              <div class="d-flex align-items-start gap-2 p-2 mb-1 rounded bg-white border">
+                <span class="badge bg-primary flex-shrink-0">${typeIcons[s.slide_type] || '📄'} ${i + 1}</span>
+                <div class="overflow-hidden flex-grow-1">
+                  <div class="fw-bold small text-truncate">${_pptxEsc(s.title || 'شريحة')}</div>
+                  ${s.bullets && s.bullets.length ? `<div class="text-muted small" style="font-size:0.75rem">${_pptxEsc(s.bullets.slice(0, 2).join(' • '))}</div>` : ''}
+                </div>
+              </div>`).join('');
+        }
+
+        const prog = document.getElementById('pptxProgress');
+        const resDiv = document.getElementById('pptxResult');
+        if (prog) prog.style.display = 'none';
+        if (resDiv) {
+          resDiv.style.display = 'block';
+          resDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        pptxPlayReadyChime();
+        pptxShowToast(`✅ العرض جاهز للتحميل: ${filename} (${_pptxCurrentSlides.length} شريحة)`, true);
+      }
+
+      async function pptxDownloadCurrentFile() {
+        if (!_pptxLastDownloadUrl) {
+          pptxShowError('لا يوجد ملف مُنشأ بعد. اضغط على زر البدء أو اختر قالب كانفا أولاً.');
+          return;
+        }
+        const btn = document.getElementById('pptxDownloadBtn');
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري تحضير التنزيل...';
+        }
+        try {
+          const res = await fetch(_pptxLastDownloadUrl, { credentials: 'same-origin' });
+          if (!res.ok) {
+            let errText = 'فشل تنزيل الملف من الخادم';
+            try {
+              const ej = await res.json();
+              if (ej && ej.error) errText = ej.error;
+            } catch(_) {}
+            throw new Error(errText);
+          }
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = blobUrl;
+          a.download = _pptxLastFilename || 'presentation.pptx';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            try { document.body.removeChild(a); } catch(_) {}
+            URL.revokeObjectURL(blobUrl);
+          }, 1500);
+          pptxShowToast(`📥 بدأ تحميل الملف: ${_pptxLastFilename || 'presentation.pptx'}`, true);
+        } catch(e) {
+          pptxShowError('تعذر التحميل المباشر: ' + e.message + ' — جرب رابط التحميل الاحتياطي المجاور.');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+          }
+        }
+      }
+
+      async function pptxGenerate() {
+        pptxClearMessages();
+        const htmlBtn = document.getElementById('pptxTabHtmlBtn');
+        const htmlTabActive = htmlBtn && htmlBtn.classList.contains('active');
+        const htmlCode = htmlTabActive ? (document.getElementById('pptxHtmlCode').value || '').trim() : '';
+        let text = htmlTabActive ? '' : (document.getElementById('pptxText').value || '').trim();
+
+        // استخراج تلقائي للملف إذا اختار المستخدم ملفاً ولم يضغط "استخراج" بعد
+        if (!htmlTabActive && !text) {
+          const fileInput = document.getElementById('pptxFile');
+          if (fileInput && fileInput.files && fileInput.files.length) {
+            const ok = await pptxExtractFile(true);
+            if (!ok) {
+              pptxShowError('تعذر استخراج النص من الملف المرفق. يرجى التحقق من صيغة الملف.');
+              return;
+            }
+            text = (document.getElementById('pptxText').value || '').trim();
+          }
+        }
+
+        if (htmlTabActive && !htmlCode) {
+          pptxShowError('الرجاء لصق كود HTML أولاً في خانة HTML قبل الضغط على البدء.');
+          return;
+        }
+        if (!htmlTabActive && !text) {
+          pptxShowError('يرجى إدخال نص العرض أو رفع ملف (Word / PDF / TXT) قبل الضغط على بدء الإنشاء.');
+          return;
+        }
 
         const btn = document.getElementById('pptxGenerateBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري إنشاء العرض...';
-        var _pp=document.getElementById('pptxProgress');if(_pp)_pp.style.display='block';
-        var _pr=document.getElementById('pptxResult');if(_pr)_pr.style.display='none';
-        var _pe=document.getElementById('pptxError');if(_pe)_pe.style.display='none';
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإنشاء والتنسيق...';
+        }
+        const prog = document.getElementById('pptxProgress');
+        const resDiv = document.getElementById('pptxResult');
+        if (prog) prog.style.display = 'block';
+        if (resDiv) resDiv.style.display = 'none';
 
-        const title     = document.getElementById('pptxTitle').value.trim();
-        const org       = document.getElementById('pptxCoverOrg').value.trim();
-        const presenter = document.getElementById('pptxCoverPresenter').value.trim();
-        const subtitle  = document.getElementById('pptxCoverSubtitle').value.trim();
-        const date      = document.getElementById('pptxCoverDate').value.trim();
-        const logo      = document.getElementById('pptxCoverLogo').value.trim();
+        const title = (document.getElementById('pptxTitle').value || '').trim();
+        const org = (document.getElementById('pptxCoverOrg').value || '').trim();
+        const presenter = (document.getElementById('pptxCoverPresenter').value || '').trim();
+        const subtitle = (document.getElementById('pptxCoverSubtitle').value || '').trim();
+        const date = (document.getElementById('pptxCoverDate').value || '').trim();
+        const logo = (document.getElementById('pptxCoverLogo').value || '').trim();
 
         const coverData = (org || presenter || subtitle || date || logo || title) ? {
-          title:        title || (text || htmlCode).split('\n')[0].substring(0, 60),
+          title: title || (text || 'عرض تقديمي احترافي').split('\n')[0].substring(0, 60),
           subtitle,
           organization: org,
           presenter,
-          date:         date || new Date().toLocaleDateString('ar-SA'),
-          logo:         logo || '📊'
+          date: date || new Date().toLocaleDateString('ar-SA'),
+          logo: logo || '📊'
         } : null;
 
         try {
-          let endpoint, payload;
-
-          if (htmlTabActive) {
-            // مسار HTML
-            endpoint = '/tools/pptx/from_html';
-            payload = {
-              html:           htmlCode,
-              title,
-              theme_color:    _pptxSelectedTheme,
-              font_name:      document.getElementById('pptxFontName').value,
-              body_font_size: parseInt(document.getElementById('pptxFontSize').value) || 22,
-              fetch_links:    true,
-              cover_data:     coverData,
-            };
-          } else {
-            // مسار النص العادي
-            endpoint = '/tools/pptx/generate';
-            payload = {
-              text,
-              title,
-              num_slides:     parseInt(document.getElementById('pptxNumSlides').value) || 6,
-              ptype:          document.getElementById('pptxPtype').value,
-              inc_tables:     document.getElementById('pptxIncTables').checked,
-              inc_charts:     document.getElementById('pptxIncCharts').checked,
-              theme_color:    _pptxSelectedTheme,
-              font_name:      document.getElementById('pptxFontName').value,
-              body_font_size: parseInt(document.getElementById('pptxFontSize').value) || 22,
-              cover_data:     coverData,
-              extracted_tables: _pptxExtractedTables,
-            };
-          }
+          const endpoint = htmlTabActive ? '/api/pptx/html_to_pptx' : '/api/pptx/generate';
+          const payload = htmlTabActive ? {
+            html: htmlCode,
+            title,
+            theme_color: _pptxSelectedTheme,
+            canva_template_id: _pptxSelectedTheme.startsWith('canva_') ? _pptxSelectedTheme : undefined,
+            font_name: document.getElementById('pptxFontName').value,
+            body_font_size: parseInt(document.getElementById('pptxFontSize').value, 10) || 22,
+            fetch_links: true,
+            cover_data: coverData,
+          } : {
+            text,
+            title,
+            num_slides: parseInt(document.getElementById('pptxNumSlides').value, 10) || 7,
+            ptype: document.getElementById('pptxPtype').value,
+            inc_tables: document.getElementById('pptxIncTables').checked,
+            inc_charts: document.getElementById('pptxIncCharts').checked,
+            theme_color: _pptxSelectedTheme,
+            canva_template_id: _pptxSelectedTheme.startsWith('canva_') ? _pptxSelectedTheme : undefined,
+            font_name: document.getElementById('pptxFontName').value,
+            body_font_size: parseInt(document.getElementById('pptxFontSize').value, 10) || 22,
+            cover_data: coverData,
+            extracted_tables: _pptxExtractedTables,
+          };
 
           const res = await fetch(endpoint, {
             method: 'POST',
@@ -5565,63 +6095,536 @@
             body: JSON.stringify(payload)
           });
           const d = await res.json();
-          if (!res.ok || d.error) throw new Error(d.error || 'خطأ في الخادم');
+          if (!res.ok || d.error) throw new Error(d.error || 'حدث خطأ أثناء إنشاء العرض');
 
-          const downloadUrl = '/tools/pptx/download/' + encodeURIComponent(d.filename);
-          document.getElementById('pptxDownloadBtn').href = downloadUrl;
-          document.getElementById('pptxResultInfo').textContent =
-            `${d.slides.length} شريحة • ${d.filename} • قالب: ${_pptxSelectedTheme}`;
-
-          const typeIcons = { title:'🎯', bullets:'📌', table:'📊', chart:'📈', conclusion:'✅' };
-          const preview = document.getElementById('pptxSlidesPreview');
-          preview.innerHTML = '<div class="fw-bold small text-muted mb-2">معاينة الشرائح المُنشأة:</div>' +
-            d.slides.map((s, i) =>
-              `<div class="d-flex align-items-start gap-2 p-2 mb-1 rounded" style="background:#f8f9ff">
-                <span class="fw-bold text-secondary small flex-shrink-0">${typeIcons[s.slide_type]||'📄'} ${i+1}</span>
-                <div class="overflow-hidden">
-                  <div class="fw-bold small text-truncate">${s.title || '—'}</div>
-                  ${s.bullets && s.bullets.length ? `<div class="text-muted" style="font-size:0.72rem">${s.bullets.slice(0,2).join(' • ')}</div>` : ''}
-                </div>
-              </div>`
-            ).join('');
-
-          var _pp2=document.getElementById('pptxProgress');if(_pp2)_pp2.style.display='none';
-          var _pr2=document.getElementById('pptxResult');if(_pr2)_pr2.style.display='block';
-
-          // تحميل تلقائي
-          const tmpLink = document.createElement('a');
-          tmpLink.href = downloadUrl;
-          tmpLink.download = d.filename;
-          tmpLink.click();
-
+          pptxRenderResultAndSlides(d, _pptxSelectedThemeLabel);
         } catch(e) {
-          var _pp2=document.getElementById('pptxProgress');if(_pp2)_pp2.style.display='none';
-          document.getElementById('pptxError').innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + e.message;
-          var _pe2=document.getElementById('pptxError');if(_pe2)_pe2.style.display='block';
+          if (prog) prog.style.display = 'none';
+          pptxShowError(e.message || 'حدث خطأ غير متوقع');
         } finally {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-magic me-2"></i>إنشاء العرض التقديمي (PowerPoint .pptx)';
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play-circle me-2"></i>بدء إنشاء العرض التقديمي (PowerPoint .pptx)';
+          }
+        }
+      }
+
+      /* ───── قوالب كانفا + حسابات Google ───── */
+      async function pptxLoadCanvaData() {
+        try {
+          const res = await fetch('/api/pptx/canva/templates');
+          const d = await res.json();
+          if (Array.isArray(d.templates)) {
+            _pptxCanvaTemplates = d.templates;
+            _pptxCanvaLoadedOnce = true;
+            pptxRenderCanvaGallery();
+            pptxPopulateRedesignSelect();
+          }
+          if (d.accounts) {
+            _pptxGoogleAccounts = d.accounts.accounts || [];
+            _pptxActiveGoogleEmail = d.accounts.active_email || '';
+            pptxRenderGoogleAccounts();
+          }
+          if (d.firebase_config && d.firebase_config.apiKey) {
+            _pptxFirebaseConfig = d.firebase_config;
+          }
+        } catch(e) {
+          console.warn('Canva templates load warning:', e);
+        }
+      }
+
+      function pptxPopulateRedesignSelect() {
+        const sel = document.getElementById('pptxRedesignTemplateSelect');
+        if (!sel || !_pptxCanvaTemplates.length) return;
+        const currentVal = sel.value;
+        sel.innerHTML = _pptxCanvaTemplates.map(t =>
+          `<option value="${_pptxEsc(t.id)}">${_pptxEsc(t.name)} (${_pptxEsc(t.category || 'عام')})</option>`
+        ).join('');
+        if (currentVal && _pptxCanvaTemplates.some(t => t.id === currentVal)) {
+          sel.value = currentVal;
+        }
+      }
+
+      function pptxRenderGoogleAccounts() {
+        const wrap = document.getElementById('pptxGoogleAccountsList');
+        const webLink = document.getElementById('canvaWebAccountLink');
+        if (webLink) {
+          webLink.href = _pptxActiveGoogleEmail
+            ? `https://accounts.google.com/AccountChooser?Email=${encodeURIComponent(_pptxActiveGoogleEmail)}&continue=${encodeURIComponent('https://www.canva.com/')}`
+            : 'https://www.canva.com/your-designs';
+        }
+        if (!wrap) return;
+        if (!_pptxGoogleAccounts.length) {
+          wrap.innerHTML = '<span class="text-muted small"><i class="fas fa-user-circle me-1"></i>لم يتم حفظ أي حساب Google بعد — اضغط "جلب/اختيار حساب Google" أو أدخل بريدك أدناه.</span>';
+          return;
+        }
+        wrap.innerHTML = _pptxGoogleAccounts.map(acc => {
+          const isActive = acc.email && acc.email.toLowerCase() === (_pptxActiveGoogleEmail || '').toLowerCase();
+          return `<div class="d-flex align-items-center gap-2 px-2 py-1 rounded-3 border ${isActive ? 'border-primary bg-white shadow-sm' : 'bg-light'}">
+            ${acc.photo_url ? `<img src="${_pptxEsc(acc.photo_url)}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">` : `<span class="badge rounded-circle bg-danger" style="width:24px;height:24px;line-height:16px;">${_pptxEsc((acc.name || acc.email || 'G')[0].toUpperCase())}</span>`}
+            <div class="small" style="cursor:pointer;" onclick="pptxSelectGoogleAccount('${_pptxEsc(acc.email)}')">
+              <div class="fw-bold lh-1">${_pptxEsc(acc.name || acc.email)}</div>
+              <div class="text-muted" dir="ltr" style="font-size:0.7rem;">${_pptxEsc(acc.email)}</div>
+            </div>
+            ${isActive ? '<span class="badge bg-success" style="font-size:0.65rem;">نشط</span>' : `<button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.7rem;" onclick="pptxSelectGoogleAccount('${_pptxEsc(acc.email)}')">اختيار</button>`}
+            <button type="button" class="btn btn-link text-danger p-0 ms-1" title="حذف الحساب" onclick="pptxRemoveGoogleAccount('${_pptxEsc(acc.email)}')"><i class="fas fa-times small"></i></button>
+          </div>`;
+        }).join('');
+      }
+
+      async function pptxSelectGoogleAccount(email) {
+        try {
+          const res = await fetch('/api/pptx/canva/google_accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'select', email })
+          });
+          const d = await res.json();
+          if (d.success) {
+            _pptxGoogleAccounts = d.accounts || [];
+            _pptxActiveGoogleEmail = d.active_email || email;
+            pptxRenderGoogleAccounts();
+            pptxShowGoogleStatus(`✅ تم التبديل إلى حساب Google: ${_pptxActiveGoogleEmail} — يمكنك الآن فتح كانفا بهذا الحساب.`, 'success');
+          }
+        } catch(e) {
+          pptxShowGoogleStatus('تعذر اختيار الحساب: ' + e.message, 'danger');
+        }
+      }
+
+      async function pptxRemoveGoogleAccount(email) {
+        try {
+          const res = await fetch('/api/pptx/canva/google_accounts', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'remove', email })
+          });
+          const d = await res.json();
+          if (d.success) {
+            _pptxGoogleAccounts = d.accounts || [];
+            _pptxActiveGoogleEmail = d.active_email || '';
+            pptxRenderGoogleAccounts();
+          }
+        } catch(e) {}
+      }
+
+      function pptxShowGoogleStatus(msg, tone) {
+        const el = document.getElementById('pptxGoogleStatusMsg');
+        if (!el) return;
+        el.className = `alert alert-${tone || 'info'} py-1 px-2 small mb-2`;
+        el.textContent = msg;
+        el.style.display = 'block';
+      }
+
+      async function pptxSaveManualGoogleAccount() {
+        const email = (document.getElementById('pptxGoogleEmailInput').value || '').trim();
+        const name = (document.getElementById('pptxGoogleNameInput').value || '').trim();
+        if (!email || !email.includes('@')) {
+          pptxShowGoogleStatus('يرجى إدخال بريد إلكتروني صحيح لحساب Google.', 'warning');
+          return;
+        }
+        try {
+          const res = await fetch('/api/pptx/canva/google_accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', email, name, provider: 'manual' })
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'تعذر حفظ الحساب');
+          _pptxGoogleAccounts = d.accounts || [];
+          _pptxActiveGoogleEmail = d.active_email || email;
+          document.getElementById('pptxGoogleEmailInput').value = '';
+          document.getElementById('pptxGoogleNameInput').value = '';
+          pptxRenderGoogleAccounts();
+          pptxShowGoogleStatus(`✅ تم حفظ وتفعيل حساب Google (${_pptxActiveGoogleEmail}) للدخول التلقائي إلى كانفا.`, 'success');
+        } catch(e) {
+          pptxShowGoogleStatus(e.message, 'danger');
+        }
+      }
+
+      function _loadExternalScript(src) {
+        return new Promise((resolve, reject) => {
+          if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = true;
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('فشل تحميل مكتبة المصادقة'));
+          document.head.appendChild(s);
+        });
+      }
+
+      async function pptxChooseDeviceGoogleAccount() {
+        const btn = document.getElementById('pptxPickGoogleBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري فتح حسابات Google...'; }
+        try {
+          if (!_pptxFirebaseConfig || !_pptxFirebaseConfig.apiKey) {
+            await pptxLoadCanvaData();
+          }
+          if (!_pptxFirebaseConfig || !_pptxFirebaseConfig.apiKey) {
+            throw new Error('إعدادات Google/Firebase غير متوفرة — أدخل بريد Google في الحقل أدناه لحفظه.');
+          }
+          await _loadExternalScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+          await _loadExternalScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js');
+          if (!window.firebase.apps.length) {
+            window.firebase.initializeApp(_pptxFirebaseConfig);
+          }
+          const provider = new window.firebase.auth.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          const cred = await window.firebase.auth().signInWithPopup(provider);
+          const u = cred && cred.user;
+          if (!u || !u.email) throw new Error('لم يتم اختيار حساب Google');
+          const saveRes = await fetch('/api/pptx/canva/google_accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'add',
+              email: u.email,
+              name: u.displayName || '',
+              photo_url: u.photoURL || '',
+              provider: 'firebase_google'
+            })
+          });
+          const d = await saveRes.json();
+          if (d.success) {
+            _pptxGoogleAccounts = d.accounts || [];
+            _pptxActiveGoogleEmail = d.active_email || u.email;
+            pptxRenderGoogleAccounts();
+            pptxShowGoogleStatus(`✅ تم استيراد وتفعيل حساب Google من الجهاز: ${u.email} — اضغط الآن "فتح كانفا بالمتصفح" أو "فتح تطبيق كانفا في جوالي".`, 'success');
+          }
+        } catch(e) {
+          const emailBox = document.getElementById('pptxGoogleEmailInput');
+          if (emailBox) emailBox.focus();
+          pptxShowGoogleStatus(`ملاحظة: ${(e && e.message) ? e.message : 'حظر المتصفح النافذة المنبثقة داخل المعاينة'} — يمكنك كتابة بريدك في الخانة أدناه أو الضغط مباشرة على "فتح تطبيق كانفا في جوالي".`, 'warning');
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      function pptxFilterCanvaCategory(cat, btnEl) {
+        _pptxCanvaCategory = cat || 'all';
+        document.querySelectorAll('.canva-cat-btn').forEach(b => {
+          b.className = (b === btnEl) ? 'btn btn-sm btn-primary canva-cat-btn' : 'btn btn-sm btn-outline-secondary canva-cat-btn';
+        });
+        pptxRenderCanvaGallery();
+      }
+
+      function pptxRenderCanvaGallery() {
+        const wrap = document.getElementById('pptxCanvaGallery');
+        if (!wrap) return;
+        const q = (document.getElementById('pptxCanvaSearchInput') ? document.getElementById('pptxCanvaSearchInput').value : '').trim().toLowerCase();
+        const filtered = _pptxCanvaTemplates.filter(t => {
+          if (_pptxCanvaCategory !== 'all' && t.category !== _pptxCanvaCategory) return false;
+          if (q) {
+            const hay = `${t.name || ''} ${t.category || ''} ${t.description || ''}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+
+        if (!filtered.length) {
+          wrap.innerHTML = '<div class="col-12 text-center text-muted py-4 small">لا توجد قوالب مطابقة لهذا البحث.</div>';
+          return;
+        }
+
+        wrap.innerHTML = filtered.map(t => {
+          const c = t.colors || {};
+          const p = c.primary || '#1d4e89';
+          const s = c.secondary || '#0f2942';
+          const a = c.accent || '#00c4cc';
+          const bg = c.bg || '#f8fafc';
+          const isSelected = _pptxSelectedTheme === t.id;
+          return `<div class="col-md-4 col-sm-6">
+            <div class="card h-100 shadow-sm ${isSelected ? 'border-warning border-2' : 'border-0'}" style="cursor:pointer;border-radius:12px;overflow:hidden;" onclick="pptxApplyCanvaTemplate('${_pptxEsc(t.id)}')">
+              <div style="height:105px;background:${bg};position:relative;overflow:hidden;border-bottom:1px solid #e2e8f0;" class="p-2 d-flex flex-column justify-content-between">
+                <div style="height:26px;background:linear-gradient(135deg,${p},${s});border-radius:6px;" class="px-2 d-flex align-items-center justify-content-between">
+                  <span style="width:45%;height:6px;background:#fff;border-radius:4px;opacity:0.9;"></span>
+                  <span style="width:14px;height:14px;background:${a};border-radius:50%;"></span>
+                </div>
+                <div class="d-flex gap-2 align-items-center my-1">
+                  <div style="width:8px;height:38px;background:${a};border-radius:4px;"></div>
+                  <div class="flex-grow-1">
+                    <div style="width:85%;height:6px;background:${p};opacity:0.45;border-radius:3px;margin-bottom:5px;"></div>
+                    <div style="width:70%;height:5px;background:${s};opacity:0.25;border-radius:3px;margin-bottom:5px;"></div>
+                    <div style="width:55%;height:5px;background:${s};opacity:0.2;border-radius:3px;"></div>
+                  </div>
+                </div>
+                <span class="badge position-absolute bottom-0 start-0 m-1" style="background:${p};font-size:0.65rem;">${_pptxEsc(t.category || 'Canva')}</span>
+              </div>
+              <div class="card-body p-2 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="fw-bold small text-dark text-truncate">${_pptxEsc(t.name)}</div>
+                  <div class="text-muted" style="font-size:0.72rem;min-height:30px;">${_pptxEsc(t.description || '')}</div>
+                </div>
+                <div class="d-flex gap-1 mt-2">
+                  <button type="button" class="btn btn-sm ${isSelected ? 'btn-warning text-dark' : 'btn-primary'} fw-bold flex-grow-1" style="font-size:0.75rem;" onclick="event.stopPropagation(); pptxApplyCanvaTemplate('${_pptxEsc(t.id)}')">
+                    <i class="fas fa-bolt me-1"></i>${isSelected ? 'مُطبّق — إعادة البناء' : 'تطبيق وتجهيز تلقائي'}
+                  </button>
+                  ${t.canva_url ? `<a href="${_pptxEsc(t.canva_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="btn btn-sm btn-outline-secondary" title="عرض في كانفا"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      async function pptxApplyCanvaTemplate(templateId) {
+        pptxClearMessages();
+        const tpl = _pptxCanvaTemplates.find(x => x.id === templateId);
+        const tplName = tpl ? tpl.name : templateId;
+        const swatch = (tpl && tpl.colors && tpl.colors.primary) ? tpl.colors.primary : '#008b94';
+        pptxSelectTheme(templateId, tplName, swatch);
+        pptxRenderCanvaGallery();
+
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = `<i class="fas fa-cog fa-spin me-1"></i>جاري تطبيق قالب <strong>${_pptxEsc(tplName)}</strong> وبناء ملف PowerPoint تلقائياً...`;
+
+        try {
+          const textVal = (document.getElementById('pptxText') ? document.getElementById('pptxText').value : '').trim();
+          const titleVal = (document.getElementById('pptxTitle') ? document.getElementById('pptxTitle').value : '').trim();
+          const payload = {
+            template_id: templateId,
+            slides: _pptxCurrentSlides.length ? _pptxCurrentSlides : undefined,
+            text: textVal || undefined,
+            title: titleVal || (tplName + ' - عرض احترافي'),
+            num_slides: parseInt(document.getElementById('pptxNumSlides') ? document.getElementById('pptxNumSlides').value : '6', 10) || 6,
+            ptype: document.getElementById('pptxPtype') ? document.getElementById('pptxPtype').value : 'general',
+            font_name: document.getElementById('pptxFontName') ? document.getElementById('pptxFontName').value : '',
+            body_font_size: parseInt(document.getElementById('pptxFontSize') ? document.getElementById('pptxFontSize').value : '22', 10) || 22,
+          };
+
+          const res = await fetch('/api/pptx/canva/apply_template', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل تطبيق القالب');
+
+          pptxRenderResultAndSlides(d, tplName);
+        } catch(e) {
+          if (prog) prog.style.display = 'none';
+          pptxShowError('تعذر تطبيق قالب كانفا: ' + e.message);
+        }
+      }
+
+      async function pptxImportCanvaUrl() {
+        const url = (document.getElementById('pptxCanvaUrlInput').value || '').trim();
+        const name = (document.getElementById('pptxCanvaCustomName').value || '').trim();
+        if (!url) {
+          pptxShowGoogleStatus('الرجاء لصق رابط تصميم أو عرض من كانفا أولاً.', 'warning');
+          return;
+        }
+        try {
+          const res = await fetch('/api/pptx/canva/import_url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, name, category: 'تصاميمي' })
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل استيراد الرابط');
+          document.getElementById('pptxCanvaUrlInput').value = '';
+          document.getElementById('pptxCanvaCustomName').value = '';
+          await pptxLoadCanvaData();
+          if (d.template && d.template.id) {
+            await pptxApplyCanvaTemplate(d.template.id);
+          }
+        } catch(e) {
+          pptxShowGoogleStatus(e.message, 'danger');
+        }
+      }
+
+      async function pptxConnectCanvaToken() {
+        const token = (document.getElementById('pptxCanvaTokenInput').value || '').trim();
+        if (!token) {
+          pptxShowGoogleStatus('أدخل رمز Canva API Token أولاً أو استخدم فتح التطبيق/استيراد الرابط.', 'warning');
+          return;
+        }
+        try {
+          const res = await fetch('/api/pptx/canva/connect_token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: token })
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'تعذر المزامنة مع Canva API');
+          await pptxLoadCanvaData();
+          pptxShowGoogleStatus(`✅ تم جلب ${d.count || 0} تصميم من حسابك في كانفا!`, 'success');
+        } catch(e) {
+          pptxShowGoogleStatus(e.message, 'danger');
+        }
+      }
+
+      /* ───── رفع وتحليل .pptx حالي وإعادة تصميمه ───── */
+      async function pptxUploadAndAnalyze() {
+        const fileIn = document.getElementById('pptxAnalyzeFile');
+        const errEl = document.getElementById('pptxAnalyzeError');
+        const progEl = document.getElementById('pptxAnalyzeProgress');
+        const resArea = document.getElementById('pptxAnalyzeResultsArea');
+        const btn = document.getElementById('pptxAnalyzeStartBtn');
+        if (errEl) errEl.style.display = 'none';
+        if (!fileIn || !fileIn.files || !fileIn.files.length) {
+          if (errEl) { errEl.textContent = 'يرجى اختيار ملف PowerPoint (.pptx) أولاً.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (progEl) progEl.style.display = 'block';
+        if (resArea) resArea.style.display = 'none';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري التحليل...'; }
+
+        try {
+          if (!_pptxCanvaLoadedOnce) await pptxLoadCanvaData();
+          const fd = new FormData();
+          fd.append('file', fileIn.files[0]);
+          const res = await fetch('/api/pptx/analyze_pptx', { method: 'POST', body: fd });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل تحليل ملف .pptx');
+
+          _pptxAnalyzedPayload = d;
+          _pptxCurrentSlides = d.slides || [];
+          pptxRenderAnalyzedPresentation(d);
+        } catch(e) {
+          if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+        } finally {
+          if (progEl) progEl.style.display = 'none';
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-wand-magic-sparkles me-1"></i>بدء التحليل الذكي'; }
+        }
+      }
+
+      function pptxRenderAnalyzedPresentation(d) {
+        const resArea = document.getElementById('pptxAnalyzeResultsArea');
+        if (!resArea) return;
+        const an = d.analysis || {};
+
+        document.getElementById('pptxAnalyzeMetrics').innerHTML = `
+          <div class="col-6 col-md-3"><div class="p-2 rounded bg-white border text-center"><div class="fw-bold fs-5 text-primary">${d.slide_count || 0}</div><div class="small text-muted">عدد الشرائح</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-2 rounded bg-white border text-center"><div class="fw-bold fs-5 text-success">${d.word_count || 0}</div><div class="small text-muted">عدد الكلمات</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-2 rounded bg-white border text-center"><div class="fw-bold fs-5 text-info">${d.tables_count || 0} / ${d.images_count || 0}</div><div class="small text-muted">جداول / صور</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-2 rounded bg-white border text-center"><div class="fw-bold small text-dark text-truncate">${_pptxEsc((d.fonts_used || []).slice(0, 2).join(', ') || 'غير محدد')}</div><div class="small text-muted">الخطوط المستخدمة</div></div></div>
+        `;
+
+        document.getElementById('pptxAnalyzeScoreBadge').textContent = `التقييم العام: ${an.overall_score || 8}/10`;
+        document.getElementById('pptxAnalyzeSummary').textContent = an.summary || an.overall_summary || '';
+        document.getElementById('pptxAnalyzeStrengths').innerHTML = (an.strengths || []).map(x => `<li>${_pptxEsc(x)}</li>`).join('') || '<li>هيكل واضح للشرائح</li>';
+        document.getElementById('pptxAnalyzeWeaknesses').innerHTML = (an.weaknesses || []).map(x => `<li>${_pptxEsc(x)}</li>`).join('') || '<li>يمكن تحسين التباين البصري واختصار النقاط</li>';
+
+        const recs = an.recommended_templates || [];
+        const recWrap = document.getElementById('pptxRecommendedCanvaCards');
+        if (recWrap) {
+          recWrap.innerHTML = recs.map(r => {
+            const tpl = _pptxCanvaTemplates.find(t => t.id === r.id) || {};
+            const pCol = (tpl.colors && tpl.colors.primary) || '#1d4e89';
+            const aCol = (tpl.colors && tpl.colors.accent) || '#00c4cc';
+            return `<div class="col-md-4">
+              <div class="card h-100 border shadow-sm">
+                <div style="height:6px;background:linear-gradient(90deg,${pCol},${aCol});"></div>
+                <div class="card-body p-2 d-flex flex-column justify-content-between">
+                  <div>
+                    <div class="fw-bold small text-dark">${_pptxEsc(r.name || tpl.name || r.id)}</div>
+                    <div class="text-muted mt-1" style="font-size:0.75rem;">${_pptxEsc(r.reason || 'مناسب لطبيعة ومحتوى هذا العرض')}</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold mt-2 w-100" onclick="pptxRedesignUploaded('${_pptxEsc(r.id)}')">
+                    <i class="fas fa-magic me-1"></i>تطبيق وإعادة التصميم بهذا القالب
+                  </button>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+        }
+
+        if (recs.length && document.getElementById('pptxRedesignTemplateSelect')) {
+          document.getElementById('pptxRedesignTemplateSelect').value = recs[0].id;
+        }
+
+        const suggs = an.slide_suggestions || [];
+        document.getElementById('pptxAnalyzeSlideSuggestions').innerHTML = suggs.map(s => `
+          <div class="p-2 rounded bg-white border">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-1">
+              <span class="badge bg-secondary">شريحة ${s.slide_number || ''}</span>
+              <span class="small text-primary fw-bold">${_pptxEsc(s.improvement_reason || s.content_advice || '')}</span>
+            </div>
+            <div class="row g-2 small">
+              <div class="col-md-6">
+                <div class="text-muted fw-bold">العنوان الأصلي:</div>
+                <div>${_pptxEsc(s.original_title || s.current_title || '')}</div>
+              </div>
+              <div class="col-md-6">
+                <div class="text-success fw-bold">العنوان المحسّن:</div>
+                <div class="fw-bold">${_pptxEsc(s.improved_title || '')}</div>
+                ${Array.isArray(s.improved_bullets) && s.improved_bullets.length ? `<ul class="mb-0 ps-3 mt-1 text-dark">${s.improved_bullets.map(b => `<li>${_pptxEsc(b)}</li>`).join('')}</ul>` : ''}
+              </div>
+            </div>
+            ${(s.design_tip || s.visual_advice) ? `<div class="mt-1 pt-1 border-top text-muted" style="font-size:0.74rem;"><i class="fas fa-paint-brush text-info me-1"></i>نصيحة التصميم: ${_pptxEsc(s.design_tip || s.visual_advice)}</div>` : ''}
+          </div>`).join('');
+
+        resArea.style.display = 'block';
+      }
+
+      async function pptxRedesignUploaded(overrideTemplateId) {
+        if (!_pptxAnalyzedPayload || !Array.isArray(_pptxAnalyzedPayload.slides)) {
+          pptxShowError('قم برفع وتحليل ملف .pptx أولاً.');
+          return;
+        }
+        pptxClearMessages();
+        const templateId = overrideTemplateId || document.getElementById('pptxRedesignTemplateSelect').value || 'canva_exec_navy';
+        const tpl = _pptxCanvaTemplates.find(t => t.id === templateId);
+        const tplName = tpl ? tpl.name : templateId;
+
+        const btn = document.getElementById('pptxRedesignBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري إعادة التصميم...'; }
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = `<i class="fas fa-cog fa-spin me-1"></i>جاري تحديث الشرائح وتطبيق قالب <strong>${_pptxEsc(tplName)}</strong>...`;
+
+        try {
+          const payload = {
+            slides: _pptxAnalyzedPayload.slides,
+            slide_suggestions: (_pptxAnalyzedPayload.analysis && _pptxAnalyzedPayload.analysis.slide_suggestions) || [],
+            use_ai_improvements: document.getElementById('pptxUseAiRewriteCheck').checked,
+            template_id: templateId,
+            title: (document.getElementById('pptxRedesignTitleInput').value || '').trim(),
+            font_name: document.getElementById('pptxFontName') ? document.getElementById('pptxFontName').value : '',
+            body_font_size: parseInt(document.getElementById('pptxFontSize') ? document.getElementById('pptxFontSize').value : '22', 10) || 22,
+          };
+          const res = await fetch('/api/pptx/redesign_pptx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل إعادة تصميم الملف');
+          pptxSelectTheme(templateId, tplName, tpl && tpl.colors ? tpl.colors.primary : '#008b94');
+          pptxRenderResultAndSlides(d, tplName);
+        } catch(e) {
+          if (prog) prog.style.display = 'none';
+          pptxShowError('تعذّر تحديث العرض: ' + e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
         }
       }
 
       async function pptxChat() {
         const input = document.getElementById('pptxChatInput');
-        const msg = input.value.trim();
+        const msg = (input.value || '').trim();
         if (!msg) return;
         input.value = '';
         const chat = document.getElementById('pptxChatMessages');
         _pptxChatHistory.push({ role: 'user', content: msg });
-        chat.innerHTML += `<div class="text-end mb-2"><span class="badge rounded-pill px-3 py-2" style="background:#764ba2">${msg}</span></div>`;
+        chat.innerHTML += `<div class="text-end mb-2"><span class="badge bg-primary px-3 py-2 text-wrap text-end" style="max-width:85%;">${_pptxEsc(msg)}</span></div>`;
         chat.scrollTop = chat.scrollHeight;
         try {
-          const res = await fetch('/tools/pptx/chat', {
+          const res = await fetch('/api/pptx/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: _pptxChatHistory })
           });
           const d = await res.json();
-          _pptxChatHistory.push({ role: 'assistant', content: d.reply });
-          chat.innerHTML += `<div class="mb-2 p-2 rounded bg-white border-start border-3" style="border-color:#667eea !important">${d.reply}</div>`;
+          const reply = d.reply || 'تعذر الحصول على رد.';
+          _pptxChatHistory.push({ role: 'assistant', content: reply });
+          chat.innerHTML += `<div class="mb-2 p-2 rounded bg-white border-start border-3 border-info" style="white-space:pre-line;">${_pptxEsc(reply)}</div>`;
           chat.scrollTop = chat.scrollHeight;
         } catch(e) {
           chat.innerHTML += `<div class="text-danger small">❌ خطأ في الاتصال</div>`;

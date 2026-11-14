@@ -14468,832 +14468,207 @@ def api_ai_write_file_endpoint():
 
 
 # ════════════════════════════════════════════════════════════
-#  منشئ العروض التقديمية — مدموج بالكامل داخل app.py
+#  منشئ ومنسق العروض التقديمية (PowerPoint + Canva + AI)
 # ════════════════════════════════════════════════════════════
 
-# ── مجلد المخرجات ──────────────────────────────────────────
 from pathlib import Path
 _PPTX_OUTPUTS_DIR = Path(__file__).parent / "pptx_app" / "outputs"
 _PPTX_OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-_PPTX_IMG_CACHE   = _PPTX_OUTPUTS_DIR / "img_cache"
+_PPTX_IMG_CACHE = _PPTX_OUTPUTS_DIR / "img_cache"
 _PPTX_IMG_CACHE.mkdir(parents=True, exist_ok=True)
 
-# ── قوالب الألوان (templates.py) ───────────────────────────
-_PPTX_THEMES = {
-    "blue":   {"name":"أزرق احترافي",  "primary":(0x66,0x7E,0xEA),"secondary":(0x76,0x4B,0xA2),"accent":(0xFF,0xFF,0xFF),"text_dark":(0x1A,0x1A,0x2E),"text_light":(0xFF,0xFF,0xFF),"bg":(0xF5,0xF7,0xFF)},
-    "green":  {"name":"أخضر طبيعي",    "primary":(0x11,0x99,0x55),"secondary":(0x00,0x7A,0x3D),"accent":(0xFF,0xFF,0xFF),"text_dark":(0x1A,0x2E,0x1A),"text_light":(0xFF,0xFF,0xFF),"bg":(0xF0,0xFB,0xF4)},
-    "red":    {"name":"أحمر حيوي",     "primary":(0xE5,0x39,0x35),"secondary":(0xB7,0x1C,0x1C),"accent":(0xFF,0xCC,0x02),"text_dark":(0x2E,0x1A,0x1A),"text_light":(0xFF,0xFF,0xFF),"bg":(0xFD,0xF2,0xF2)},
-    "purple": {"name":"بنفسجي ملكي",   "primary":(0x6A,0x1B,0x9A),"secondary":(0x4A,0x14,0x8C),"accent":(0xFF,0xD7,0x00),"text_dark":(0x1A,0x1A,0x2E),"text_light":(0xFF,0xFF,0xFF),"bg":(0xF8,0xF0,0xFF)},
-}
-
-def _pptx_get_theme(color: str) -> dict:
-    return _PPTX_THEMES.get(color, _PPTX_THEMES["blue"])
-
-# ── مساعدات pptx عامة ──────────────────────────────────────
 try:
-    from pptx import Presentation as _Prs
-    from pptx.util import Inches as _Inches, Pt as _Pt, Emu as _Emu
-    from pptx.dml.color import RGBColor as _RGBColor
-    from pptx.enum.text import PP_ALIGN as _PP_ALIGN
-    from pptx.oxml.ns import qn as _qn
-    from lxml import etree as _etree
-    _PPTX_AVAILABLE = True
-except ImportError:
-    _PPTX_AVAILABLE = False
-
-def _pptx_rgb(t):
-    return _RGBColor(*t)
-
-def _pptx_set_rtl(paragraph):
-    pPr = paragraph._p.get_or_add_pPr()
-    pPr.set("rtl", "1")
-
-def _pptx_set_run_font(run, font_name: str):
-    run.font.name = font_name
-    rPr = run._r.get_or_add_rPr()
-    for tag in ("a:latin", "a:cs", "a:ea"):
-        el = rPr.find(_qn(tag))
-        if el is None:
-            el = _etree.SubElement(rPr, _qn(tag))
-        el.set("typeface", font_name)
-
-def _pptx_add_text_box(slide, left, top, width, height, text, size,
-                       bold=False, color=(0,0,0), align=None, wrap=True,
-                       font_name="Traditional Arabic"):
-    if align is None:
-        align = _PP_ALIGN.RIGHT
-    box = slide.shapes.add_textbox(_Inches(left), _Inches(top), _Inches(width), _Inches(height))
-    tf = box.text_frame; tf.word_wrap = wrap
-    p = tf.paragraphs[0]; p.alignment = align; _pptx_set_rtl(p)
-    run = p.add_run()
-    run.text = text; run.font.size = _Pt(size); run.font.bold = bold
-    run.font.color.rgb = _pptx_rgb(color); _pptx_set_run_font(run, font_name)
-    return box
-
-def _pptx_set_cell_bg(cell, color_tuple):
-    tc = cell._tc; tcPr = tc.get_or_add_tcPr()
-    sf = _etree.SubElement(tcPr, _qn("a:solidFill"))
-    sc = _etree.SubElement(sf, _qn("a:srgbClr"))
-    sc.set("val", "{:02X}{:02X}{:02X}".format(*color_tuple))
-
-# ── جالب الصور (image_fetcher.py) ──────────────────────────
-import hashlib as _hashlib
-
-_PPTX_ARABIC_TO_EN = {
-    "تعليم":"education","مدرسة":"school","جامعة":"university","طالب":"students",
-    "تدريب":"training","تعلم":"learning","اختبار":"exam","تقنية":"technology",
-    "ذكاء اصطناعي":"artificial intelligence","برمجة":"coding","حاسوب":"computer",
-    "شبكة":"network","بيانات":"data analytics","سحابة":"cloud computing",
-    "ابتكار":"innovation","ذكاء":"artificial intelligence","أعمال":"business",
-    "شركة":"corporate office","تجارة":"commerce","سوق":"market","مبيعات":"sales",
-    "تسويق":"marketing","إدارة":"management","قيادة":"leadership","فريق":"team",
-    "اجتماع":"meeting","عمل":"workplace","موظف":"employees","استراتيجية":"strategy",
-    "خطة":"planning","ميزانية":"finance","استثمار":"investment","نمو":"growth chart",
-    "صحة":"healthcare","طب":"medicine","مستشفى":"hospital","رياضة":"sports",
-    "بيئة":"environment","طاقة":"renewable energy","طبيعة":"nature landscape",
-    "مجتمع":"community","أسرة":"family","شباب":"youth","سياحة":"tourism",
-    "بناء":"architecture","مشروع":"construction project","تصميم":"design",
-    "هندسة":"engineering","خلاصة":"success achievement","نتائج":"results achievement",
-    "هدف":"goal target","مستقبل":"future vision","إنجاز":"achievement","نجاح":"success",
-}
-_PPTX_SLIDE_TYPE_DEFAULTS = {
-    "title":"professional presentation","conclusion":"success achievement team",
-    "table":"data analytics chart","chart":"business graph analytics","bullets":"professional business",
-}
-
-def _pptx_get_slide_image(slide_title, slide_bullets, slide_type="bullets", groq_client=None):
-    keywords = ""
-    if groq_client:
-        try:
-            content = slide_title + "\n" + "\n".join(slide_bullets[:3])
-            resp = groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role":"user","content":f"Extract 2-3 English keywords for image search from Arabic:\n{content}\nReturn ONLY keywords separated by commas."}],
-                max_tokens=25, temperature=0.2,
-            )
-            kw = resp.choices[0].message.content.strip().replace("\n",",")
-            keywords = ",".join([k.strip() for k in kw.split(",") if k.strip()])
-        except Exception:
-            pass
-    if not keywords:
-        full = slide_title + " " + " ".join(slide_bullets[:3])
-        for ar, en in _PPTX_ARABIC_TO_EN.items():
-            if ar in full:
-                keywords = en.replace(" ",","); break
-    if not keywords:
-        keywords = _PPTX_SLIDE_TYPE_DEFAULTS.get(slide_type, "professional business")
-    safe_kw   = keywords.strip()[:80]
-    cache_key = _hashlib.md5(safe_kw.encode()).hexdigest()[:10]
-    cache_path = _PPTX_IMG_CACHE / f"{cache_key}.jpg"
-    if cache_path.exists() and cache_path.stat().st_size > 4000:
-        return str(cache_path)
-    try:
-        import requests as _req
-        resp = _req.get(f"https://loremflickr.com/900/550/{safe_kw}", timeout=8, allow_redirects=True)
-        if resp.status_code == 200 and len(resp.content) > 4000:
-            cache_path.write_bytes(resp.content); return str(cache_path)
-    except Exception:
-        pass
-    return None
-
-# ── توليد الرسوم البيانية (chart_generator.py) ─────────────
-def _pptx_create_chart(chart_type, labels, values, title="", color="#667eea"):
-    try:
-        import matplotlib; matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        import tempfile
-        colors_list = ["#667eea","#764ba2","#11aa55","#e53935","#ff6b35","#00bcd4","#ffc107","#9c27b0"]
-        fig, ax = plt.subplots(figsize=(8,5))
-        fig.patch.set_facecolor("#f8f9ff"); ax.set_facecolor("#f8f9ff")
-        if chart_type == "bar":
-            bars = ax.bar(labels, values, color=colors_list[:len(labels)])
-            for bar, val in zip(bars, values):
-                ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(values)*0.01, f"{val:,.0f}", ha="center", va="bottom", fontsize=9, fontweight="bold")
-            ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-        elif chart_type == "pie":
-            ax.pie(values, labels=labels, autopct="%1.1f%%", colors=colors_list[:len(labels)], startangle=90, pctdistance=0.85)
-        elif chart_type == "line":
-            ax.plot(labels, values, color=color, linewidth=2.5, marker="o", markersize=7)
-            ax.fill_between(range(len(labels)), values, alpha=0.15, color=color)
-            ax.set_xticks(range(len(labels))); ax.set_xticklabels(labels)
-            ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-        elif chart_type == "horizontal_bar":
-            ax.barh(labels, values, color=colors_list[:len(labels)])
-            ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
-        if title:
-            ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
-        plt.tight_layout()
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-        plt.savefig(tmp.name, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-        plt.close(fig); return tmp.name
-    except Exception as e:
-        logger.warning(f"Chart error: {e}"); return None
-
-# ── معالج الذكاء الاصطناعي (ai_processor.py) ───────────────
-_PPTX_GROQ_MODEL = "llama-3.3-70b-versatile"
-
-def _pptx_subtitle(ptype):
-    return {"business":"عرض تجاري احترافي","educational":"مواد تعليمية متميزة","sales":"عرض تسويقي متكامل","general":"عرض تقديمي شامل"}.get(ptype,"عرض تقديمي")
-
-def _pptx_section_titles(ptype):
-    return {"business":["نظرة عامة","الأهداف الاستراتيجية","الخطة التنفيذية","الميزانية والموارد","مؤشرات النجاح"],"educational":["المقدمة","المفاهيم الأساسية","التطبيقات العملية","الأمثلة والتدريبات","التقييم"],"sales":["المشكلة","الحل المقترح","المميزات والفوائد","الأسعار والعروض","لماذا نحن؟"],"general":["المقدمة","المحتوى الرئيسي","التفاصيل","النتائج","التوصيات"]}.get(ptype,["المقدمة","المحتوى","التفاصيل","النتائج","الخلاصة"])
-
-def _pptx_process_locally(text, num_slides, ptype, extracted_tables):
-    lines = [l.strip() for l in text.split('\n') if l.strip()]
-    sentences = []
-    for line in lines:
-        parts = re.split(r'[.،,;؛]', line)
-        sentences.extend([p.strip() for p in parts if len(p.strip()) > 5])
-    title = sentences[0][:70] if sentences else "العرض التقديمي"
-    slides = [{"title":title,"subtitle":_pptx_subtitle(ptype),"bullets":[],"slide_type":"title"}]
-    remaining = sentences[1:] if len(sentences)>1 else ["محتوى العرض"]
-    content_count = max(1, num_slides-2)
-    chunk_size = max(1, len(remaining)//max(1,content_count))
-    sec_titles = _pptx_section_titles(ptype)
-    tables_used = 0
-    for i in range(content_count):
-        chunk = remaining[i*chunk_size:(i+1)*chunk_size]
-        bullets = [b[:120] for b in chunk if b][:5]
-        if not bullets:
-            bullets = [f"النقطة الرئيسية {i+1}","التفاصيل والمعلومات","الخلاصة الجزئية"]
-        slide = {"title":sec_titles[i%len(sec_titles)],"subtitle":"","bullets":bullets,"slide_type":"bullets"}
-        if extracted_tables and tables_used<len(extracted_tables) and i==content_count//2:
-            slide["slide_type"]="table"; slide["table_data"]=extracted_tables[tables_used]; tables_used+=1
-        slides.append(slide)
-    slides.append({"title":"الخلاصة والتوصيات","subtitle":"","bullets":["✅ "+(sentences[-1][:90] if sentences else "تم عرض أهم النقاط"),"📌 نرحب بأسئلتكم واستفساراتكم","🙏 شكراً لاهتمامكم"],"slide_type":"conclusion"})
-    return slides[:num_slides]
-
-class _AIProcessor:
-    def __init__(self):
-        self.groq_available = False; self.client = None
-        try:
-            from groq import Groq
-            api_key = os.environ.get("GROQ_API_KEY","").strip()
-            if api_key:
-                self.client = Groq(api_key=api_key); self.groq_available = True
-        except Exception as e:
-            logger.warning(f"[Groq init] {e}")
-
-    @property
-    def is_ai_available(self): return self.groq_available
-
-    def text_to_presentation_structure(self, text, num_slides=6, presentation_type="general",
-                                       title_override="", include_tables=False, include_charts=False,
-                                       extracted_tables=None):
-        if self.groq_available:
-            slides = self._process_with_groq(text, num_slides, presentation_type, include_tables, include_charts)
-        else:
-            slides = _pptx_process_locally(text, num_slides, presentation_type, extracted_tables or [])
-        if title_override and slides:
-            slides[0]["title"] = title_override
-        return slides
-
-    def _process_with_groq(self, text, num_slides, ptype, include_tables, include_charts):
-        label = {"general":"عام","business":"تجاري","educational":"تعليمي","sales":"تسويقي"}.get(ptype,"عام")
-        extras = ""
-        if include_tables: extras += '\n- أضف شريحة جدول بنوع "table" مع مفتاح "table_data"'
-        if include_charts: extras += '\n- أضف شريحة رسم بياني بنوع "chart" مع chart_type/chart_labels/chart_values'
-        user_prompt = f"""حلّل النص وأنشئ هيكل عرض {label} من {num_slides} شرائح.{extras}
-
-النص:
-{text[:4000]}
-
-القواعد:
-- الأولى: نوع "title" مع عنوان رئيسي وعنوان فرعي
-- الأخيرة: نوع "conclusion" مع 3 نقاط
-- الوسطى: نوع "bullets" مع 3-5 نقاط
-- كل المحتوى بالعربية
-- أرجع JSON فقط: [{{"title":"...","subtitle":"...","bullets":["..."],"slide_type":"title|bullets|table|chart|conclusion",...}}]"""
-        try:
-            resp = self.client.chat.completions.create(
-                model=_PPTX_GROQ_MODEL,
-                messages=[{"role":"system","content":"أنت خبير عروض تقديمية. تُنتج JSON صحيحاً فقط."},{"role":"user","content":user_prompt}],
-                max_tokens=3000, temperature=0.65,
-            )
-            content = resp.choices[0].message.content.strip()
-            match = re.search(r'\[.*\]', content, re.DOTALL)
-            if match:
-                slides = json.loads(match.group())
-                if isinstance(slides, list) and slides:
-                    return slides
-        except Exception as e:
-            logger.warning(f"[Groq pptx] {e}")
-        return _pptx_process_locally(text, num_slides, ptype, [])
-
-# ── مولّد PPTX (presentation_generator.py) ─────────────────
-class _PresentationGenerator:
-    def __init__(self):
-        self.font_name = "Traditional Arabic"
-        self.body_font_size = 22
-
-    def _parse_color(self, color_str):
-        from pptx.dml.color import RGBColor
-        import re
-        if not color_str:
-            return None
-        s = color_str.strip().lower()
-        if s.startswith('#'):
-            c = s.lstrip('#')
-            if len(c) == 3:
-                c = c[0]*2 + c[1]*2 + c[2]*2
-            if len(c) >= 6:
-                return RGBColor(int(c[0:2],16), int(c[2:4],16), int(c[4:6],16))
-        if s.startswith('rgb'):
-            nums = re.findall(r'[\d.]+', s)
-            if len(nums) >= 3:
-                r,g,b = int(float(nums[0])), int(float(nums[1])), int(float(nums[2]))
-                return RGBColor(min(r,255), min(g,255), min(b,255))
-        named = {
-            'black':(0,0,0),'white':(255,255,255),'red':(255,0,0),'green':(0,128,0),
-            'blue':(0,0,255),'yellow':(255,255,0),'orange':(255,165,0),'purple':(128,0,128),
-            'pink':(255,192,203),'gray':(128,128,128),'grey':(128,128,128),'brown':(165,42,42),
-            'cyan':(0,255,255),'magenta':(255,0,255),'navy':(0,0,128),'teal':(0,128,128),
-            'lime':(0,255,0),'maroon':(128,0,0),'olive':(128,128,0),'silver':(192,192,192),
-            'gold':(255,215,0),'coral':(255,127,80),'salmon':(250,128,114),'turquoise':(64,224,208),
-            'indigo':(75,0,130),'violet':(238,130,238),'darkblue':(0,0,139),'darkgreen':(0,100,0),
-            'darkred':(139,0,0),'darkgray':(169,169,169),'lightblue':(173,216,230),
-            'lightgreen':(144,238,144),'lightyellow':(255,255,224),'lightgray':(211,211,211),
-            'crimson':(220,20,60),'deepskyblue':(0,191,255),'forestgreen':(34,139,34),
-            'hotpink':(255,105,180),'limegreen':(50,205,50),'mediumblue':(0,0,205),
-            'orangered':(255,69,0),'royalblue':(65,105,225),'seagreen':(46,139,87),
-            'skyblue':(135,206,235),'slategray':(112,128,144),'steelblue':(70,130,180),
-            'tomato':(255,99,71),'yellowgreen':(154,205,50),'beige':(245,245,220),
-            'ivory':(255,255,240),'khaki':(240,230,140),'lavender':(230,230,250),
-            'wheat':(245,222,179)
-        }
-        if s in named:
-            r,g,b = named[s]
-            return RGBColor(r,g,b)
-        return None
-
-    def _fetch_image(self, src):
-        import base64 as _b64, requests as _req
-        if src.startswith("data:image"):
-            try:
-                header, data = src.split(",", 1)
-                return _b64.b64decode(data)
-            except Exception:
-                return None
-        elif src.startswith("http"):
-            try:
-                resp = _req.get(src, timeout=5)
-                if resp.ok:
-                    return resp.content
-            except Exception:
-                pass
-        return None
-
-    def _save_temp_image(self, src):
-        import tempfile as _tmp
-        data = self._fetch_image(src)
-        if data:
-            ext = 'png' if 'png' in src else 'jpg'
-            fd, path = _tmp.mkstemp(suffix=f'.{ext}')
-            with os.fdopen(fd, 'wb') as f:
-                f.write(data)
-            return path
-        return None
-
-    def create_presentation(self, slides_data, theme_color="blue", cover_data=None,
-                            extracted_images=None, font_name="Traditional Arabic",
-                            body_font_size=22, ai_images=False, groq_client=None):
-        from datetime import datetime as _dt
-        self.font_name = font_name; self.body_font_size = body_font_size
-        theme = _pptx_get_theme(theme_color)
-        prs = _Prs()
-        prs.slide_width = _Inches(13.33); prs.slide_height = _Inches(7.5)
-        if cover_data:
-            self._add_cover_slide(prs, cover_data, theme)
-        for i, sd in enumerate(slides_data):
-            stype = sd.get("slide_type","bullets")
-            if stype == "title":        self._add_title_slide(prs, sd, theme)
-            elif stype == "table" and sd.get("table_data"): self._add_table_slide(prs, sd, theme)
-            elif stype == "chart":      self._add_chart_slide(prs, sd, theme)
-            elif stype == "conclusion": self._add_conclusion_slide(prs, sd, theme)
-            else:
-                img_path = None
-                if sd.get("images"):
-                    img_src = sd["images"][0]
-                    img_path = self._save_temp_image(img_src)
-                if not img_path and extracted_images and i < len(extracted_images):
-                    img_path = extracted_images[i]
-                if not img_path and ai_images:
-                    img_path = _pptx_get_slide_image(sd.get("title",""), sd.get("bullets",[]), stype, groq_client)
-                self._add_content_slide(prs, sd, theme, i, img_path)
-        ts = _dt.now().strftime("%Y%m%d_%H%M%S")
-        out = str(_PPTX_OUTPUTS_DIR / f"عرض_{ts}.pptx")
-        prs.save(out); return out
-
-    def _add_cover_slide(self, prs, cover_data, theme):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["primary"])
-        rect = slide.shapes.add_shape(1,_Inches(0),_Inches(0),_Inches(13.33),_Inches(2.2))
-        rect.fill.solid(); rect.fill.fore_color.rgb = _pptx_rgb(theme["secondary"]); rect.line.fill.background()
-        logo_box = slide.shapes.add_textbox(_Inches(0.5),_Inches(0.35),_Inches(2),_Inches(1.5))
-        lp = logo_box.text_frame.paragraphs[0]; lp.alignment = _PP_ALIGN.CENTER
-        lr = lp.add_run(); lr.text = cover_data.get("logo","📊"); lr.font.size = _Pt(52)
-        org = cover_data.get("organization","")
-        if org:
-            ob = slide.shapes.add_textbox(_Inches(2.8),_Inches(0.5),_Inches(10),_Inches(1))
-            op = ob.text_frame.paragraphs[0]; op.alignment = _PP_ALIGN.RIGHT; _pptx_set_rtl(op)
-            or_ = op.add_run(); or_.text = org; or_.font.size = _Pt(20); or_.font.bold = True
-            or_.font.color.rgb = _RGBColor(220,220,255); _pptx_set_run_font(or_, self.font_name)
-        fn = self.font_name
-        _pptx_add_text_box(slide,1,2.5,11.3,1.8,cover_data.get("title","العنوان الرئيسي"),42,bold=True,color=theme["text_light"],align=_PP_ALIGN.CENTER,font_name=fn)
-        subtitle = cover_data.get("subtitle","")
-        if subtitle:
-            _pptx_add_text_box(slide,1.5,4.4,10.3,0.9,subtitle,22,color=(210,210,240),align=_PP_ALIGN.CENTER,font_name=fn)
-        line = slide.shapes.add_shape(1,_Inches(3.5),_Inches(5.5),_Inches(6.3),_Emu(35000))
-        line.fill.solid(); line.fill.fore_color.rgb = _pptx_rgb(theme["accent"]); line.line.fill.background()
-        meta = []
-        if cover_data.get("presenter"): meta.append(f"إعداد: {cover_data['presenter']}")
-        if cover_data.get("date"): meta.append(cover_data["date"])
-        if meta:
-            _pptx_add_text_box(slide,1,5.9,11.3,0.7,"  |  ".join(meta),16,color=(200,200,230),align=_PP_ALIGN.CENTER,font_name=fn)
-
-    def _add_title_slide(self, prs, data, theme):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["primary"])
-        self._add_bottom_strip(slide, theme); fn = self.font_name
-        _pptx_add_text_box(slide,1,2.2,11.3,1.8,data.get("title","العنوان"),44,bold=True,color=theme["text_light"],align=_PP_ALIGN.CENTER,font_name=fn)
-        subtitle = data.get("subtitle","")
-        if subtitle:
-            _pptx_add_text_box(slide,2,4.2,9.3,1,subtitle,24,color=(220,220,255),align=_PP_ALIGN.CENTER,font_name=fn)
-        line = slide.shapes.add_shape(1,_Inches(4.5),_Inches(4.0),_Inches(4.3),_Emu(40000))
-        line.fill.solid(); line.fill.fore_color.rgb = _pptx_rgb(theme["accent"]); line.line.fill.background()
-
-    def _add_content_slide(self, prs, data, theme, index, img_path=None):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        # تطبيق خلفية الشريحة (من HTML أو من الثيم)
-        bg_color = data.get("bg_color")
-        if bg_color:
-            rgb = self._parse_color(bg_color)
-            if rgb:
-                bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = rgb
-            else:
-                bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["bg"])
-        else:
-            bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["bg"])
-        header = slide.shapes.add_shape(1,_Inches(0),_Inches(0),_Inches(13.33),_Inches(1.35))
-        header.fill.solid(); header.fill.fore_color.rgb = _pptx_rgb(theme["primary"]); header.line.fill.background()
-        _pptx_add_text_box(slide,0.4,0.15,12,1.05,data.get("title",""),27,bold=True,color=theme["text_light"],align=_PP_ALIGN.RIGHT,font_name=self.font_name)
-        bullets = data.get("bullets",[])
-        has_image = img_path and Path(img_path).exists()
-        if has_image:
-            content_box = slide.shapes.add_textbox(_Inches(4.8),_Inches(1.55),_Inches(8.1),_Inches(5.7))
-            self._fill_bullets(content_box.text_frame, bullets, theme)
-            try:
-                frame = slide.shapes.add_shape(1,_Inches(0.18),_Inches(1.48),_Inches(4.44),_Inches(5.64))
-                frame.fill.solid(); frame.fill.fore_color.rgb = _pptx_rgb(theme["accent"]); frame.line.fill.background()
-                slide.shapes.add_picture(img_path,_Inches(0.25),_Inches(1.55),_Inches(4.3),_Inches(5.5))
-            except Exception:
-                content_box2 = slide.shapes.add_textbox(_Inches(0.5),_Inches(1.55),_Inches(12.3),_Inches(5.7))
-                self._fill_bullets(content_box2.text_frame, bullets, theme)
-        else:
-            # إضافة صور من HTML مباشرة إن وجدت
-            images = data.get("images", [])
-            if images:
-                temp_path = self._save_temp_image(images[0])
-                if temp_path:
-                    try:
-                        content_box = slide.shapes.add_textbox(_Inches(4.8),_Inches(1.55),_Inches(8.1),_Inches(5.7))
-                        self._fill_bullets(content_box.text_frame, bullets, theme)
-                        slide.shapes.add_picture(temp_path,_Inches(0.25),_Inches(1.55),_Inches(4.3),_Inches(5.5))
-                    except Exception:
-                        content_box = slide.shapes.add_textbox(_Inches(0.5),_Inches(1.55),_Inches(12.3),_Inches(5.7))
-                        self._fill_bullets(content_box.text_frame, bullets, theme)
-                    finally:
-                        try: os.unlink(temp_path)
-                        except: pass
-                else:
-                    content_box = slide.shapes.add_textbox(_Inches(0.5),_Inches(1.55),_Inches(12.3),_Inches(5.7))
-                    self._fill_bullets(content_box.text_frame, bullets, theme)
-            else:
-                content_box = slide.shapes.add_textbox(_Inches(0.5),_Inches(1.55),_Inches(12.3),_Inches(5.7))
-                self._fill_bullets(content_box.text_frame, bullets, theme)
-        num_box = slide.shapes.add_textbox(_Inches(12.6),_Inches(6.9),_Inches(0.7),_Inches(0.5))
-        np_ = num_box.text_frame.paragraphs[0]; np_.alignment = _PP_ALIGN.CENTER
-        nr = np_.add_run(); nr.text = str(index+1); nr.font.size = _Pt(11); nr.font.color.rgb = _pptx_rgb(theme["secondary"])
-
-    def _fill_bullets(self, tf, bullets, theme):
-        tf.word_wrap = True; fs = self.body_font_size; fn = self.font_name
-        for i, bullet in enumerate(bullets):
-            p = tf.paragraphs[0] if i==0 else tf.add_paragraph()
-            p.alignment = _PP_ALIGN.RIGHT; _pptx_set_rtl(p); p.space_before = _Pt(10); p.space_after = _Pt(4)
-            run = p.add_run(); run.text = f"◆ {bullet}"; run.font.size = _Pt(fs)
-            run.font.color.rgb = _pptx_rgb(theme["text_dark"]); _pptx_set_run_font(run, fn)
-
-    def _add_table_slide(self, prs, data, theme):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["bg"])
-        header = slide.shapes.add_shape(1,_Inches(0),_Inches(0),_Inches(13.33),_Inches(1.35))
-        header.fill.solid(); header.fill.fore_color.rgb = _pptx_rgb(theme["primary"]); header.line.fill.background()
-        _pptx_add_text_box(slide,0.4,0.15,12,1.05,data.get("title","جدول البيانات"),27,bold=True,color=theme["text_light"],align=_PP_ALIGN.RIGHT,font_name=self.font_name)
-        table_data = data.get("table_data",[])
-        if not table_data: return
-        rows = len(table_data); cols = max(len(r) for r in table_data)
-        if rows==0 or cols==0: return
-        table = slide.shapes.add_table(rows,cols,_Inches(0.5),_Inches(1.6),_Inches(12.3),_Inches(min(5.5,0.5+rows*0.55))).table
-        fn = self.font_name
-        for r_idx, row in enumerate(table_data):
-            for c_idx in range(cols):
-                cell_data = row[c_idx] if c_idx < len(row) else {"text": ""}
-                if isinstance(cell_data, dict):
-                    text = cell_data.get("text", "")
-                    bg_color = cell_data.get("bg")
-                    align_val = cell_data.get("align", "center")
-                    bold = cell_data.get("bold", False)
-                else:
-                    text = str(cell_data); bg_color = None; align_val = "center"; bold = (r_idx == 0)
-                cell = table.cell(r_idx, c_idx); cell.text = text
-                tf = cell.text_frame; par = tf.paragraphs[0]
-                par.alignment = getattr(_PP_ALIGN, align_val.upper(), _PP_ALIGN.CENTER); _pptx_set_rtl(par)
-                if bg_color:
-                    rgb = self._parse_color(bg_color)
-                    if rgb: _pptx_set_cell_bg(cell, (rgb.red, rgb.green, rgb.blue))
-                    else: _pptx_set_cell_bg(cell, theme["primary"] if r_idx==0 else ((235,238,255) if r_idx%2==0 else (255,255,255)))
-                else:
-                    _pptx_set_cell_bg(cell, theme["primary"] if r_idx==0 else ((235,238,255) if r_idx%2==0 else (255,255,255)))
-                runs = par.runs
-                if runs:
-                    runs[0].font.size = _Pt(15); runs[0].font.bold = bold or (r_idx==0)
-                    runs[0].font.color.rgb = _pptx_rgb(theme["text_light"] if r_idx==0 else theme["text_dark"])
-                    _pptx_set_run_font(runs[0], fn)
-
-    def _add_chart_slide(self, prs, data, theme):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["bg"])
-        header = slide.shapes.add_shape(1,_Inches(0),_Inches(0),_Inches(13.33),_Inches(1.35))
-        header.fill.solid(); header.fill.fore_color.rgb = _pptx_rgb(theme["primary"]); header.line.fill.background()
-        _pptx_add_text_box(slide,0.4,0.15,12,1.05,data.get("title","رسم بياني"),27,bold=True,color=theme["text_light"],align=_PP_ALIGN.RIGHT,font_name=self.font_name)
-        chart_type = data.get("chart_type","bar"); labels = data.get("chart_labels",[]); values = data.get("chart_values",[])
-        if not labels or not values:
-            _pptx_add_text_box(slide,1,3,11,2,"لا توجد بيانات كافية",20,color=theme["text_dark"],font_name=self.font_name); return
-        try: values_float = [float(v) for v in values]
-        except Exception: values_float = [1.0]*len(labels)
-        primary_hex = "#{:02x}{:02x}{:02x}".format(*theme["primary"])
-        img_path = _pptx_create_chart(chart_type, labels, values_float, data.get("chart_title",""), primary_hex)
-        if img_path and Path(img_path).exists():
-            slide.shapes.add_picture(img_path,_Inches(1.5),_Inches(1.6),_Inches(10.3),_Inches(5.6))
-        else:
-            _pptx_add_text_box(slide,1,3,11,2,"تعذّر إنشاء الرسم البياني",20,color=theme["text_dark"],font_name=self.font_name)
-
-    def _add_conclusion_slide(self, prs, data, theme):
-        slide = prs.slides.add_slide(prs.slide_layouts[6])
-        bg = slide.background.fill; bg.solid(); bg.fore_color.rgb = _pptx_rgb(theme["secondary"])
-        fn = self.font_name
-        _pptx_add_text_box(slide,1,1.5,11.3,1.2,data.get("title","الخلاصة"),36,bold=True,color=theme["text_light"],align=_PP_ALIGN.CENTER,font_name=fn)
-        line = slide.shapes.add_shape(1,_Inches(3.5),_Inches(2.9),_Inches(6.3),_Emu(35000))
-        line.fill.solid(); line.fill.fore_color.rgb = _pptx_rgb(theme["accent"]); line.line.fill.background()
-        bullets = data.get("bullets",[]); cont_box = slide.shapes.add_textbox(_Inches(1.5),_Inches(3.2),_Inches(10.3),_Inches(4.0))
-        tf = cont_box.text_frame; tf.word_wrap = True
-        for i, bullet in enumerate(bullets):
-            p = tf.paragraphs[0] if i==0 else tf.add_paragraph()
-            p.alignment = _PP_ALIGN.RIGHT; _pptx_set_rtl(p); p.space_before = _Pt(12)
-            run = p.add_run(); run.text = bullet; run.font.size = _Pt(self.body_font_size)
-            run.font.color.rgb = _RGBColor(220,220,255); _pptx_set_run_font(run, fn)
-
-    def _add_bottom_strip(self, slide, theme):
-        rect = slide.shapes.add_shape(1,_Inches(0),_Inches(6.8),_Inches(13.33),_Inches(0.7))
-        rect.fill.solid(); rect.fill.fore_color.rgb = _pptx_rgb(theme["secondary"]); rect.line.fill.background()
-
-# ── تطبيق التصميم (design_applier.py) ──────────────────────
-class _DesignApplier:
-    def __init__(self): self.generator = _PresentationGenerator()
-    def apply_design_to_presentation(self, presentation_path, design, slides_data):
-        return self.generator.create_presentation(slides_data, theme_color=design.get("theme_color","blue"))
-
-# ── استخراج الملفات (file_extractor.py) ────────────────────
-def _extract_content(file_bytes: bytes, filename: str) -> dict:
-    ext = Path(filename).suffix.lower()
-    if ext in (".docx",".doc"):
-        import docx as _docx, io as _io, tempfile as _tmp
-        doc = _docx.Document(_io.BytesIO(file_bytes))
-        result = {"text_blocks":[],"tables":[],"images":[],"full_text":""}
-        for para in doc.paragraphs:
-            text = para.text.strip()
-            if not text: continue
-            result["text_blocks"].append({"type":"paragraph","style":para.style.name if para.style else "","text":text})
-            result["full_text"] += text + "\n"
-        for tbl in doc.tables:
-            rows = [[cell.text.strip() for cell in row.cells] for row in tbl.rows]
-            if rows: result["tables"].append(rows)
-        return result
-    elif ext == ".pdf":
-        result = {"text_blocks":[],"tables":[],"images":[],"full_text":""}
-        try:
-            import pdfplumber as _pdfp, io as _io
-            with _pdfp.open(_io.BytesIO(file_bytes)) as pdf:
-                for pg_num, page in enumerate(pdf.pages, 1):
-                    text = page.extract_text() or ""
-                    if text.strip():
-                        result["text_blocks"].append({"type":"page","style":f"صفحة {pg_num}","text":text.strip()})
-                        result["full_text"] += text.strip() + "\n"
-                    for tbl in page.extract_tables():
-                        if tbl:
-                            result["tables"].append([[cell or "" for cell in row] for row in tbl])
-        except Exception as e:
-            result["full_text"] = f"خطأ في قراءة PDF: {str(e)}"
-        return result
-    else:
-        text = file_bytes.decode("utf-8", errors="ignore")
-        return {"text_blocks":[{"type":"paragraph","style":"Normal","text":text}],"tables":[],"images":[],"full_text":text}
-
-# ── محوّل HTML إلى PPTX (html_to_pptx.py) ──────────────────
-def _parse_html_slides(html: str):
-    from bs4 import BeautifulSoup as _BS
-    import re as _re
-    soup = _BS(html, "lxml")
-    for tag in soup.find_all(["script","noscript"]): tag.decompose()
-    slide_cands = (soup.find_all("section") or
-                   soup.find_all(class_=_re.compile(r"slide|page|frame",_re.I)) or
-                   soup.find_all(attrs={"data-slide":True}) or
-                   soup.find_all("article"))
-    if not slide_cands:
-        sections = []; current = None
-        for el in (soup.body or soup).children:
-            if not hasattr(el,"name"): continue
-            if el.name in ("h1","h2","h3"):
-                if current: sections.append(current)
-                current = [el]
-            elif current is not None: current.append(el)
-        if current: sections.append(current)
-        slide_cands = []
-        for group in sections:
-            wrapper = _BS("<div></div>","lxml").div
-            for el in group: wrapper.append(el.__copy__())
-            slide_cands.append(wrapper)
-
-    def _extract(el):
-        sd = {
-            "title": "", "subtitle": "", "bullets": [], "slide_type": "bullets",
-            "bg_color": None, "text_color": None, "table_data": None,
-            "images": [], "is_title_slide": False, "font_size": None, "bold": False,
-            "raw_html": str(el)
-        }
-        # 1. استخراج العنوان من .slide-title أو h1-h4
-        title_el = el.find(class_="slide-title")
-        if title_el:
-            sd["title"] = title_el.get_text(strip=True)
-        else:
-            for htag in ["h1","h2","h3","h4"]:
-                h = el.find(htag)
-                if h:
-                    sd["title"] = h.get_text(strip=True)
-                    sd["is_title_slide"] = (htag == "h1")
-                    break
-        # 2. استخراج الخلفية
-        style_attr = el.get("style", "")
-        bg_match = _re.search(r'background(?:-color)?\s*:\s*([^;]+)', style_attr)
-        if bg_match:
-            sd["bg_color"] = bg_match.group(1).strip()
-        content_el = el.find(class_="content")
-        if content_el:
-            style2 = content_el.get("style", "")
-            bg_match2 = _re.search(r'background(?:-color)?\s*:\s*([^;]+)', style2)
-            if bg_match2:
-                sd["bg_color"] = bg_match2.group(1).strip()
-        # 3. استخراج النقاط
-        bullets_el = el.find(class_="list-items")
-        if bullets_el:
-            sd["bullets"] = [li.get_text(strip=True) for li in bullets_el.find_all("li") if li.get_text(strip=True)]
-        else:
-            lis = el.find_all("li")
-            if lis:
-                sd["bullets"] = [li.get_text(strip=True) for li in lis if li.get_text(strip=True)]
-            else:
-                body = el.find(class_="slide-body")
-                if body:
-                    p_els = body.find_all("p")
-                    if p_els:
-                        sd["bullets"] = [p.get_text(strip=True) for p in p_els if p.get_text(strip=True) and len(p.get_text(strip=True))>3]
-                if not sd["bullets"]:
-                    sd["bullets"] = [p.get_text(strip=True) for p in el.find_all("p") if p.get_text(strip=True) and p.get_text(strip=True) not in (sd["title"],sd["subtitle"]) and len(p.get_text(strip=True))>3]
-        sd["bullets"] = sd["bullets"][:8]
-        # 4. استخراج الجداول مع ألوان الخلايا
-        tbl = el.find("table")
-        if tbl:
-            rows = []
-            for tr in tbl.find_all("tr"):
-                cells = []
-                for td in tr.find_all(["td","th"]):
-                    cell_text = td.get_text(strip=True)
-                    cell_style = td.get("style","")
-                    bg = _re.search(r'background(?:-color)?\s*:\s*([^;]+)', cell_style)
-                    bg_val = bg.group(1).strip() if bg else None
-                    align = _re.search(r'text-align\s*:\s*([^;]+)', cell_style)
-                    align_val = align.group(1).strip() if align else "center"
-                    cells.append({"text": cell_text, "bg": bg_val, "align": align_val,
-                                  "bold": (td.name=="th") or ("font-weight" in cell_style and "bold" in cell_style)})
-                if cells: rows.append(cells)
-            if rows:
-                sd["table_data"] = rows; sd["slide_type"] = "table"
-        # 5. استخراج الصور
-        for img in el.find_all("img"):
-            src = img.get("src","")
-            if src and (src.startswith("data:") or src.startswith("http")):
-                sd["images"].append(src)
-        # 6. لون النص
-        color_match = _re.search(r'(?<![a-z])color\s*:\s*([^;]+)', style_attr)
-        if color_match:
-            sd["text_color"] = color_match.group(1).strip()
-        # 7. نوع الشريحة
-        classes = " ".join(el.get("class",[]))
-        if _re.search(r"title|cover|first|intro",classes,_re.I) or sd["is_title_slide"]:
-            sd["slide_type"] = "title"
-        elif _re.search(r"end|outro|thank|conclusion",classes,_re.I):
-            sd["slide_type"] = "conclusion"
-        return sd
-
-    slides = []
-    for el in slide_cands:
-        data = _extract(el)
-        if data.get("title") or data.get("bullets") or data.get("table_data"):
-            slides.append(data)
-    if not slides:
-        slides = [_extract(soup.body or soup)]
-    return slides
-
-def _html_to_pptx(html: str, override_title: str = "") -> str:
-    from datetime import datetime as _dt
-    slides_data = _parse_html_slides(html)
-    if not slides_data:
-        raise ValueError("لم يتم العثور على محتوى في HTML")
-    if override_title and slides_data:
-        slides_data[0]["title"] = override_title
-    gen = _PresentationGenerator()
-    out = gen.create_presentation(
-        slides_data=slides_data,
-        theme_color="blue",
-        cover_data=None,
-        extracted_images=[],
-        font_name="Traditional Arabic",
-        body_font_size=22,
-        ai_images=False,
-        groq_client=None
+    from pptx_app.modules.templates import (
+        THEMES as _PPTX_THEMES,
+        CANVA_TEMPLATES as _CANVA_TEMPLATES,
+        ProfessionalTemplates as _ProfessionalTemplates,
     )
-    return out
+    from pptx_app.modules.ai_processor import AIProcessor as _AIProcessor
+    from pptx_app.modules.presentation_generator import PresentationGenerator as _PresentationGenerator
+    from pptx_app.modules.design_applier import DesignApplier as _DesignApplier
+    from pptx_app.modules.design_importer import DesignImporter as _DesignImporter
+    from pptx_app.modules.file_extractor import extract_content as _extract_content, extract_from_pptx as _extract_from_pptx
+    from pptx_app.modules.html_to_pptx import parse_html_to_slides as _parse_html_slides, convert_html_to_pptx as _convert_html_to_pptx
 
-# ── تهيئة الكائنات ──────────────────────────────────────────
-try:
-    _pptx_ai  = _AIProcessor()
+    _pptx_ai = _AIProcessor()
     _pptx_gen = _PresentationGenerator()
     _pptx_dap = _DesignApplier()
-    logger.info("✅ PowerPoint modules loaded successfully (inlined)")
+    _pptx_dimp = _DesignImporter()
+    _PPTX_AVAILABLE = True
+    logger.info("✅ PowerPoint & Canva modules loaded successfully (modular)")
 except Exception as _pptx_err:
-    logger.error(f"❌ Failed to init PPTX: {_pptx_err}")
-    _pptx_ai = _pptx_gen = _pptx_dap = None
+    logger.error(f"❌ Failed to init PPTX modules: {_pptx_err}", exc_info=True)
+    _pptx_ai = _pptx_gen = _pptx_dap = _pptx_dimp = None
+    _PPTX_AVAILABLE = False
 
 
+@app.route('/api/pptx/ai_status')
 @app.route('/tools/pptx/ai_status')
 def tools_pptx_ai_status():
     available = _pptx_ai is not None and _pptx_ai.is_ai_available
-    return jsonify({'available': available})
+    provider = _pptx_ai.get_provider_label() if _pptx_ai else "غير متاح"
+    return jsonify({
+        'available': available,
+        'provider': provider,
+        'gemini_keys': getattr(_pptx_ai, 'gemini_keys_count', 0) if _pptx_ai else 0,
+    })
 
 
+@app.route('/api/pptx/extract_file', methods=['POST'])
 @app.route('/tools/pptx/extract_file', methods=['POST'])
 def tools_pptx_extract_file():
+    if not _PPTX_AVAILABLE:
+        return jsonify({'error': 'وحدات PowerPoint غير متاحة'}), 500
     if 'file' not in request.files:
-        return jsonify({'error': 'لا يوجد ملف'}), 400
+        return jsonify({'error': 'لا يوجد ملف مرفق'}), 400
     f = request.files['file']
     try:
-        result = _extract_content(f.read(), f.filename)
+        raw_bytes = f.read()
+        result = _extract_content(raw_bytes, f.filename or "document.txt")
+        full_text = result.get('full_text', '')
         return jsonify({
             'success': True,
-            'full_text': result['full_text'],
+            'full_text': full_text,
             'tables': result.get('tables', []),
-            'word_count': len(result['full_text'].split()),
+            'slides': result.get('slides', []),
+            'slide_count': result.get('slide_count', 0),
+            'word_count': len(full_text.split()),
         })
     except Exception as e:
+        logger.error(f"PPTX extract_file error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/pptx/generate', methods=['POST'])
 @app.route('/tools/pptx/generate', methods=['POST'])
 def tools_pptx_generate():
     if _pptx_ai is None or _pptx_gen is None:
         return jsonify({'error': 'وحدات PowerPoint غير متاحة — تحقق من سجلات الخادم'}), 500
     try:
-        data = request.json or {}
-        text           = data.get('text', '')
-        num_slides     = int(data.get('num_slides', 6))
-        ptype          = data.get('ptype', 'general')
-        title          = data.get('title', '')
-        inc_tables     = bool(data.get('inc_tables', False))
-        inc_charts     = bool(data.get('inc_charts', False))
-        theme_color    = data.get('theme_color', 'blue')
-        font_name      = data.get('font_name', 'Traditional Arabic')
-        body_font_size = int(data.get('body_font_size', 22))
-        cover_data     = data.get('cover_data', None)
-        ext_tables     = data.get('extracted_tables', [])
+        data = request.get_json(silent=True) or {}
+        text = (data.get('text') or '').strip()
+        provided_slides = data.get('slides')
+        num_slides = int(data.get('num_slides', 6) or 6)
+        ptype = data.get('ptype', 'general')
+        title = (data.get('title') or '').strip()
+        inc_tables = bool(data.get('inc_tables', False))
+        inc_charts = bool(data.get('inc_charts', False))
+        theme_color = data.get('canva_template_id') or data.get('theme_color', 'blue')
+        font_name = (data.get('font_name') or '').strip() or 'Traditional Arabic'
+        body_font_size = int(data.get('body_font_size', 22) or 22)
+        cover_data = data.get('cover_data', None)
+        ext_tables = data.get('extracted_tables', []) or []
 
-        slides = _pptx_ai.text_to_presentation_structure(
-            text=text, num_slides=num_slides, presentation_type=ptype,
-            title_override=title, include_tables=inc_tables,
-            include_charts=inc_charts, extracted_tables=ext_tables,
-        )
+        if not text and not provided_slides:
+            return jsonify({'error': 'الرجاء إدخال محتوى العرض أو رفع ملف أولاً'}), 400
 
-        if inc_tables and ext_tables:
-            if not any(s.get('slide_type') == 'table' for s in slides):
-                for i, tbl in enumerate(ext_tables[:2]):
-                    slides.insert(min(2 + i, len(slides) - 1),
-                        {'title': f'جدول البيانات {i+1}', 'slide_type': 'table',
-                         'table_data': tbl, 'bullets': []})
+        if isinstance(provided_slides, list) and provided_slides:
+            slides = provided_slides
+        else:
+            slides = _pptx_ai.text_to_presentation_structure(
+                text=text,
+                num_slides=num_slides,
+                presentation_type=ptype,
+                title_override=title,
+                include_tables=inc_tables,
+                include_charts=inc_charts,
+                extracted_tables=ext_tables,
+            )
 
-        if inc_charts and ext_tables:
+        if inc_tables and ext_tables and not any(s.get('slide_type') == 'table' for s in slides):
+            for i, tbl in enumerate(ext_tables[:2]):
+                slides.insert(
+                    min(2 + i, max(1, len(slides) - 1)),
+                    {'title': f'جدول البيانات {i+1}', 'slide_type': 'table', 'table_data': tbl, 'bullets': []},
+                )
+
+        if inc_charts and ext_tables and not any(s.get('slide_type') == 'chart' for s in slides):
             def _parse_table_for_chart(tbl):
-                """استخراج بيانات رسم بياني من جدول"""
                 try:
-                    if not tbl or len(tbl) < 2: return None
+                    if not tbl or len(tbl) < 2:
+                        return None
                     headers = [str(c) for c in tbl[0]]
                     labels, values = [], []
                     for row in tbl[1:]:
-                        if not row: continue
+                        if not row:
+                            continue
                         label = str(row[0]).strip()
                         for cell in row[1:]:
                             try:
-                                val = float(str(cell).replace(',','').replace('%','').strip())
-                                labels.append(label); values.append(val); break
-                            except Exception: pass
+                                val = float(str(cell).replace(',', '').replace('%', '').strip())
+                                labels.append(label)
+                                values.append(val)
+                                break
+                            except Exception:
+                                pass
                     if labels and values:
-                        return {'labels': labels, 'values': values,
-                                'title': headers[1] if len(headers) > 1 else ''}
-                except Exception: pass
+                        return {'labels': labels, 'values': values, 'title': headers[1] if len(headers) > 1 else ''}
+                except Exception:
+                    pass
                 return None
-            if not any(s.get('slide_type') == 'chart' for s in slides):
-                for tbl in ext_tables:
-                    info = _parse_table_for_chart(tbl)
-                    if info:
-                        slides.insert(min(3, len(slides) - 1),
-                            {'title': 'تحليل البيانات', 'slide_type': 'chart',
-                             'chart_type': 'bar', 'chart_labels': info['labels'],
-                             'chart_values': info['values'],
-                             'chart_title': info.get('title', ''), 'bullets': []})
-                        break
 
-        groq_client = _pptx_ai.client if (_pptx_ai and _pptx_ai.is_ai_available) else None
+            for tbl in ext_tables:
+                info = _parse_table_for_chart(tbl)
+                if info:
+                    slides.insert(
+                        min(3, max(1, len(slides) - 1)),
+                        {
+                            'title': 'تحليل البيانات',
+                            'slide_type': 'chart',
+                            'chart_type': 'bar',
+                            'chart_labels': info['labels'],
+                            'chart_values': info['values'],
+                            'chart_title': info.get('title', ''),
+                            'bullets': [],
+                        },
+                    )
+                    break
+
+        custom_design = _pptx_dimp.get_design_by_id(theme_color) if _pptx_dimp else None
+        groq_client = _pptx_ai.client if (_pptx_ai and _pptx_ai.groq_available) else None
         out = _pptx_gen.create_presentation(
-            slides_data=slides, theme_color=theme_color,
-            cover_data=cover_data, extracted_images=[],
-            font_name=font_name, body_font_size=body_font_size,
-            ai_images=False, groq_client=groq_client,
+            slides_data=slides,
+            theme_color=theme_color,
+            cover_data=cover_data,
+            extracted_images=[],
+            font_name=font_name if font_name != 'auto' else (custom_design.get('font_name', 'Dubai') if custom_design else 'Dubai'),
+            body_font_size=body_font_size,
+            ai_images=False,
+            groq_client=groq_client,
+            custom_theme=custom_design,
+            filename_prefix=title or 'عرض_تقديمي',
         )
         filename = os.path.basename(out)
-        return jsonify({'success': True, 'filename': filename, 'slides': slides})
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'download_url': f'/api/pptx/download/{filename}',
+            'slides': slides,
+            'num_slides': len(slides),
+            'theme_applied': custom_design.get('name') if custom_design else theme_color,
+        })
     except Exception as e:
         import traceback
-        logger.error(f"PPTX generate error: {e}")
+        logger.error(f"PPTX generate error: {e}", exc_info=True)
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
+@app.route('/api/pptx/download/<path:filename>')
 @app.route('/tools/pptx/download/<path:filename>')
 def tools_pptx_download(filename):
-    from flask import send_from_directory as _sfd2
+    safe_name = os.path.basename(filename)
     outputs_dir = os.path.join(os.path.dirname(__file__), 'pptx_app', 'outputs')
-    try:
-        return _sfd2(outputs_dir, filename, as_attachment=True)
-    except Exception as _dl_err:
-        logger.error(f"PPTX download error for '{filename}': {_dl_err}")
-        return jsonify({'error': f'الملف غير موجود: {filename}'}), 404
+    file_path = os.path.join(outputs_dir, safe_name)
+    if not safe_name or not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+        logger.error(f"PPTX download missing/empty for '{safe_name}'")
+        return jsonify({'error': f'الملف غير موجود أو فارغ: {safe_name}'}), 404
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=safe_name,
+        mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    )
+
 
 
 @app.route('/download/excel/<path:filename>')
@@ -15353,38 +14728,31 @@ def download_stats1208():
     )
 
 
+@app.route('/api/pptx/chat', methods=['POST'])
 @app.route('/tools/pptx/chat', methods=['POST'])
 def tools_pptx_chat():
+    if _pptx_ai is None:
+        return jsonify({'reply': '❌ وحدة الذكاء الاصطناعي غير متاحة حالياً'}), 500
     try:
-        data     = request.json or {}
+        data = request.get_json(silent=True) or {}
         messages = data.get('messages', [])
-        groq_key = os.environ.get('GROQ_API_KEY', '').strip()
-        if not groq_key:
-            return jsonify({'reply': '⚠️ مفتاح GROQ_API_KEY غير موجود في إعدادات الأسرار. يمكنك الحصول على مفتاح مجاني من console.groq.com'})
-        from groq import Groq as _Groq
-        client = _Groq(api_key=groq_key)
-        history = [{'role': 'system', 'content':
-            'أنت مساعد ذكي متخصص في إنشاء العروض التقديمية PowerPoint والمحتوى الأكاديمي. أجب باللغة العربية دائماً.'}
-        ] + messages
-        resp = client.chat.completions.create(
-            model='llama-3.3-70b-versatile', messages=history, max_tokens=1500)
-        return jsonify({'reply': resp.choices[0].message.content})
+        reply = _pptx_ai.chat(messages)
+        return jsonify({'reply': reply, 'success': True})
     except Exception as e:
-        return jsonify({'reply': f'❌ خطأ: {e}'})
+        return jsonify({'reply': f'❌ خطأ: {e}', 'success': False})
 
 
+@app.route('/api/pptx/preview_html_links', methods=['POST'])
 @app.route('/tools/pptx/preview_html_links', methods=['POST'])
 def tools_pptx_preview_html_links():
     """استخراج الروابط من HTML وجلب عناوينها ومقتطفاتها."""
     try:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         html = data.get('html', '')
         if not html:
             return jsonify({'links': []})
 
         from bs4 import BeautifulSoup as _BS
-        import requests as _req
-
         soup = _BS(html, 'lxml')
         links = []
         seen = set()
@@ -15396,26 +14764,26 @@ def tools_pptx_preview_html_links():
             seen.add(href)
             anchor_text = a.get_text(strip=True)[:100]
             info = {'url': href, 'anchor_text': anchor_text, 'title': '', 'snippet': '', 'error': None}
-
-            if href.startswith('http://') or href.startswith('https://'):
+            if href.startswith(('http://', 'https://')):
                 try:
-                    r = _req.get(href, timeout=6,
-                                 headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
-                                 allow_redirects=True)
+                    r = requests.get(
+                        href,
+                        timeout=6,
+                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+                        allow_redirects=True,
+                    )
                     if r.status_code == 200:
                         page = _BS(r.text[:80000], 'lxml')
                         t = page.find('title')
                         info['title'] = t.get_text(strip=True)[:120] if t else ''
-                        paras = [p.get_text(strip=True) for p in page.find_all('p')
-                                 if len(p.get_text(strip=True)) > 40]
+                        paras = [p.get_text(strip=True) for p in page.find_all('p') if len(p.get_text(strip=True)) > 40]
                         info['snippet'] = paras[0][:250] if paras else ''
                     else:
                         info['error'] = f'HTTP {r.status_code}'
                 except Exception as ex:
                     info['error'] = str(ex)[:80]
             else:
-                info['error'] = 'رابط محلي (لا يمكن جلبه)'
-
+                info['error'] = 'رابط محلي'
             links.append(info)
             if len(links) >= 12:
                 break
@@ -15425,30 +14793,28 @@ def tools_pptx_preview_html_links():
         return jsonify({'links': [], 'error': str(e)}), 500
 
 
+@app.route('/api/pptx/html_to_pptx', methods=['POST'])
 @app.route('/tools/pptx/from_html', methods=['POST'])
 def tools_pptx_from_html():
-    """تحويل كود HTML مباشرةً إلى ملف PPTX مع دعم جلب محتوى الروابط."""
+    """تحويل كود HTML مباشرةً إلى ملف PPTX مع دعم قوالب كانفا والروابط."""
     if _pptx_gen is None:
-        return jsonify({'error': 'وحدات PowerPoint غير متاحة — تحقق من سجلات الخادم'}), 500
+        return jsonify({'error': 'وحدات PowerPoint غير متاحة'}), 500
     try:
-        data           = request.json or {}
-        html_code      = data.get('html', '')
-        title          = data.get('title', '')
-        theme_color    = data.get('theme_color', 'blue')
-        font_name      = data.get('font_name', 'Traditional Arabic')
-        body_font_size = int(data.get('body_font_size', 22))
-        fetch_links    = bool(data.get('fetch_links', True))
-        cover_data     = data.get('cover_data', None)
+        data = request.get_json(silent=True) or {}
+        html_code = data.get('html', '')
+        title = data.get('title', '')
+        theme_color = data.get('canva_template_id') or data.get('theme_color', 'blue')
+        font_name = data.get('font_name', 'Traditional Arabic')
+        body_font_size = int(data.get('body_font_size', 22) or 22)
+        fetch_links = bool(data.get('fetch_links', True))
+        cover_data = data.get('cover_data', None)
 
         if not html_code.strip():
             return jsonify({'error': 'الرجاء لصق كود HTML أولاً'}), 400
 
         html_to_parse = html_code
-
-        # جلب محتوى الروابط الخارجية وإضافتها كأقسام إضافية
         if fetch_links:
             from bs4 import BeautifulSoup as _BS2
-            import requests as _req2
             soup2 = _BS2(html_code, 'lxml')
             extra_parts = []
             seen2 = set()
@@ -15458,25 +14824,19 @@ def tools_pptx_from_html():
                     continue
                 seen2.add(href)
                 try:
-                    r2 = _req2.get(href, timeout=6,
-                                   headers={'User-Agent': 'Mozilla/5.0'},
-                                   allow_redirects=True)
+                    r2 = requests.get(href, timeout=6, headers={'User-Agent': 'Mozilla/5.0'}, allow_redirects=True)
                     if r2.status_code == 200:
                         ps = _BS2(r2.text[:80000], 'lxml')
                         pt = ps.find('title')
                         pg_title = pt.get_text(strip=True) if pt else href
-                        paras = [p.get_text(strip=True) for p in ps.find_all('p')
-                                 if len(p.get_text(strip=True)) > 30]
+                        paras = [p.get_text(strip=True) for p in ps.find_all('p') if len(p.get_text(strip=True)) > 30]
                         if paras:
                             bullets = ''.join(f'<li>{p}</li>' for p in paras[:5])
-                            extra_parts.append(
-                                f'<section><h2>{pg_title}</h2><ul>{bullets}</ul></section>'
-                            )
+                            extra_parts.append(f'<section><h2>{pg_title}</h2><ul>{bullets}</ul></section>')
                 except Exception:
                     pass
                 if len(extra_parts) >= 5:
                     break
-
             if extra_parts:
                 insert = '\n'.join(extra_parts)
                 body_end = html_to_parse.rfind('</body>')
@@ -15485,31 +14845,250 @@ def tools_pptx_from_html():
                 else:
                     html_to_parse += insert
 
-        # تحليل HTML وبناء شرائح
-        slides_data = _parse_html_slides(html_to_parse)
-        if not slides_data:
-            return jsonify({'error': 'لم يتم العثور على محتوى قابل للتحويل في HTML'}), 400
-
-        if title and slides_data:
-            slides_data[0]['title'] = title
-
-        out_path = _pptx_gen.create_presentation(
-            slides_data=slides_data,
+        custom_design = _pptx_dimp.get_design_by_id(theme_color) if _pptx_dimp else None
+        out_path, slides_data = _convert_html_to_pptx(
+            html=html_to_parse,
+            override_title=title,
             theme_color=theme_color,
-            cover_data=cover_data,
-            extracted_images=[],
             font_name=font_name,
             body_font_size=body_font_size,
-            ai_images=False,
-            groq_client=None,
+            cover_data=cover_data,
+            custom_theme=custom_design,
         )
         filename = os.path.basename(out_path)
-        return jsonify({'success': True, 'filename': filename, 'slides': slides_data})
-
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'download_url': f'/api/pptx/download/{filename}',
+            'slides': slides_data,
+            'num_slides': len(slides_data),
+        })
     except Exception as e:
         import traceback
-        logger.error(f"HTML to PPTX error: {e}")
+        logger.error(f"HTML to PPTX error: {e}", exc_info=True)
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+
+
+@app.route('/api/pptx/canva/templates', methods=['GET'])
+def api_pptx_canva_templates():
+    """جلب قوالب وعروض كانفا + حسابات Google المحفوظة وإعدادات OAuth."""
+    if not _pptx_dimp:
+        return jsonify({'templates': [], 'accounts': {'accounts': [], 'active_email': ''}})
+    category = request.args.get('category', 'all')
+    keyword = request.args.get('q', '')
+    templates = _pptx_dimp.get_all_designs(category=category, keyword=keyword)
+    accounts_store = _pptx_dimp.get_google_accounts()
+    fb_cfg = _cfg.get_firebase_config()
+    return jsonify({
+        'success': True,
+        'templates': templates,
+        'accounts': accounts_store,
+        'google_oauth_client_id': fb_cfg.get('oAuthClientId', ''),
+        'firebase_config': {
+            'apiKey': fb_cfg.get('apiKey', ''),
+            'authDomain': fb_cfg.get('authDomain', ''),
+            'projectId': fb_cfg.get('projectId', ''),
+            'appId': fb_cfg.get('appId', ''),
+            'oAuthClientId': fb_cfg.get('oAuthClientId', ''),
+        },
+    })
+
+
+@app.route('/api/pptx/canva/import_url', methods=['POST'])
+def api_pptx_canva_import_url():
+    if not _pptx_dimp:
+        return jsonify({'error': 'وحدة استيراد كانفا غير متاحة'}), 500
+    try:
+        data = request.get_json(silent=True) or {}
+        url = (data.get('url') or '').strip()
+        name = (data.get('name') or '').strip()
+        category = (data.get('category') or 'أعمال').strip()
+        tpl = _pptx_dimp.import_canva_url(url=url, custom_name=name, category=category)
+        return jsonify({'success': True, 'template': tpl})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/pptx/canva/connect_token', methods=['POST'])
+def api_pptx_canva_connect_token():
+    if not _pptx_dimp:
+        return jsonify({'error': 'وحدة استيراد كانفا غير متاحة'}), 500
+    try:
+        data = request.get_json(silent=True) or {}
+        token = (data.get('access_token') or '').strip()
+        designs = _pptx_dimp.fetch_canva_api_designs(token)
+        return jsonify({'success': True, 'designs': designs, 'count': len(designs)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/pptx/canva/google_accounts', methods=['GET', 'POST', 'DELETE'])
+def api_pptx_canva_google_accounts():
+    if not _pptx_dimp:
+        return jsonify({'error': 'غير متاح'}), 500
+    try:
+        if request.method == 'GET':
+            return jsonify({'success': True, **_pptx_dimp.get_google_accounts()})
+        data = request.get_json(silent=True) or {}
+        action = (data.get('action') or 'add').strip()
+        email = (data.get('email') or '').strip()
+        if request.method == 'DELETE' or action == 'remove':
+            store = _pptx_dimp.remove_google_account(email)
+            return jsonify({'success': True, **store})
+        if action == 'select':
+            store = _pptx_dimp.select_google_account(email)
+            return jsonify({'success': True, **store})
+        store = _pptx_dimp.save_google_account(
+            email=email,
+            name=data.get('name', ''),
+            photo_url=data.get('photo_url', ''),
+            provider=data.get('provider', 'google'),
+            set_active=True,
+        )
+        return jsonify({'success': True, **store})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/pptx/canva/apply_template', methods=['POST'])
+def api_pptx_canva_apply_template():
+    """تطبيق قالب كانفا المختار تلقائياً وتوليد ملف PPTX فعلي جاهز للتحميل."""
+    if not (_pptx_dap and _pptx_ai):
+        return jsonify({'error': 'وحدات التصميم غير متاحة'}), 500
+    try:
+        data = request.get_json(silent=True) or {}
+        template_id = (data.get('template_id') or 'canva_exec_navy').strip()
+        slides = data.get('slides')
+        text = (data.get('text') or '').strip()
+        title = (data.get('title') or '').strip()
+        font_name = (data.get('font_name') or '').strip()
+        body_font_size = int(data.get('body_font_size', 22) or 22)
+        num_slides = int(data.get('num_slides', 6) or 6)
+        ptype = data.get('ptype', 'general')
+        cover_data = data.get('cover_data', None)
+
+        if not (isinstance(slides, list) and slides):
+            if not text:
+                text = f"{title or 'عرض احترافي بتصميم كانفا'}\nمقدمة العرض وأهدافه الرئيسية\nالمحاور الأساسية والمحتوى التنفيذي\nالنتائج المتوقعة ومؤشرات الأداء\nالخلاصة والتوصيات المستقبلية"
+            slides = _pptx_ai.text_to_presentation_structure(
+                text=text, num_slides=num_slides, presentation_type=ptype, title_override=title
+            )
+
+        out_path, applied_design = _pptx_dap.apply_design_to_presentation(
+            slides_data=slides,
+            design_id=template_id,
+            cover_data=cover_data,
+            font_name=font_name,
+            body_font_size=body_font_size,
+            filename_prefix=title or applied_name_safe(template_id),
+        )
+        filename = os.path.basename(out_path)
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'download_url': f'/api/pptx/download/{filename}',
+            'slides': slides,
+            'num_slides': len(slides),
+            'applied_design': applied_design,
+        })
+    except Exception as e:
+        import traceback
+        logger.error(f"Canva apply template error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+def applied_name_safe(tid: str) -> str:
+    return f"عرض_{re.sub(r'[^a-zA-Z0-9_]', '', tid or 'canva')}"
+
+
+@app.route('/api/pptx/analyze_pptx', methods=['POST'])
+def api_pptx_analyze_pptx():
+    """رفع ملف PowerPoint (.pptx) حالي وتحليله بالذكاء الاصطناعي واقتراح تحسينات المحتوى وقوالب كانفا."""
+    if not (_pptx_ai and _PPTX_AVAILABLE):
+        return jsonify({'error': 'وحدات تحليل PowerPoint غير متاحة'}), 500
+    if 'file' not in request.files:
+        return jsonify({'error': 'يرجى اختيار ملف PowerPoint (.pptx)'}), 400
+    f = request.files['file']
+    fname = f.filename or 'presentation.pptx'
+    if not fname.lower().endswith('.pptx'):
+        return jsonify({'error': 'يرجى رفع ملف بصيغة .pptx فقط'}), 400
+    try:
+        raw_bytes = f.read()
+        extracted = _extract_from_pptx(raw_bytes)
+        canva_list = _pptx_dimp.get_all_designs() if _pptx_dimp else _CANVA_TEMPLATES
+        analysis = _pptx_ai.analyze_pptx_presentation(extracted, canva_list)
+        return jsonify({
+            'success': True,
+            'filename': fname,
+            'slide_count': extracted.get('slide_count', 0),
+            'word_count': len((extracted.get('full_text') or '').split()),
+            'tables_count': len(extracted.get('tables') or []),
+            'images_count': extracted.get('images_count', 0),
+            'fonts_used': extracted.get('fonts_used', []),
+            'colors_used': extracted.get('colors_used', []),
+            'slides': extracted.get('slides', []),
+            'full_text': extracted.get('full_text', ''),
+            'analysis': analysis,
+            'provider': _pptx_ai.get_provider_label(),
+        })
+    except Exception as e:
+        logger.error(f"Analyze PPTX error: {e}", exc_info=True)
+        return jsonify({'error': f'تعذّر تحليل الملف: {str(e)}'}), 500
+
+
+@app.route('/api/pptx/redesign_pptx', methods=['POST'])
+def api_pptx_redesign_pptx():
+    """إعادة بناء وتحديث تصميم ملف PPTX المرفوع باستخدام التحسينات المقترحة وقالب كانفا المختار."""
+    if not _pptx_dap:
+        return jsonify({'error': 'وحدة إعادة التصميم غير متاحة'}), 500
+    try:
+        data = request.get_json(silent=True) or {}
+        original_slides = data.get('slides') or []
+        suggestions = data.get('slide_suggestions') or []
+        use_ai = bool(data.get('use_ai_improvements', True))
+        template_id = (data.get('template_id') or 'canva_exec_navy').strip()
+        font_name = (data.get('font_name') or '').strip()
+        body_font_size = int(data.get('body_font_size', 22) or 22)
+        title_override = (data.get('title') or '').strip()
+
+        if not original_slides:
+            return jsonify({'error': 'لا توجد شرائح لإعادة تصميمها — قم برفع وتحليل ملف .pptx أولاً'}), 400
+
+        sugg_by_num = {int(s.get('slide_number', idx + 1)): s for idx, s in enumerate(suggestions)}
+        rebuilt_slides = []
+        for idx, orig in enumerate(original_slides, start=1):
+            s_copy = dict(orig)
+            if use_ai and idx in sugg_by_num:
+                sg = sugg_by_num[idx]
+                if sg.get('improved_title'):
+                    s_copy['title'] = sg['improved_title']
+                if sg.get('improved_bullets') and s_copy.get('slide_type') != 'table':
+                    s_copy['bullets'] = sg['improved_bullets']
+            rebuilt_slides.append(s_copy)
+
+        if title_override and rebuilt_slides:
+            rebuilt_slides[0]['title'] = title_override
+
+        out_path, applied_design = _pptx_dap.apply_design_to_presentation(
+            slides_data=rebuilt_slides,
+            design_id=template_id,
+            font_name=font_name,
+            body_font_size=body_font_size,
+            filename_prefix=title_override or 'عرض_محدث_كانفا',
+        )
+        filename = os.path.basename(out_path)
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'download_url': f'/api/pptx/download/{filename}',
+            'slides': rebuilt_slides,
+            'num_slides': len(rebuilt_slides),
+            'applied_design': applied_design,
+        })
+    except Exception as e:
+        logger.error(f"Redesign PPTX error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route("/academic")

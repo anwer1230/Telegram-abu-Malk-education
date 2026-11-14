@@ -4532,8 +4532,81 @@ class TelegramLogin:
                 return {"success": False, "message": "⏱️ انتظر قليلاً ثم حاول مرة أخرى"}
             return {"success": False, "message": f"❌ فشل إرسال الكود: {error_msg}"}
 
+    def _complete_login_auth(self, auto_2fa_applied=False, verified_2fa_password=None):
+        """إتمام تسجيل الدخول وحفظ الجلسة والاسم الفعلي ورمز التحقق الثنائي بشكل دائم."""
+        self.awaiting_code = False
+        self.awaiting_password = False
+        self.authenticated = True
+        try:
+            save_string_session(self.user_id, self.client.session.save())
+        except Exception as _se:
+            logger.error(f"Could not save session string: {_se}")
+        me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
+        me = me_future.result(timeout=30)
+        avatar_url = None
+        try:
+            avatars_dir = os.path.join(SESSIONS_DIR, 'avatars')
+            os.makedirs(avatars_dir, exist_ok=True)
+            target_path = os.path.join(avatars_dir, f"{self.user_id}.jpg")
+            photo_future = asyncio.run_coroutine_threadsafe(
+                self.client.download_profile_photo(me, file=target_path),
+                self.loop
+            )
+            photo_res = photo_future.result(timeout=15)
+            if photo_res and os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+                avatar_url = f"/api/account_avatar/{self.user_id}?t={int(time.time())}"
+        except Exception as _pe:
+            logger.debug(f"Profile photo download error: {_pe}")
+
+        account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
+        phone_num = getattr(me, 'phone', '') or getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone') or ''
+        if phone_num and not str(phone_num).startswith('+'):
+            phone_num = '+' + str(phone_num)
+
+        two_factor_saved = False
+        if phone_num:
+            try:
+                import firestore_sync
+                firestore_sync.save_phone_number(phone_num)
+                if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
+                    firestore_sync.update_phone_account_name(phone_num, account_full_name)
+                if verified_2fa_password:
+                    two_factor_saved = bool(firestore_sync.save_phone_2fa_password(phone_num, verified_2fa_password))
+            except Exception as _sync_err:
+                logger.debug(f"Phone/2FA sync error in _complete_login_auth: {_sync_err}")
+
+        if verified_2fa_password:
+            try:
+                import firestore_sync
+                st = load_settings(self.user_id) or {}
+                st['two_factor_saved'] = True
+                st['two_factor_secret'] = firestore_sync._encode_2fa_secret(verified_2fa_password)
+                st.pop('password', None)
+                save_settings(self.user_id, st)
+            except Exception:
+                pass
+
+        msg = "✅ تم استيراد رمز التحقق الثنائي المحفوظ وتسجيل الدخول تلقائياً!" if auto_2fa_applied else (
+            "✅ تم تسجيل الدخول وحفظ رمز التحقق الثنائي بشكل دائم" if two_factor_saved else "✅ تم تسجيل الدخول بنجاح"
+        )
+        return {
+            "success": True,
+            "auto_2fa_applied": auto_2fa_applied,
+            "two_factor_saved": two_factor_saved,
+            "message": msg,
+            "user": {
+                "id": me.id,
+                "first_name": me.first_name,
+                "last_name": me.last_name,
+                "username": me.username,
+                "phone": phone_num,
+                "full_name": account_full_name,
+                "avatar": avatar_url
+            }
+        }
+
     def verify_code(self, code):
-        """الخطوة 2: التحقق من الكود المرسل"""
+        """الخطوة 2: التحقق من الكود المرسل (مع الاستيراد التلقائي لرمز 2FA المحفوظ)"""
         if not self.phone_code_hash:
             return {"success": False, "message": "لم يتم طلب كود بعد. أرسل الكود أولاً"}
         if not self.client or not self.client.is_connected():
@@ -4547,69 +4620,56 @@ class TelegramLogin:
                 ),
                 self.loop
             )
-            result = future.result(timeout=30)
-            self.awaiting_code = False
-            self.authenticated = True
-            # حفظ سلسلة الجلسة فوراً للاستخدام لاحقاً
-            try:
-                save_string_session(self.user_id, self.client.session.save())
-            except Exception as _se:
-                logger.error(f"Could not save session string: {_se}")
-            me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
-            me = me_future.result(timeout=30)
-            avatar_url = None
-            try:
-                avatars_dir = os.path.join(SESSIONS_DIR, 'avatars')
-                os.makedirs(avatars_dir, exist_ok=True)
-                target_path = os.path.join(avatars_dir, f"{self.user_id}.jpg")
-                photo_future = asyncio.run_coroutine_threadsafe(
-                    self.client.download_profile_photo(me, file=target_path),
-                    self.loop
-                )
-                photo_res = photo_future.result(timeout=15)
-                if photo_res and os.path.exists(target_path) and os.path.getsize(target_path) > 0:
-                    avatar_url = f"/api/account_avatar/{self.user_id}?t={int(time.time())}"
-            except Exception as _pe:
-                logger.debug(f"Profile photo download error: {_pe}")
-
-            account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
-            phone_num = getattr(me, 'phone', '') or getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone')
-            if phone_num:
-                try:
-                    import firestore_sync
-                    firestore_sync.save_phone_number(phone_num)
-                    if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
-                        firestore_sync.update_phone_account_name(phone_num, account_full_name)
-                except Exception:
-                    pass
-
-            return {
-                "success": True,
-                "message": "✅ تم تسجيل الدخول بنجاح",
-                "user": {
-                    "id": me.id,
-                    "first_name": me.first_name,
-                    "last_name": me.last_name,
-                    "username": me.username,
-                    "phone": getattr(me, 'phone', '') or phone_num,
-                    "full_name": account_full_name,
-                    "avatar": avatar_url
-                }
-            }
+            future.result(timeout=30)
+            return self._complete_login_auth(auto_2fa_applied=False)
         except Exception as e:
             error_msg = str(e)
             if "PASSWORD" in error_msg.upper() or "SESSION_PASSWORD_NEEDED" in error_msg:
+                target_phone = getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone') or (load_settings(self.user_id) or {}).get('account_phone') or ''
+                saved_pw = ""
+                try:
+                    import firestore_sync
+                    if target_phone:
+                        saved_pw = firestore_sync.get_phone_2fa_password(target_phone)
+                    if not saved_pw:
+                        _cur_st = load_settings(self.user_id) or {}
+                        saved_pw = str(_cur_st.get('password') or '').strip()
+                        if not saved_pw and _cur_st.get('two_factor_secret'):
+                            saved_pw = firestore_sync._decode_2fa_secret(_cur_st.get('two_factor_secret'))
+                except Exception:
+                    saved_pw = ""
+
+                if saved_pw:
+                    try:
+                        logger.info(f"[{self.user_id}] 🔐 استيراد رمز التحقق الثنائي المحفوظ للرقم {target_phone} وتسجيل الدخول تلقائياً...")
+                        pw_future = asyncio.run_coroutine_threadsafe(
+                            self.client.sign_in(password=saved_pw),
+                            self.loop
+                        )
+                        pw_future.result(timeout=45)
+                        return self._complete_login_auth(auto_2fa_applied=True, verified_2fa_password=saved_pw)
+                    except Exception as _auto_pw_err:
+                        logger.warning(f"[{self.user_id}] ⚠️ تعذر استخدام رمز 2FA المحفوظ ({_auto_pw_err}) — سيتم طلب الإدخال يدوياً")
+                        self.awaiting_password = True
+                        self.awaiting_code = False
+                        return {
+                            "success": False,
+                            "requires_password": True,
+                            "saved_2fa_failed": True,
+                            "message": "⚠️ تعذّر التحقق برمز التحقق الثنائي المحفوظ (ربما تم تغييره). يرجى إدخال كلمة المرور الجديدة وسيتم حفظها دائماً"
+                        }
+
                 self.awaiting_password = True
                 self.awaiting_code = False
                 return {
                     "success": False,
                     "requires_password": True,
-                    "message": "🔐 هذا الحساب محمي بالتحقق بخطوتين. الرجاء إدخال كلمة المرور"
+                    "message": "🔐 هذا الحساب محمي بالتحقق بخطوتين. الرجاء إدخال كلمة المرور (وسيتم حفظها تلقائياً للمرات القادمة)"
                 }
             return {"success": False, "message": f"❌ كود غير صحيح: {error_msg}"}
 
     def verify_password(self, password):
-        """الخطوة 3: إدخال رمز التحقق الثانوي (للمستخدمين الذين لديهم 2FA)"""
+        """الخطوة 3: إدخال رمز التحقق الثانوي وحفظه بشكل دائم وأبدي"""
         if not self.awaiting_password:
             # قد يكون sign_in نجح من قبل لكن انتهت مهلة الاتصال — أعد المحاولة
             if self.authenticated and self.client and self.client.is_connected():
@@ -4639,54 +4699,7 @@ class TelegramLogin:
                 self.loop
             )
             future.result(timeout=45)
-            self.awaiting_password = False
-            self.authenticated = True
-            # حفظ سلسلة الجلسة فوراً
-            try:
-                save_string_session(self.user_id, self.client.session.save())
-            except Exception as _se:
-                logger.error(f"Could not save session string (2FA): {_se}")
-            me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
-            me = me_future.result(timeout=30)
-            avatar_url = None
-            try:
-                avatars_dir = os.path.join(SESSIONS_DIR, 'avatars')
-                os.makedirs(avatars_dir, exist_ok=True)
-                target_path = os.path.join(avatars_dir, f"{self.user_id}.jpg")
-                photo_future = asyncio.run_coroutine_threadsafe(
-                    self.client.download_profile_photo(me, file=target_path),
-                    self.loop
-                )
-                photo_res = photo_future.result(timeout=15)
-                if photo_res and os.path.exists(target_path) and os.path.getsize(target_path) > 0:
-                    avatar_url = f"/api/account_avatar/{self.user_id}?t={int(time.time())}"
-            except Exception as _pe:
-                logger.debug(f"Profile photo download error: {_pe}")
-
-            account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
-            phone_num = getattr(me, 'phone', '') or getattr(self, 'phone_number', '') or (load_settings(self.user_id) or {}).get('phone')
-            if phone_num:
-                try:
-                    import firestore_sync
-                    firestore_sync.save_phone_number(phone_num)
-                    if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
-                        firestore_sync.update_phone_account_name(phone_num, account_full_name)
-                except Exception:
-                    pass
-
-            return {
-                "success": True,
-                "message": "✅ تم تسجيل الدخول بنجاح",
-                "user": {
-                    "id": me.id,
-                    "first_name": me.first_name,
-                    "last_name": me.last_name,
-                    "username": me.username,
-                    "phone": getattr(me, 'phone', '') or phone_num,
-                    "full_name": account_full_name,
-                    "avatar": avatar_url
-                }
-            }
+            return self._complete_login_auth(auto_2fa_applied=False, verified_2fa_password=password)
         except Exception as e:
             err = str(e)
             if "password" in err.lower() or "invalid" in err.lower():
@@ -5236,7 +5249,17 @@ class TelegramManager:
 
             _OSThread(target=_start_client_bg_code, daemon=True).start()
 
-            return {"status": "success", "message": "✅ تم التحقق بنجاح", "account_name": account_name, "account_avatar": account_avatar}
+            if result.get("auto_2fa_applied"):
+                socketio.emit('log_update', {"message": "🔐 تم استيراد رمز التحقق الثنائي المحفوظ وإتمام تسجيل الدخول تلقائياً!"}, to=user_id)
+
+            return {
+                "status": "success",
+                "message": result.get("message") or "✅ تم التحقق بنجاح",
+                "account_name": account_name,
+                "account_avatar": account_avatar,
+                "auto_2fa_applied": bool(result.get("auto_2fa_applied")),
+                "two_factor_saved": bool(result.get("two_factor_saved")),
+            }
 
         except Exception as e:
             logger.error(f"Code verification error: {str(e)}")
@@ -5317,16 +5340,19 @@ class TelegramManager:
             except Exception as _e_pname:
                 logger.warning(f"Could not update PREDEFINED_USERS name: {_e_pname}")
 
-            # تثبيت اسم الحساب الفعلي للرقم بشكل دائم وأبدي وبث التحديث للقائمة
+            # تثبيت اسم الحساب الفعلي للرقم ورمز التحقق الثنائي بشكل دائم وأبدي وبث التحديث للقائمة
             try:
                 if account_phone:
                     import firestore_sync
                     firestore_sync.save_phone_number(account_phone)
                     if account_name and not firestore_sync._is_placeholder_phone_name(account_name):
                         firestore_sync.update_phone_account_name(account_phone, account_name)
+                    if password:
+                        firestore_sync.save_phone_2fa_password(account_phone, password)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
+                    socketio.emit('log_update', {"message": "🔐 تم حفظ رمز التحقق الثنائي لهذا الرقم بشكل دائم للاستيراد التلقائي لاحقاً"}, to=user_id)
             except Exception as _sync_err:
-                logger.debug(f"Sync phone name error in verify_password: {_sync_err}")
+                logger.debug(f"Sync phone name/2FA error in verify_password: {_sync_err}")
 
             login_payload = {
                 'logged_in': True,
@@ -7719,8 +7745,10 @@ def api_save_login():
         settings.pop('name', None)
         settings.pop('account_username', None)
         settings.pop('account_avatar', None)
+        settings.pop('two_factor_secret', None)
+        settings.pop('two_factor_saved', None)
 
-    # استعادة الاسم الفعلي المحفوظ مسبقاً لهذا الرقم إن وجد
+    # استعادة الاسم الفعلي المحفوظ ورمز التحقق الثنائي المحفوظ مسبقاً لهذا الرقم إن وجدا
     try:
         import firestore_sync
         known_name = firestore_sync._pick_best_phone_name(saved_phone_info) if saved_phone_info else ''
@@ -7733,6 +7761,10 @@ def api_save_login():
         elif user_id in PREDEFINED_USERS:
             PREDEFINED_USERS[user_id]['phone'] = new_phone
             _save_custom_accounts()
+        saved_2fa_pw = firestore_sync.get_phone_2fa_password(new_phone)
+        if saved_2fa_pw:
+            settings['two_factor_saved'] = True
+            settings['two_factor_secret'] = firestore_sync._encode_2fa_secret(saved_2fa_pw)
     except Exception:
         pass
 
@@ -7905,25 +7937,31 @@ def api_verify_code():
 
         if result["status"] == "success":
             account_name = result.get("account_name")
-            socketio.emit('log_update', {
-                "message": f"✅ تم التحقق بنجاح — أهلاً {account_name}" if account_name else "✅ تم التحقق بنجاح"
-            }, to=user_id)
+            auto_2fa_applied = bool(result.get("auto_2fa_applied"))
+            two_factor_saved = bool(result.get("two_factor_saved") or (password and not code))
+            if auto_2fa_applied:
+                ok_msg = f"✅ تم استيراد رمز التحقق الثنائي المحفوظ وتسجيل الدخول تلقائياً — أهلاً {account_name}" if account_name else "✅ تم استيراد رمز التحقق الثنائي المحفوظ وتسجيل الدخول تلقائياً"
+            elif two_factor_saved:
+                ok_msg = f"✅ تم التحقق وحفظ رمز التحقق الثنائي بشكل دائم — أهلاً {account_name}" if account_name else "✅ تم التحقق وحفظ رمز التحقق الثنائي بشكل دائم"
+            else:
+                ok_msg = f"✅ تم التحقق بنجاح — أهلاً {account_name}" if account_name else "✅ تم التحقق بنجاح"
 
-            socketio.emit('connection_status', {
-                "status": "connected"
-            }, to=user_id)
+            socketio.emit('log_update', {"message": ok_msg}, to=user_id)
+            socketio.emit('connection_status', {"status": "connected"}, to=user_id)
 
             account_phone = USERS.get(user_id, {}).get('account_phone') or (load_settings(user_id) or {}).get('phone') or ''
             account_username = USERS.get(user_id, {}).get('account_username') or ''
             account_avatar = result.get("account_avatar") or USERS.get(user_id, {}).get('account_avatar')
 
-            # تثبيت الرقم واسم الحساب الفعلي بشكل دائم وأبدي وبث التحديث للقائمة
+            # تثبيت الرقم واسم الحساب الفعلي ورمز 2FA بشكل دائم وأبدي وبث التحديث للقائمة
             if account_phone:
                 try:
                     import firestore_sync
                     firestore_sync.save_phone_number(account_phone)
                     if account_name and not firestore_sync._is_placeholder_phone_name(account_name):
                         firestore_sync.update_phone_account_name(account_phone, account_name)
+                    if password:
+                        firestore_sync.save_phone_2fa_password(account_phone, password)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
                 except Exception as _sync_e:
                     logger.debug(f"Sync phone account name error: {_sync_e}")
@@ -7931,7 +7969,9 @@ def api_verify_code():
             return jsonify({
                 "success": True,
                 "user_id": user_id,
-                "message": f"✅ تم التحقق بنجاح — أهلاً {account_name}" if account_name else "✅ تم التحقق بنجاح",
+                "message": ok_msg,
+                "auto_2fa_applied": auto_2fa_applied,
+                "two_factor_saved": two_factor_saved,
                 "account_name": account_name,
                 "account_phone": account_phone,
                 "account_username": account_username,
@@ -8387,10 +8427,10 @@ def api_telegram_auth_verify_code():
             record_latest_verification_code(phone, code)
 
         res = None
-        if code:
-            res = telegram_manager.verify_code(user_id, code)
-        elif password:
+        if password:
             res = telegram_manager.verify_password(user_id, password)
+        elif code:
+            res = telegram_manager.verify_code(user_id, code)
 
         if res and res.get("status") == "success":
             acc_name = res.get("account_name") or "حساب تيليجرام"
@@ -8401,12 +8441,16 @@ def api_telegram_auth_verify_code():
                     firestore_sync.save_phone_number(acc_phone)
                     if acc_name and not firestore_sync._is_placeholder_phone_name(acc_name):
                         firestore_sync.update_phone_account_name(acc_phone, acc_name)
+                    if password:
+                        firestore_sync.save_phone_2fa_password(acc_phone, password)
                     socketio.emit('saved_phones_updated', {'phones': firestore_sync.get_saved_phone_numbers()})
                 except Exception:
                     pass
             return jsonify({
                 "success": True,
-                "message": "✅ تم التحقق وتوثيق الحساب بنجاح",
+                "auto2faApplied": bool(res.get("auto_2fa_applied")),
+                "twoFactorSaved": bool(res.get("two_factor_saved") or bool(password)),
+                "message": res.get("message") or "✅ تم التحقق وتوثيق الحساب بنجاح",
                 "user": {
                     "id": user_id,
                     "firstName": acc_name,
@@ -8418,19 +8462,18 @@ def api_telegram_auth_verify_code():
             return jsonify({
                 "success": False,
                 "requiresPassword": True,
-                "message": "🔐 يتطلب الحساب كلمة مرور التحقق بخطوتين (2FA)"
+                "message": res.get("message") or "🔐 يتطلب الحساب كلمة مرور التحقق بخطوتين (2FA)"
             })
-        else:
-            # في حال كان الكود صحيحاً ومسجلاً
+        elif res and res.get("status") == "error":
             return jsonify({
-                "success": True,
-                "message": "✅ تم قبول الرمز وتوثيقه",
-                "user": {
-                    "id": user_id,
-                    "firstName": "حساب تيليجرام",
-                    "phone": phone
-                }
-            })
+                "success": False,
+                "message": res.get("message") or "❌ فشل التحقق من الرمز"
+            }), 400
+        else:
+            return jsonify({
+                "success": False,
+                "message": "❌ يرجى إدخال كود التحقق أو كلمة المرور"
+            }), 400
     except Exception as e:
         logger.error(f"Error in api_telegram_auth_verify_code: {e}")
         return jsonify({"success": False, "message": str(e)}), 500

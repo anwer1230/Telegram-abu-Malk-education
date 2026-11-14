@@ -78,6 +78,9 @@ def init_db() -> bool:
             with conn.cursor() as cursor:
                 for statement in statements:
                     cursor.execute(statement)
+                # ترحيل آمن للحقول الجديدة على قواعد البيانات القائمة مسبقاً
+                cursor.execute("ALTER TABLE saved_phone_numbers ADD COLUMN IF NOT EXISTS two_factor_secret TEXT NOT NULL DEFAULT ''")
+                cursor.execute("ALTER TABLE saved_phone_numbers ADD COLUMN IF NOT EXISTS two_factor_updated_at TEXT NOT NULL DEFAULT ''")
         logger.info("PostgreSQL schema is ready")
         return True
     except Exception as exc:
@@ -370,7 +373,8 @@ def get_saved_phone_numbers() -> Optional[list[dict]]:
         with conn.cursor() as cursor:
             cursor.execute(
                 "SELECT phone_digits, phone_number, account_name, label, is_default, added_at, "
-                "COALESCE(to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), '') "
+                "COALESCE(to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), ''), "
+                "COALESCE(two_factor_secret, ''), COALESCE(two_factor_updated_at, '') "
                 "FROM saved_phone_numbers ORDER BY is_default DESC, updated_at DESC"
             )
             rows = cursor.fetchall()
@@ -382,6 +386,9 @@ def get_saved_phone_numbers() -> Optional[list[dict]]:
                     "is_default": bool(r[4]),
                     "added_at": r[5] or "",
                     "updated_at": r[6] or "",
+                    "two_factor_secret": r[7] or "",
+                    "two_factor_updated_at": r[8] or "",
+                    "has_saved_2fa": bool(r[7]),
                 }
                 for r in rows
                 if r[1]
@@ -402,19 +409,32 @@ def upsert_saved_phone_number(entry: dict) -> bool:
     label = str(entry.get("label") or acc_name or "").strip()
     is_def = bool(entry.get("is_default", False))
     added_at = str(entry.get("added_at") or "")
+    two_factor_secret = str(entry.get("two_factor_secret") or "").strip()
+    two_factor_updated_at = str(entry.get("two_factor_updated_at") or "").strip()
 
     def operation(conn):
         with conn.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO saved_phone_numbers (phone_digits, phone_number, account_name, label, is_default, added_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO saved_phone_numbers (
+                    phone_digits, phone_number, account_name, label, is_default, added_at,
+                    two_factor_secret, two_factor_updated_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 ON CONFLICT (phone_digits) DO UPDATE SET
                     phone_number = EXCLUDED.phone_number,
                     account_name = EXCLUDED.account_name,
                     label = EXCLUDED.label,
                     is_default = saved_phone_numbers.is_default OR EXCLUDED.is_default,
+                    two_factor_secret = CASE
+                        WHEN EXCLUDED.two_factor_secret <> '' THEN EXCLUDED.two_factor_secret
+                        ELSE saved_phone_numbers.two_factor_secret
+                    END,
+                    two_factor_updated_at = CASE
+                        WHEN EXCLUDED.two_factor_secret <> '' AND EXCLUDED.two_factor_updated_at <> '' THEN EXCLUDED.two_factor_updated_at
+                        ELSE saved_phone_numbers.two_factor_updated_at
+                    END,
                     updated_at = CURRENT_TIMESTAMP
-            """, (digits, raw_phone, acc_name, label, is_def, added_at))
+            """, (digits, raw_phone, acc_name, label, is_def, added_at, two_factor_secret, two_factor_updated_at))
         return True
 
     return bool(_run(operation, default=False))
@@ -438,7 +458,9 @@ def upsert_saved_phone_numbers_batch(entries: list[dict]) -> int:
         label = str(entry.get("label") or acc_name or "").strip()
         is_def = bool(entry.get("is_default", False))
         added_at = str(entry.get("added_at") or "")
-        rows.append((digits, raw_phone, acc_name, label, is_def, added_at))
+        two_factor_secret = str(entry.get("two_factor_secret") or "").strip()
+        two_factor_updated_at = str(entry.get("two_factor_updated_at") or "").strip()
+        rows.append((digits, raw_phone, acc_name, label, is_def, added_at, two_factor_secret, two_factor_updated_at))
 
     if not rows:
         return 0
@@ -446,13 +468,24 @@ def upsert_saved_phone_numbers_batch(entries: list[dict]) -> int:
     def operation(conn):
         with conn.cursor() as cursor:
             cursor.executemany("""
-                INSERT INTO saved_phone_numbers (phone_digits, phone_number, account_name, label, is_default, added_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO saved_phone_numbers (
+                    phone_digits, phone_number, account_name, label, is_default, added_at,
+                    two_factor_secret, two_factor_updated_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 ON CONFLICT (phone_digits) DO UPDATE SET
                     phone_number = EXCLUDED.phone_number,
                     account_name = EXCLUDED.account_name,
                     label = EXCLUDED.label,
                     is_default = saved_phone_numbers.is_default OR EXCLUDED.is_default,
+                    two_factor_secret = CASE
+                        WHEN EXCLUDED.two_factor_secret <> '' THEN EXCLUDED.two_factor_secret
+                        ELSE saved_phone_numbers.two_factor_secret
+                    END,
+                    two_factor_updated_at = CASE
+                        WHEN EXCLUDED.two_factor_secret <> '' AND EXCLUDED.two_factor_updated_at <> '' THEN EXCLUDED.two_factor_updated_at
+                        ELSE saved_phone_numbers.two_factor_updated_at
+                    END,
                     updated_at = CURRENT_TIMESTAMP
             """, rows)
         return len(rows)

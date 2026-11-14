@@ -60,7 +60,10 @@ const DEFAULT_PHONE_CONFIG = [
   { phone: '+201148863243', label: 'الحساب الثالث', account_name: 'الحساب الثالث' },
   { phone: '+213797500921', label: 'الحساب الرابع', account_name: 'الحساب الرابع' },
   { phone: '+201274386864', label: 'الحساب الخامس', account_name: 'الحساب الخامس' },
-  { phone: '+966539709737', label: 'الحساب السادس', account_name: 'الحساب السادس' }
+  { phone: '+966539709737', label: 'الحساب السادس', account_name: 'الحساب السادس' },
+  { phone: '+201202083759', label: 'الحساب السابع', account_name: 'الحساب السابع' },
+  { phone: '+966542630213', label: 'الحساب الثامن', account_name: 'الحساب الثامن' },
+  { phone: '+8801350780283', label: 'الحساب التاسع', account_name: 'الحساب التاسع' }
 ];
 
 const DEFAULT_PHONE_NUMBERS = DEFAULT_PHONE_CONFIG.map(p => p.phone);
@@ -147,6 +150,49 @@ async function addPhoneNumber(phone, label = 'حساب محفوظ') {
     return data;
   }
   return snap.data();
+}
+
+async function savePhone2FA(phone, encodedSecret) {
+  if (!phone || !encodedSecret) return null;
+  const cleanPhone = phone.trim();
+  const docId = cleanPhone.replace(/[^0-9]/g, '');
+  if (!docId) return null;
+  const docRef = doc(db, 'saved_phone_numbers', docId);
+  const snap = await getDoc(docRef);
+  const matched = DEFAULT_PHONE_CONFIG.find(p => p.phone === cleanPhone);
+  const existing = snap.exists() ? (snap.data() || {}) : {
+    phone_number: cleanPhone,
+    added_at: new Date().toISOString(),
+    is_default: !!matched,
+    label: matched ? matched.label : 'حساب محفوظ',
+    account_name: matched ? matched.account_name : 'حساب محفوظ'
+  };
+  const nowIso = new Date().toISOString();
+  const updated = {
+    ...existing,
+    phone_number: existing.phone_number || cleanPhone,
+    two_factor_secret: String(encodedSecret).trim(),
+    two_factor_updated_at: nowIso,
+    has_saved_2fa: true,
+    updated_at: nowIso
+  };
+  await setDoc(docRef, updated, { merge: true });
+  return updated;
+}
+
+async function getPhone2FA(phone) {
+  if (!phone) return null;
+  const docId = String(phone).replace(/[^0-9]/g, '');
+  if (!docId) return null;
+  const docRef = doc(db, 'saved_phone_numbers', docId);
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) return null;
+  const data = snap.data() || {};
+  return {
+    phone_number: data.phone_number || phone,
+    two_factor_secret: data.two_factor_secret || '',
+    two_factor_updated_at: data.two_factor_updated_at || ''
+  };
 }
 
 async function getSavedLinks() {
@@ -287,6 +333,15 @@ try {
     const name = process.argv[4];
     const res = await updatePhoneAccountName(phone, name);
     console.log(JSON.stringify({ success: true, phone: res }));
+  } else if (action === 'save_2fa_password') {
+    const phone = process.argv[3];
+    const encodedSecret = process.argv[4];
+    const res = await savePhone2FA(phone, encodedSecret);
+    console.log(JSON.stringify({ success: true, data: res }));
+  } else if (action === 'get_2fa_password') {
+    const phone = process.argv[3];
+    const res = await getPhone2FA(phone);
+    console.log(JSON.stringify({ success: true, data: res }));
   } else if (action === 'get_links') {
     const links = await getSavedLinks();
     console.log(JSON.stringify({ success: true, links }));

@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS saved_phone_numbers (
     label TEXT NOT NULL DEFAULT '',
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     added_at TEXT NOT NULL DEFAULT '',
+    two_factor_secret TEXT NOT NULL DEFAULT '',
+    two_factor_updated_at TEXT NOT NULL DEFAULT '',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

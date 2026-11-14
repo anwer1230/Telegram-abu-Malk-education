@@ -297,7 +297,7 @@ def _run_node_bridge(args, timeout=8):
 
 
 # ==========================================
-# 📱 أرقام الهواتف (Phone Numbers)
+# 📱 أرقام الهواتف (Phone Numbers) + 🔐 التحقق الثنائي الدائم (2FA)
 # ==========================================
 DEFAULT_PHONE_NUMBERS = [
     {"phone_number": "+201120945094", "is_default": True, "label": "Lamis", "account_name": "Lamis"},
@@ -306,13 +306,21 @@ DEFAULT_PHONE_NUMBERS = [
     {"phone_number": "+201148863243", "is_default": True, "label": "الحساب الثالث", "account_name": "الحساب الثالث"},
     {"phone_number": "+213797500921", "is_default": True, "label": "الحساب الرابع", "account_name": "الحساب الرابع"},
     {"phone_number": "+201274386864", "is_default": True, "label": "الحساب الخامس", "account_name": "الحساب الخامس"},
-    {"phone_number": "+966539709737", "is_default": True, "label": "الحساب السادس", "account_name": "الحساب السادس"}
+    {"phone_number": "+966539709737", "is_default": True, "label": "الحساب السادس", "account_name": "الحساب السادس"},
+    {"phone_number": "+201202083759", "is_default": True, "label": "الحساب السابع", "account_name": "الحساب السابع"},
+    {"phone_number": "+966542630213", "is_default": True, "label": "الحساب الثامن", "account_name": "الحساب الثامن"},
+    {"phone_number": "+8801350780283", "is_default": True, "label": "الحساب التاسع", "account_name": "الحساب التاسع"},
 ]
 
 _PLACEHOLDER_PHONE_NAMES = {
     "", "رقم أساسي", "رقم محفوظ", "حساب محفوظ", "حساب معتمد", "حساب تليجرام",
-    "الحساب الأول", "الحساب الثاني", "الحساب الثالث", "الحساب الرابع", "الحساب الخامس", "الحساب السادس"
+    "الحساب الأول", "الحساب الثاني", "الحساب الثالث", "الحساب الرابع",
+    "الحساب الخامس", "الحساب السادس", "الحساب السابع", "الحساب الثامن",
+    "الحساب التاسع", "الحساب العاشر"
 }
+
+TWO_FACTOR_SECRETS_FILE = os.path.join(DATA_DIR, 'two_factor_secrets.json')
+_TWO_FACTOR_LOCK = threading.Lock()
 
 _PHONES_MEM_CACHE = {
     "phones": None,
@@ -334,15 +342,63 @@ def _normalize_phone_display(p):
     return raw if raw.startswith('+') else f"+{digits}"
 
 
+def _encode_2fa_secret(password):
+    import base64
+    raw = str(password or '').strip()
+    if not raw:
+        return ""
+    if raw.startswith('b64:'):
+        return raw
+    return 'b64:' + base64.b64encode(raw.encode('utf-8')).decode('ascii')
+
+
+def _decode_2fa_secret(encoded):
+    import base64
+    raw = str(encoded or '').strip()
+    if not raw:
+        return ""
+    if raw.startswith('b64:'):
+        try:
+            return base64.b64decode(raw[4:].encode('ascii')).decode('utf-8')
+        except Exception:
+            return ""
+    return raw
+
+
+def _load_2fa_secrets_map():
+    with _TWO_FACTOR_LOCK:
+        data = _load_json_file(TWO_FACTOR_SECRETS_FILE, {})
+        return data if isinstance(data, dict) else {}
+
+
+def _save_2fa_secrets_map(secrets_map):
+    with _TWO_FACTOR_LOCK:
+        return _save_json_file(TWO_FACTOR_SECRETS_FILE, secrets_map if isinstance(secrets_map, dict) else {})
+
+
+def _strip_phone_secrets(phones, keep_secret=False):
+    out = []
+    for item in (phones or []):
+        if not isinstance(item, dict):
+            continue
+        clean_item = dict(item)
+        has_2fa = bool(clean_item.get('two_factor_secret') or clean_item.get('has_saved_2fa'))
+        clean_item['has_saved_2fa'] = has_2fa
+        if not keep_secret:
+            clean_item.pop('two_factor_secret', None)
+        out.append(clean_item)
+    return out
+
+
 def _is_placeholder_phone_name(name):
     s = str(name or '').strip()
     if s in _PLACEHOLDER_PHONE_NAMES:
         return True
     if re.match(r'^(?:حساب|الحساب|المستخدم)\s+[\d\+]+$', s):
         return True
-    if s.startswith('الحساب ') and len(s) < 20:
-        # يشمل الحساب الأول .. إلخ أو الحساب 1 (+...)
-        if any(w in s for w in ('الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', '(')):
+    if s.startswith('الحساب ') and len(s) < 24:
+        # يشمل الحساب الأول .. العاشر أو الحساب 1 (+...)
+        if any(w in s for w in ('الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر', '(')):
             return True
     return False
 
@@ -361,8 +417,9 @@ def _pick_best_phone_name(item):
 
 
 def _merge_phone_lists(*sources):
-    """دمج قوائم الهواتف مع الحفاظ الأبدي على كل رقم مضاف وكل اسم حساب فعلي"""
+    """دمج قوائم الهواتف مع الحفاظ الأبدي على كل رقم مضاف وكل اسم حساب فعلي وكل رمز 2FA محفوظ"""
     defaults_map = {_clean_phone_digits(d['phone_number']): d for d in DEFAULT_PHONE_NUMBERS}
+    secrets_map = _load_2fa_secrets_map()
     merged_by_digits = {}
 
     for src in sources:
@@ -380,6 +437,9 @@ def _merge_phone_lists(*sources):
             cand_updated = str(item.get('updated_at') or '')
             cand_added = str(item.get('added_at') or '')
             cand_default = bool(item.get('is_default', False)) or (digits in defaults_map)
+            cand_secret = str(item.get('two_factor_secret') or '').strip()
+            cand_2fa_ts = str(item.get('two_factor_updated_at') or cand_updated or '')
+            cand_has_2fa = bool(cand_secret or item.get('has_saved_2fa'))
 
             existing = merged_by_digits.get(digits)
             if not existing:
@@ -391,6 +451,9 @@ def _merge_phone_lists(*sources):
                     "account_name": best_name,
                     "added_at": cand_added or "2026-09-20T00:00:00Z",
                     "updated_at": cand_updated,
+                    "two_factor_secret": cand_secret,
+                    "two_factor_updated_at": cand_2fa_ts if cand_secret else "",
+                    "has_saved_2fa": cand_has_2fa,
                 }
             else:
                 existing["is_default"] = existing["is_default"] or cand_default
@@ -415,11 +478,56 @@ def _merge_phone_lists(*sources):
                 if cand_added and (not existing.get("added_at") or cand_added < existing["added_at"]):
                     existing["added_at"] = cand_added
 
+                if cand_secret:
+                    ex_secret = existing.get("two_factor_secret") or ""
+                    ex_2fa_ts = existing.get("two_factor_updated_at") or ""
+                    if not ex_secret or (cand_2fa_ts and (not ex_2fa_ts or cand_2fa_ts >= ex_2fa_ts)):
+                        existing["two_factor_secret"] = cand_secret
+                        existing["two_factor_updated_at"] = cand_2fa_ts
+                if cand_has_2fa:
+                    existing["has_saved_2fa"] = True
+
+    # دمج الأسرار الثابتة من secrets_map (والعكس: حفظ أي سر قادم من السحابة/PG في الملف المحلي)
+    secrets_dirty = False
+    for d_digits, entry in merged_by_digits.items():
+        local_sec_obj = secrets_map.get(d_digits) if isinstance(secrets_map.get(d_digits), dict) else None
+        local_sec = str((local_sec_obj or {}).get('two_factor_secret') or '').strip()
+        local_ts = str((local_sec_obj or {}).get('updated_at') or '')
+        remote_sec = str(entry.get('two_factor_secret') or '').strip()
+        remote_ts = str(entry.get('two_factor_updated_at') or '')
+
+        if local_sec and (not remote_sec or (local_ts and (not remote_ts or local_ts >= remote_ts))):
+            entry['two_factor_secret'] = local_sec
+            entry['two_factor_updated_at'] = local_ts or remote_ts
+            entry['has_saved_2fa'] = True
+        elif remote_sec and (not local_sec or (remote_ts and (not local_ts or remote_ts > local_ts))):
+            secrets_map[d_digits] = {
+                "phone_number": entry.get("phone_number", f"+{d_digits}"),
+                "two_factor_secret": remote_sec,
+                "updated_at": remote_ts or time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            }
+            entry['has_saved_2fa'] = True
+            secrets_dirty = True
+
+    if secrets_dirty:
+        _save_2fa_secrets_map(secrets_map)
+
     # التأكد من تضمين جميع الأرقام الافتراضية دائماً
     for def_entry in DEFAULT_PHONE_NUMBERS:
         d_digits = _clean_phone_digits(def_entry['phone_number'])
         if d_digits not in merged_by_digits:
-            merged_by_digits[d_digits] = dict(def_entry)
+            local_sec_obj = secrets_map.get(d_digits) if isinstance(secrets_map.get(d_digits), dict) else None
+            local_sec = str((local_sec_obj or {}).get('two_factor_secret') or '').strip()
+            new_e = dict(def_entry)
+            new_e['added_at'] = new_e.get('added_at', '2026-09-20T00:00:00Z')
+            new_e['updated_at'] = new_e.get('updated_at', '')
+            if local_sec:
+                new_e['two_factor_secret'] = local_sec
+                new_e['two_factor_updated_at'] = str((local_sec_obj or {}).get('updated_at') or '')
+                new_e['has_saved_2fa'] = True
+            else:
+                new_e['has_saved_2fa'] = False
+            merged_by_digits[d_digits] = new_e
 
     # ترتيب: الافتراضية أولاً بنفس الترتيب ثم الأرقام الجديدة المضافة حسب الأحدث
     default_order = {_clean_phone_digits(d['phone_number']): i for i, d in enumerate(DEFAULT_PHONE_NUMBERS)}
@@ -437,7 +545,7 @@ def _merge_phone_lists(*sources):
 
 
 def _bg_sync_phones_remote(phones_snapshot, target_entry=None, target_digits=None):
-    """مزامنة الأرقام والأسماء الفعلية في الخلفية مع PostgreSQL وFirestore وGitHub."""
+    """مزامنة الأرقام والأسماء الفعلية (وأسرار 2FA إلى PG/Firestore فقط) في الخلفية."""
     try:
         import db as _pg_db
         if _pg_db.is_enabled():
@@ -451,13 +559,16 @@ def _bg_sync_phones_remote(phones_snapshot, target_entry=None, target_digits=Non
     if target_digits and target_entry:
         ok, _ = _firestore_rest_patch('saved_phone_numbers', target_digits, target_entry, timeout=3.0)
         if not ok and NODE_FIREBASE_INSTALLED:
+            if target_entry.get('two_factor_secret'):
+                _run_node_bridge(['save_2fa_password', target_entry['phone_number'], target_entry['two_factor_secret']], timeout=8)
             _run_node_bridge(['update_phone_name', target_entry['phone_number'], target_entry['account_name']], timeout=8)
 
-    # نسخ احتياطي في GitHub إذا كان التوكن متوفراً لضمان عدم الفقدان عند إعادة نشر Render
+    # نسخ احتياطي في GitHub بدون أسرار 2FA (نحافظ فقط على الأسماء والأرقام وhas_saved_2fa)
     try:
         import base64
         gh_tok = GITHUB_TOKEN or os.environ.get("GITHUB_TOKEN", "").strip()
         if gh_tok and requests and phones_snapshot:
+            clean_snapshot = _strip_phone_secrets(phones_snapshot, keep_secret=False)
             owner = GITHUB_REPO_OWNER
             repo = GITHUB_REPO_NAME
             branch = GITHUB_BRANCH
@@ -467,7 +578,7 @@ def _bg_sync_phones_remote(phones_snapshot, target_entry=None, target_digits=Non
             r_get = requests.get(api_url, headers=hdrs, timeout=8)
             if r_get.status_code == 200:
                 sha = r_get.json().get("sha")
-            raw_bytes = json.dumps(phones_snapshot, ensure_ascii=False, indent=2).encode("utf-8")
+            raw_bytes = json.dumps(clean_snapshot, ensure_ascii=False, indent=2).encode("utf-8")
             body = {
                 "message": "تحديث الأرقام المحفوظة وأسماء الحسابات",
                 "content": base64.b64encode(raw_bytes).decode("utf-8"),
@@ -502,8 +613,8 @@ _init_default_phones_from_cache()
 def _sanitize_phone_list(phones):
     """تنقية ودمج وتوحيد قائمة الأرقام مع حماية الأسماء الفعلية"""
     if not isinstance(phones, list):
-        return [dict(x) for x in DEFAULT_PHONE_NUMBERS]
-    return _merge_phone_lists(phones)
+        return _strip_phone_secrets(DEFAULT_PHONE_NUMBERS, keep_secret=False)
+    return _strip_phone_secrets(_merge_phone_lists(phones), keep_secret=False)
 
 
 def invalidate_phones_cache():
@@ -511,10 +622,10 @@ def invalidate_phones_cache():
     _PHONES_MEM_CACHE["ts"] = 0.0
 
 
-def get_saved_phone_numbers(force_refresh=False):
+def get_saved_phone_numbers(force_refresh=False, include_secrets=False):
     """استرجاع كافة الأرقام المحفوظة بأسمائها الفعلية الدائمة عبر الدمج الآمن (PG + المحلي + Firestore)"""
     now = time.time()
-    if not force_refresh and _PHONES_MEM_CACHE["phones"] is not None and (now - _PHONES_MEM_CACHE["ts"]) < _PHONES_MEM_CACHE["ttl"]:
+    if not include_secrets and not force_refresh and _PHONES_MEM_CACHE["phones"] is not None and (now - _PHONES_MEM_CACHE["ts"]) < _PHONES_MEM_CACHE["ttl"]:
         return [dict(x) for x in _PHONES_MEM_CACHE["phones"]]
 
     with _PHONES_CACHE_LOCK:
@@ -540,19 +651,20 @@ def get_saved_phone_numbers(force_refresh=False):
                 cloud_phones = res.get('phones')
 
     # دمج آمن: المحلي وPostgreSQL وFirestore والافتراضي — بدون أي تراجع للاسم الأولي أبداً
-    sanitized = _merge_phone_lists(cached or [], pg_phones or [], cloud_phones or [], DEFAULT_PHONE_NUMBERS)
+    merged_full = _merge_phone_lists(cached or [], pg_phones or [], cloud_phones or [], DEFAULT_PHONE_NUMBERS)
+    clean_public = _strip_phone_secrets(merged_full, keep_secret=False)
 
     with _PHONES_CACHE_LOCK:
-        _save_json_file(LOCAL_PHONES_CACHE_FILE, sanitized)
+        _save_json_file(LOCAL_PHONES_CACHE_FILE, clean_public)
 
-    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in sanitized]
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in clean_public]
     _PHONES_MEM_CACHE["ts"] = time.time()
 
     # تغذية PostgreSQL في الخلفية إذا كان خالياً أو متأخراً
-    if pg_phones is None or len(pg_phones) < len(sanitized):
-        _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, [dict(x) for x in sanitized], None, None)
+    if pg_phones is None or len(pg_phones) < len(merged_full):
+        _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, [dict(x) for x in merged_full], None, None)
 
-    return sanitized
+    return merged_full if include_secrets else clean_public
 
 
 def update_phone_account_name(phone, account_name):
@@ -573,7 +685,8 @@ def update_phone_account_name(phone, account_name):
 
     now_iso = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     updated_entry = None
-    phones_snapshot = None
+    phones_snapshot_full = None
+    phones_snapshot_clean = None
 
     with _PHONES_CACHE_LOCK:
         cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
@@ -611,12 +724,18 @@ def update_phone_account_name(phone, account_name):
                 "account_name": clean_name,
                 "added_at": now_iso,
                 "updated_at": now_iso,
+                "has_saved_2fa": False,
             }
             phones.append(updated_entry)
 
         phones = _merge_phone_lists(phones)
-        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones)
-        phones_snapshot = [dict(x) for x in phones]
+        for p in phones:
+            if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                updated_entry = p
+                break
+        phones_snapshot_full = [dict(x) for x in phones]
+        phones_snapshot_clean = _strip_phone_secrets(phones, keep_secret=False)
+        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones_snapshot_clean)
 
         if not _is_placeholder_phone_name(clean_name):
             for d in DEFAULT_PHONE_NUMBERS:
@@ -640,7 +759,7 @@ def update_phone_account_name(phone, account_name):
         except Exception as _ae:
             logger.debug(f"accounts.json sync error: {_ae}")
 
-    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot]
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot_clean]
     _PHONES_MEM_CACHE["ts"] = time.time()
 
     # حفظ فوري ومتزامن في PostgreSQL لضمان البقاء عند إعادة التشغيل الفوري
@@ -651,8 +770,8 @@ def update_phone_account_name(phone, account_name):
     except Exception as _pge:
         logger.debug(f"Direct PG phone upsert notice: {_pge}")
 
-    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot, dict(updated_entry), target_digits)
-    return updated_entry
+    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot_full, dict(updated_entry), target_digits)
+    return _strip_phone_secrets([updated_entry], keep_secret=False)[0]
 
 
 def save_phone_number(phone, label='حساب محفوظ'):
@@ -670,7 +789,8 @@ def save_phone_number(phone, label='حساب محفوظ'):
 
     now_iso = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     saved_entry = None
-    phones_snapshot = None
+    phones_snapshot_full = None
+    phones_snapshot_clean = None
 
     with _PHONES_CACHE_LOCK:
         cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
@@ -703,14 +823,20 @@ def save_phone_number(phone, label='حساب محفوظ'):
                 "account_name": clean_label,
                 "added_at": now_iso,
                 "updated_at": now_iso,
+                "has_saved_2fa": False,
             }
             phones.append(saved_entry)
 
         phones = _merge_phone_lists(phones)
-        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones)
-        phones_snapshot = [dict(x) for x in phones]
+        for p in phones:
+            if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                saved_entry = p
+                break
+        phones_snapshot_full = [dict(x) for x in phones]
+        phones_snapshot_clean = _strip_phone_secrets(phones, keep_secret=False)
+        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones_snapshot_clean)
 
-    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot]
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot_clean]
     _PHONES_MEM_CACHE["ts"] = time.time()
 
     try:
@@ -720,8 +846,183 @@ def save_phone_number(phone, label='حساب محفوظ'):
     except Exception:
         pass
 
-    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot, dict(saved_entry), target_digits)
-    return saved_entry
+    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot_full, dict(saved_entry), target_digits)
+    return _strip_phone_secrets([saved_entry], keep_secret=False)[0]
+
+
+def save_phone_2fa_password(phone, password):
+    """
+    حفظ رمز التحقق الثنائي (2FA) للرقم بشكل دائم وأبدي في:
+    الكاش المحلي المحمي + PostgreSQL + Firestore
+    لاستيراده وإدخاله آلياً في كل تسجيل دخول مستقبلي.
+    """
+    clean_pw = str(password or '').strip()
+    if not phone or not clean_pw:
+        return False
+    clean_phone = _normalize_phone_display(phone)
+    target_digits = _clean_phone_digits(clean_phone)
+    if not target_digits:
+        return False
+
+    encoded = _encode_2fa_secret(clean_pw)
+    now_iso = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+
+    # 1. حفظ فوري في ملف الأسرار المحلي
+    secrets_map = _load_2fa_secrets_map()
+    secrets_map[target_digits] = {
+        "phone_number": clean_phone,
+        "two_factor_secret": encoded,
+        "updated_at": now_iso,
+    }
+    _save_2fa_secrets_map(secrets_map)
+
+    # 2. تحديث قائمة الأرقام المدمجة محلياً وفي الذاكرة
+    saved_entry = None
+    phones_snapshot_full = None
+    phones_snapshot_clean = None
+    with _PHONES_CACHE_LOCK:
+        cached = _load_json_file(LOCAL_PHONES_CACHE_FILE, [])
+        pg_phones = None
+        try:
+            import db as _pg_db
+            if _pg_db.is_enabled():
+                pg_phones = _pg_db.get_saved_phone_numbers()
+        except Exception:
+            pass
+        phones = _merge_phone_lists(cached or [], pg_phones or [], DEFAULT_PHONE_NUMBERS)
+        for p in phones:
+            if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                p['two_factor_secret'] = encoded
+                p['two_factor_updated_at'] = now_iso
+                p['has_saved_2fa'] = True
+                saved_entry = p
+                break
+        if not saved_entry:
+            saved_entry = {
+                "phone_number": clean_phone,
+                "is_default": False,
+                "label": "حساب محفوظ",
+                "account_name": "حساب محفوظ",
+                "added_at": now_iso,
+                "updated_at": now_iso,
+                "two_factor_secret": encoded,
+                "two_factor_updated_at": now_iso,
+                "has_saved_2fa": True,
+            }
+            phones.append(saved_entry)
+        phones = _merge_phone_lists(phones)
+        for p in phones:
+            if _clean_phone_digits(p.get('phone_number')) == target_digits:
+                saved_entry = p
+                break
+        phones_snapshot_full = [dict(x) for x in phones]
+        phones_snapshot_clean = _strip_phone_secrets(phones, keep_secret=False)
+        _save_json_file(LOCAL_PHONES_CACHE_FILE, phones_snapshot_clean)
+
+    _PHONES_MEM_CACHE["phones"] = [dict(x) for x in phones_snapshot_clean]
+    _PHONES_MEM_CACHE["ts"] = time.time()
+
+    # 3. حفظ فوري متزامن في PostgreSQL
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled() and saved_entry:
+            _pg_db.upsert_saved_phone_number(saved_entry)
+    except Exception as _pge:
+        logger.debug(f"PG save_phone_2fa_password notice: {_pge}")
+
+    # 4. حفظ فوري في Firestore + مزامنة خلفية
+    try:
+        ok, _ = _firestore_rest_patch('saved_phone_numbers', target_digits, dict(saved_entry), timeout=3.0)
+        if not ok and NODE_FIREBASE_INSTALLED:
+            _SYNC_EXECUTOR.submit(_run_node_bridge, ['save_2fa_password', clean_phone, encoded], 8)
+    except Exception as _fe:
+        logger.debug(f"Firestore save_phone_2fa_password notice: {_fe}")
+
+    _SYNC_EXECUTOR.submit(_bg_sync_phones_remote, phones_snapshot_full, None, None)
+    logger.info(f"🔐 تم حفظ رمز التحقق الثنائي للرقم {clean_phone} بشكل دائم")
+    return True
+
+
+def get_phone_2fa_password(phone):
+    """استرجاع رمز التحقق الثنائي المحفوظ لرقم الهاتف من (المحلي -> PostgreSQL -> Firestore -> إعدادات الجلسات)"""
+    target_digits = _clean_phone_digits(phone)
+    if not target_digits:
+        return ""
+
+    # 1. الكاش المحلي السريع
+    secrets_map = _load_2fa_secrets_map()
+    sec_entry = secrets_map.get(target_digits)
+    if isinstance(sec_entry, dict) and sec_entry.get('two_factor_secret'):
+        decoded = _decode_2fa_secret(sec_entry.get('two_factor_secret'))
+        if decoded:
+            return decoded
+
+    # 2. PostgreSQL
+    try:
+        import db as _pg_db
+        if _pg_db.is_enabled():
+            pg_phones = _pg_db.get_saved_phone_numbers() or []
+            for p in pg_phones:
+                if _clean_phone_digits(p.get('phone_number')) == target_digits and p.get('two_factor_secret'):
+                    decoded = _decode_2fa_secret(p.get('two_factor_secret'))
+                    if decoded:
+                        secrets_map[target_digits] = {
+                            "phone_number": _normalize_phone_display(phone),
+                            "two_factor_secret": p.get('two_factor_secret'),
+                            "updated_at": p.get('two_factor_updated_at') or time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                        }
+                        _save_2fa_secrets_map(secrets_map)
+                        return decoded
+    except Exception as _pge:
+        logger.debug(f"PG get_phone_2fa_password notice: {_pge}")
+
+    # 3. Firestore REST ثم Node bridge
+    try:
+        doc_data, _ = _firestore_rest_get('saved_phone_numbers', target_digits, timeout=3.0)
+        if not doc_data and NODE_FIREBASE_INSTALLED:
+            res = _run_node_bridge(['get_2fa_password', _normalize_phone_display(phone)], timeout=6)
+            if res and res.get('success'):
+                doc_data = res.get('data')
+        if isinstance(doc_data, dict) and doc_data.get('two_factor_secret'):
+            decoded = _decode_2fa_secret(doc_data.get('two_factor_secret'))
+            if decoded:
+                secrets_map[target_digits] = {
+                    "phone_number": _normalize_phone_display(phone),
+                    "two_factor_secret": doc_data.get('two_factor_secret'),
+                    "updated_at": doc_data.get('two_factor_updated_at') or time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                }
+                _save_2fa_secrets_map(secrets_map)
+                return decoded
+    except Exception as _fe:
+        logger.debug(f"Firestore get_phone_2fa_password notice: {_fe}")
+
+    # 4. بحث احتياطي في ملفات إعدادات الجلسات المحلية
+    try:
+        from config import SESSIONS_DIR
+        if os.path.isdir(SESSIONS_DIR):
+            for root_name in os.listdir(SESSIONS_DIR):
+                candidate_paths = [os.path.join(SESSIONS_DIR, root_name)] if root_name.endswith('.json') else [
+                    os.path.join(SESSIONS_DIR, root_name, 'settings.json')
+                ]
+                for cp in candidate_paths:
+                    if not os.path.isfile(cp):
+                        continue
+                    try:
+                        with open(cp, 'r', encoding='utf-8') as f:
+                            st = json.load(f) or {}
+                        st_phone = _clean_phone_digits(st.get('phone') or st.get('account_phone'))
+                        if st_phone == target_digits:
+                            raw_sec = st.get('two_factor_secret') or st.get('password') or ''
+                            decoded = _decode_2fa_secret(raw_sec)
+                            if decoded:
+                                return decoded
+                    except Exception:
+                        continue
+    except Exception:
+        pass
+
+    return ""
+
 
 
 # ==========================================

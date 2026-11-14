@@ -994,7 +994,7 @@
                 {% if saved_phones %}
                   {% for sp in saved_phones %}
                     {% set name_dsp = sp.account_name or sp.label or '' %}
-                    <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
+                    <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}" data-has-2fa="{{ '1' if sp.has_saved_2fa else '0' }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %}{% if sp.has_saved_2fa %} 🔐{% endif %})</option>
                   {% endfor %}
                 {% else %}
                   <option value="+201120945094" data-name="Lamis">+201120945094 (⭐ Lamis)</option>
@@ -1004,6 +1004,9 @@
                   <option value="+213797500921" data-name="الحساب الرابع">+213797500921 (⭐ الحساب الرابع)</option>
                   <option value="+201274386864" data-name="الحساب الخامس">+201274386864 (⭐ الحساب الخامس)</option>
                   <option value="+966539709737" data-name="الحساب السادس">+966539709737 (⭐ الحساب السادس)</option>
+                  <option value="+201202083759" data-name="الحساب السابع">+201202083759 (⭐ الحساب السابع)</option>
+                  <option value="+966542630213" data-name="الحساب الثامن">+966542630213 (⭐ الحساب الثامن)</option>
+                  <option value="+8801350780283" data-name="الحساب التاسع">+8801350780283 (⭐ الحساب التاسع)</option>
                 {% endif %}
                 <option value="__custom__">➕ تسجيل برقم آخر...</option>
               </select>
@@ -1248,7 +1251,7 @@
                                     {% if saved_phones %}
                                         {% for sp in saved_phones %}
                                             {% set name_dsp = sp.account_name or sp.label or '' %}
-                                            <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %})</option>
+                                            <option value="{{ sp.phone_number }}" data-name="{{ name_dsp }}" data-has-2fa="{{ '1' if sp.has_saved_2fa else '0' }}">{{ sp.phone_number }} ({% if name_dsp and name_dsp not in ['رقم أساسي', 'رقم محفوظ', 'حساب محفوظ', 'حساب معتمد', 'حساب تليجرام'] %}⭐ {{ name_dsp }}{% elif sp.is_default %}⭐ حساب معتمد{% else %}📱 محفوظ{% endif %}{% if sp.has_saved_2fa %} 🔐{% endif %})</option>
                                         {% endfor %}
                                     {% else %}
                                         <option value="+201120945094">+201120945094 (⭐ Lamis)</option>
@@ -1258,6 +1261,9 @@
                                         <option value="+213797500921">+213797500921 (⭐ الحساب الرابع)</option>
                                         <option value="+201274386864">+201274386864 (⭐ الحساب الخامس)</option>
                                         <option value="+966539709737">+966539709737 (⭐ الحساب السادس)</option>
+                                        <option value="+201202083759">+201202083759 (⭐ الحساب السابع)</option>
+                                        <option value="+966542630213">+966542630213 (⭐ الحساب الثامن)</option>
+                                        <option value="+8801350780283">+8801350780283 (⭐ الحساب التاسع)</option>
                                     {% endif %}
                                     <option value="__custom__">➕ تسجيل برقم آخر...</option>
                                 </select>
@@ -6082,11 +6088,13 @@
                 }
                 if (result.password_required) {
                     showPasswordForm();
+                    if (result.message) showLoginMessage(result.message, 'info');
                 } else if (result.success) {
                     showLoggedIn();
+                    showLoginMessage(result.message || (result.auto_2fa_applied ? '✅ تم استيراد رمز التحقق الثنائي المحفوظ وتسجيل الدخول تلقائياً!' : '✅ تم تسجيل الدخول بنجاح!'), 'success');
                     fetchAllAccounts();
                     if (window.loadSavedPhones) window.loadSavedPhones();
-                    setTimeout(() => { window.location.reload(); }, 600);
+                    setTimeout(() => { window.location.reload(); }, 700);
                 } else {
                     showLoginMessage(result.message || '❌ كود التحقق غير صحيح.', 'danger');
                 }
@@ -6109,7 +6117,7 @@
             }
             const button = byId('passwordForm')?.querySelector('button[type="submit"]');
             if (button) button.disabled = true;
-            showLoginMessage('🔄 جاري التحقق من كلمة المرور...', 'info');
+            showLoginMessage('🔄 جاري التحقق من كلمة المرور وحفظها للمرات القادمة...', 'info');
             try {
                 const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
                 const result = await postLogin('/api/verify_code', { password, user_id: activeUser });
@@ -6119,9 +6127,10 @@
                 }
                 if (result.success) {
                     showLoggedIn();
+                    showLoginMessage(result.message || '✅ تم تسجيل الدخول وحفظ رمز التحقق الثنائي بشكل دائم!', 'success');
                     fetchAllAccounts();
                     if (window.loadSavedPhones) window.loadSavedPhones();
-                    setTimeout(() => { window.location.reload(); }, 600);
+                    setTimeout(() => { window.location.reload(); }, 700);
                 } else {
                     showLoginMessage(result.message || '❌ كلمة المرور غير صحيحة.', 'danger');
                 }
@@ -6156,7 +6165,7 @@
             const isLoggedIn = Boolean(data.logged_in);
             let phone = data.account_phone || data.phone || '';
 
-            if ((phone && phone.includes('201120945094')) || (!phone && uid === 'user_1')) {
+            if ((phone && phone.includes('201120945094') && !accountName) || (!phone && uid === 'user_1' && !accountName)) {
                 accountName = 'Lamis';
                 if (!phone) phone = '+201120945094';
             }
@@ -6569,8 +6578,13 @@
                 phoneInput.focus();
             }
 
-            // فحص ذكي: إذا كان الرقم مسجلاً ومتصلاً بالفعل في أحد الحسابات
+            // فحص ذكي: إذا كان الرقم مسجلاً ومتصلاً بالفعل في أحد الحسابات أو لديه رمز 2FA محفوظ
             if (val && val !== '__custom__') {
+                const dd = byId('savedPhonesDropdown');
+                const selOpt = dd && dd.options[dd.selectedIndex];
+                if (selOpt && selOpt.getAttribute('data-has-2fa') === '1') {
+                    showLoginMessage('🔐 هذا الرقم لديه رمز تحقق ثنائي (2FA) محفوظ؛ سيتم استيراده وإدخاله تلقائياً بعد إدخال كود تيليجرام.', 'info');
+                }
                 try {
                     const res = await fetch('/api/get_all_accounts_info', { cache: 'no-store' });
                     if (res && res.ok) {
@@ -6627,6 +6641,7 @@
                     opt.value = item.phone_number;
                     const nameDisplay = (item.account_name || item.label || '').trim();
                     opt.setAttribute('data-name', nameDisplay);
+                    opt.setAttribute('data-has-2fa', item.has_saved_2fa ? '1' : '0');
                     let badge = '';
                     if (nameDisplay && !ignoredPlaceholders.has(nameDisplay)) {
                         badge = `⭐ ${nameDisplay}`;
@@ -6635,7 +6650,8 @@
                     } else {
                         badge = '📱 محفوظ';
                     }
-                    opt.textContent = `${item.phone_number} (${badge})`;
+                    const tfaIcon = item.has_saved_2fa ? ' 🔐' : '';
+                    opt.textContent = `${item.phone_number} (${badge}${tfaIcon})`;
                     selectElem.appendChild(opt);
                 });
                 const customOpt = document.createElement('option');

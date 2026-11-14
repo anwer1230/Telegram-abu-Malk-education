@@ -70,6 +70,7 @@ static/generated_files/*
 .env.local
 .env.*.local
 data/user_sessions.json
+data/two_factor_secrets.json
 data/rag/*.db
 data/rag/uploads/*
 ai_engine/.groq_key

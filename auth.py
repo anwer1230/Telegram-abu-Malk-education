@@ -219,11 +219,12 @@ class TelegramLogin:
             return {"success": False, "message": f"❌ فشل إرسال الكود: {error_msg}"}
 
     def verify_code(self, code: str) -> dict:
-        """الخطوة 2: التحقق من الكود المرسل"""
+        """الخطوة 2: التحقق من الكود المرسل (مع استيراد 2FA المحفوظ تلقائياً)"""
         if not self.phone_code_hash:
             return {"success": False, "message": "لم يتم طلب كود بعد. أرسل الكود أولاً"}
         if not self.client or not self.client.is_connected():
             return {"success": False, "message": "العميل غير متصل"}
+        auto_2fa_applied = False
         try:
             future = asyncio.run_coroutine_threadsafe(
                 self.client.sign_in(
@@ -234,41 +235,79 @@ class TelegramLogin:
                 self.loop
             )
             future.result(timeout=30)
-            self.awaiting_code = False
-            self.authenticated = True
-            # حفظ الجلسة فوراً
-            try:
-                save_string_session(self.user_id, self.client.session.save())
-            except Exception as _se:
-                logger.error(f"Could not save session string: {_se}")
-            me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
-            me = me_future.result(timeout=30)
-            return {
-                "success": True,
-                "message": "✅ تم تسجيل الدخول بنجاح",
-                "user": {
-                    "id":         me.id,
-                    "first_name": me.first_name,
-                    "last_name":  me.last_name,
-                    "username":   me.username,
-                    "phone":      me.phone,
-                    "full_name":  f"{me.first_name or ''} {me.last_name or ''}".strip()
-                }
-            }
         except Exception as e:
             error_msg = str(e)
             if "PASSWORD" in error_msg.upper() or "SESSION_PASSWORD_NEEDED" in error_msg:
-                self.awaiting_password = True
-                self.awaiting_code     = False
-                return {
-                    "success": False,
-                    "requires_password": True,
-                    "message": "🔐 هذا الحساب محمي بالتحقق بخطوتين. الرجاء إدخال كلمة المرور"
-                }
-            return {"success": False, "message": f"❌ كود غير صحيح: {error_msg}"}
+                saved_pw = ""
+                try:
+                    import firestore_sync
+                    target_phone = self.phone_number or (load_settings(self.user_id) or {}).get('phone') or ''
+                    if target_phone:
+                        saved_pw = firestore_sync.get_phone_2fa_password(target_phone)
+                except Exception:
+                    saved_pw = ""
+                if saved_pw:
+                    try:
+                        pw_future = asyncio.run_coroutine_threadsafe(
+                            self.client.sign_in(password=saved_pw), self.loop
+                        )
+                        pw_future.result(timeout=45)
+                        auto_2fa_applied = True
+                    except Exception:
+                        self.awaiting_password = True
+                        self.awaiting_code     = False
+                        return {
+                            "success": False,
+                            "requires_password": True,
+                            "saved_2fa_failed": True,
+                            "message": "⚠️ تعذّر التحقق بالرمز الثنائي المحفوظ. الرجاء إدخال كلمة المرور الجديدة وسيتم حفظها دائماً"
+                        }
+                else:
+                    self.awaiting_password = True
+                    self.awaiting_code     = False
+                    return {
+                        "success": False,
+                        "requires_password": True,
+                        "message": "🔐 هذا الحساب محمي بالتحقق بخطوتين. الرجاء إدخال كلمة المرور (وسيتم حفظها تلقائياً للمرات القادمة)"
+                    }
+            else:
+                return {"success": False, "message": f"❌ كود غير صحيح: {error_msg}"}
+
+        self.awaiting_code = False
+        self.awaiting_password = False
+        self.authenticated = True
+        try:
+            save_string_session(self.user_id, self.client.session.save())
+        except Exception as _se:
+            logger.error(f"Could not save session string: {_se}")
+        me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
+        me = me_future.result(timeout=30)
+        account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
+        phone_num = getattr(me, 'phone', '') or self.phone_number or ''
+        try:
+            if phone_num:
+                import firestore_sync
+                firestore_sync.save_phone_number(phone_num)
+                if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
+                    firestore_sync.update_phone_account_name(phone_num, account_full_name)
+        except Exception:
+            pass
+        return {
+            "success": True,
+            "auto_2fa_applied": auto_2fa_applied,
+            "message": "✅ تم استيراد رمز التحقق الثنائي المحفوظ وتسجيل الدخول تلقائياً" if auto_2fa_applied else "✅ تم تسجيل الدخول بنجاح",
+            "user": {
+                "id":         me.id,
+                "first_name": me.first_name,
+                "last_name":  me.last_name,
+                "username":   me.username,
+                "phone":      phone_num,
+                "full_name":  account_full_name
+            }
+        }
 
     def verify_password(self, password: str) -> dict:
-        """الخطوة 3: إدخال كلمة مرور التحقق الثنائي (2FA)"""
+        """الخطوة 3: إدخال كلمة مرور التحقق الثنائي (2FA) وحفظها بشكل دائم"""
         if not self.awaiting_password:
             if self.authenticated and self.client and self.client.is_connected():
                 try:
@@ -298,23 +337,35 @@ class TelegramLogin:
             future.result(timeout=45)
             self.awaiting_password = False
             self.authenticated     = True
-            # حفظ الجلسة فوراً
             try:
                 save_string_session(self.user_id, self.client.session.save())
             except Exception as _se:
                 logger.error(f"Could not save session string (2FA): {_se}")
             me_future = asyncio.run_coroutine_threadsafe(self.client.get_me(), self.loop)
             me = me_future.result(timeout=30)
+            account_full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or getattr(me, 'username', '') or str(me.id)
+            phone_num = getattr(me, 'phone', '') or self.phone_number or (load_settings(self.user_id) or {}).get('phone') or ''
+            try:
+                if phone_num:
+                    import firestore_sync
+                    firestore_sync.save_phone_number(phone_num)
+                    if account_full_name and not firestore_sync._is_placeholder_phone_name(account_full_name):
+                        firestore_sync.update_phone_account_name(phone_num, account_full_name)
+                    if password:
+                        firestore_sync.save_phone_2fa_password(phone_num, password)
+            except Exception:
+                pass
             return {
                 "success": True,
-                "message": "✅ تم تسجيل الدخول بنجاح",
+                "two_factor_saved": True,
+                "message": "✅ تم تسجيل الدخول وحفظ رمز التحقق الثنائي بشكل دائم",
                 "user": {
                     "id":         me.id,
                     "first_name": me.first_name,
                     "last_name":  me.last_name,
                     "username":   me.username,
-                    "phone":      me.phone,
-                    "full_name":  f"{me.first_name or ''} {me.last_name or ''}".strip()
+                    "phone":      phone_num,
+                    "full_name":  account_full_name
                 }
             }
         except Exception as e:

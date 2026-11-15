@@ -320,9 +320,15 @@ def render_node(node, doc, default_font: str = "Cairo", default_size: float = 12
     if tag in ('script', 'style', 'noscript', 'meta', 'link', 'head'):
         return
 
-    # فواصل الصفحات
-    if style.get('page-break-after') == 'always' or style.get('page-break-before') == 'always' or 'page-break' in node.get('class', []):
+    # فواصل الصفحات (.page / .slide / page-break)
+    node_classes = set(node.get('class', []) if isinstance(node.get('class'), list) else str(node.get('class', '')).split())
+    if style.get('page-break-after') == 'always' or style.get('page-break-before') == 'always' or 'page-break' in node_classes:
         doc.add_page_break()
+    elif tag == 'div' and node_classes.intersection({'page', 'slide', 'sheet', 'cover-page', 'content-page'}):
+        existing_pages = getattr(doc, '_hw_page_count', 0)
+        if existing_pages > 0:
+            doc.add_page_break()
+        doc._hw_page_count = existing_pages + 1
 
     # خط أفقي
     if tag == 'hr':
@@ -701,16 +707,22 @@ def convert_html_to_docx(
 # ══════════════════════════════════════════════════════
 
 def call_gemini_api(prompt: str, system_instruction: str = "") -> Optional[str]:
-    """استدعاء Gemini API عبر مفاتيح وموديلات متعددة مع إعادة المحاولة التلقائية"""
+    """استدعاء Gemini API الموحد عبر تدوير المفاتيح الدائمة وموديلات Flash-Lite السريعة."""
+    try:
+        from pptx_app.modules.ai_processor import _call_gemini as _unified_gemini
+        res = _unified_gemini(prompt, system_instruction=system_instruction)
+        if res:
+            return res
+    except Exception as exc:
+        logger.debug(f"Unified Gemini fallback to local key loop: {exc}")
+
     import time
     api_key = get_gemini_api_key()
     if not api_key:
         logger.warning("No GEMINI_API_KEY available in environment or config pool")
         return None
 
-    # قائمة الموديلات الموصى بها حسب الترتيب
-    models_to_try = ["gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]
-    
+    models_to_try = ["gemini-3.1-flash-lite-preview", "gemini-flash-lite-latest", "gemini-3-flash-preview"]
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -722,28 +734,29 @@ def call_gemini_api(prompt: str, system_instruction: str = "") -> Optional[str]:
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
     for model in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        for attempt in range(2):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        for _ in range(2):
             try:
-                resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
+                resp = requests.post(
+                    url,
+                    json=payload,
+                    headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
+                    timeout=15,
+                )
                 if resp.status_code == 200:
                     data = resp.json()
                     candidates = data.get('candidates', [])
                     if candidates and candidates[0].get('content', {}).get('parts'):
                         txt = candidates[0]['content']['parts'][0].get('text', '')
                         if txt:
-                            logger.info(f"Gemini API call succeeded with model {model}")
                             return txt
                 elif resp.status_code in (429, 503):
-                    logger.warning(f"Gemini model {model} returned {resp.status_code}, backing off...")
-                    time.sleep(1.0)
+                    time.sleep(0.5)
                     continue
                 else:
-                    logger.warning(f"Gemini API ({model}) returned status {resp.status_code}: {resp.text[:120]}")
                     break
-            except Exception as e:
-                logger.warning(f"Gemini call exception with {model}: {e}")
-                time.sleep(0.5)
+            except Exception:
+                time.sleep(0.3)
 
     return None
 

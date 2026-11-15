@@ -545,7 +545,11 @@ async function convertHtml() {
   let htmlContent = isFile ? htmlFileContent : document.getElementById('htmlInput').value.trim();
 
   if (!htmlContent) {
-    alert('يرجى إدخال HTML أو رفع ملف HTML');
+    const errEl = document.getElementById('htmlError');
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>يرجى إدخال HTML أو رفع ملف HTML';
+    }
     return;
   }
 
@@ -623,7 +627,15 @@ async function convertHtml() {
 async function convertHtmlToExcel() {
   const isFile = document.getElementById('htmlFileArea').style.display !== 'none';
   let htmlContent = isFile ? htmlFileContent : document.getElementById('htmlInput').value.trim();
-  if (!htmlContent) { alert('يرجى إدخال HTML أو رفع ملف HTML'); return; }
+  const errEl = document.getElementById('htmlError');
+  if (errEl) errEl.style.display = 'none';
+  if (!htmlContent) {
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>يرجى إدخال HTML أو رفع ملف HTML';
+    }
+    return;
+  }
 
   const btn = document.getElementById('htmlExcelBtn');
   btn.disabled = true;
@@ -644,10 +656,16 @@ async function convertHtmlToExcel() {
       link.style.display = 'inline-block';
       document.getElementById('htmlResult').style.display = 'block';
     } else {
-      alert('خطأ: ' + (data.error || 'خطأ غير معروف'));
+      if (errEl) {
+        errEl.style.display = 'block';
+        errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + (data.error || 'خطأ غير معروف');
+      }
     }
   } catch(e) {
-    alert('خطأ في الاتصال: ' + e.message);
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>خطأ في الاتصال: ' + e.message;
+    }
   }
   btn.disabled = false;
   btn.innerHTML = '<i class="fas fa-file-excel me-2"></i>تحويل إلى Excel';

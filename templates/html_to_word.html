@@ -685,10 +685,11 @@
 
     // Clear Editor
     function clearEditor() {
-      if (htmlSource.value && confirm('هل أنت متأكد من تفريغ المحرر؟')) {
+      if (htmlSource.value) {
         htmlSource.value = '';
         htmlSource.dispatchEvent(new Event('input'));
         updatePreview();
+        showNotification('تم تفريغ المحرر.');
       }
     }
 

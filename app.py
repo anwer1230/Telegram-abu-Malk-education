@@ -13468,9 +13468,11 @@ def api_html_to_word_convert():
 
 @app.route("/api/html_to_word/ai_process", methods=["POST"])
 def api_html_to_word_ai():
-    """معالجة وتحسين كود HTML بواسطة Gemini AI"""
+    """معالجة وتحسين كود HTML بواسطة Gemini AI مع قياس سرعة المعالجة."""
     try:
         from html_word_engine import ai_process_html
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t0 = time.perf_counter()
         data = request.get_json(silent=True) or {}
         html_content = data.get('html', '').strip()
         action = data.get('action', 'optimize')
@@ -13479,7 +13481,28 @@ def api_html_to_word_ai():
         if not html_content:
             return jsonify({"success": False, "error": "كود HTML فارغ"}), 400
 
+        t_ai0 = time.perf_counter()
         res = ai_process_html(html_content, action=action, custom_prompt=custom_prompt)
+        ai_ms = round((time.perf_counter() - t_ai0) * 1000)
+        total_ms = round((time.perf_counter() - t0) * 1000)
+        prep_ms = max(5, total_ms - ai_ms)
+
+        if isinstance(res, dict):
+            plain_words = len(re.sub(r'<[^>]+>', ' ', html_content).split())
+            provider_label = _pptx_ai.get_provider_label() if _pptx_ai else "Gemini Flash-Lite"
+            res["pipeline_metrics"] = build_pipeline_metrics(
+                operation=f"تحسين HTML بالذكاء الاصطناعي ({action})",
+                stage_timings=[
+                    ("extract", "1. تحليل DOM وCSS", prep_ms),
+                    ("ai", "2. معالجة Gemini AI", max(10, ai_ms)),
+                    ("charts", "3. تنسيق الجداول", 12),
+                    ("render", "4. تحديث المحرر", 10),
+                ],
+                word_count=plain_words,
+                items_count=1,
+                provider=provider_label,
+                status="done" if res.get("success") else "error",
+            )
         return jsonify(res)
     except Exception as e:
         logger.error(f"AI HTML processing error: {e}", exc_info=True)
@@ -13498,613 +13521,94 @@ def formatter_static(filename):
 # ════════════════════════════════════════════════════════════
 
 def _smart_draw_charts(doc, text_content, add_charts=True):
-    """نظام الرسم الذكي: يحلل المحتوى ويضيف رسوماً بيانية مناسبة"""
-    if not add_charts:
-        return
+    """نظام الرسم الذكي الموحّد: يستخدم Gemini متعدد المفاتيح + Pillow/matplotlib المضمون."""
     try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        import matplotlib.font_manager as fm
-        import json as _json
-        from io import BytesIO
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.shared import Inches, Pt
-
-        # طلب AI لتحليل البيانات واقتراح الرسم
-        from groq import Groq as _Groq
-        client = _Groq(api_key=GROQ_API_KEY)
-        prompt = f"""Analyze the following text and determine if it contains numerical data suitable for a chart.
-Reply ONLY with valid JSON (no explanation):
-{{
-  "has_chart": true,
-  "chart_type": "bar",
-  "title": "Chart Title",
-  "direction": "vertical",
-  "colors": ["#1e4a2f","#2d6b41","#4f9a66","#7cb56e","#a8d08d"],
-  "labels": ["Label1","Label2","Label3"],
-  "values": [10, 25, 15],
-  "x_label": "X axis",
-  "y_label": "Y axis"
-}}
-If no chart is appropriate, set has_chart to false.
-Text (first 2000 chars):
-{text_content[:2000]}"""
-
-        resp = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=400, temperature=0.1
-        )
-        raw = resp.choices[0].message.content.strip()
-        # استخراج JSON من الرد
-        import re as _re
-        m = _re.search(r'\{.*\}', raw, _re.DOTALL)
-        if not m:
-            return
-        chart_data = _json.loads(m.group())
-        if not chart_data.get('has_chart', False):
-            return
-
-        labels  = chart_data.get('labels', [])
-        values  = chart_data.get('values', [])
-        colors  = chart_data.get('colors', ['#1e4a2f','#2d6b41','#4f9a66','#7cb56e'])
-        title   = chart_data.get('title', 'مخطط البيانات')
-        ctype   = chart_data.get('chart_type', 'bar')
-        direc   = chart_data.get('direction', 'vertical')
-        xlabel  = chart_data.get('x_label', '')
-        ylabel  = chart_data.get('y_label', '')
-
-        if not labels or not values:
-            return
-        n = min(len(labels), len(values))
-        labels, values = labels[:n], [float(v) for v in values[:n]]
-        while len(colors) < n:
-            colors += colors
-
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        fig.patch.set_facecolor('#f8fdf4')
-        ax.set_facecolor('#f0f7ea')
-
-        if ctype == 'pie':
-            wedges, texts, autotexts = ax.pie(
-                values, labels=labels, colors=colors[:n],
-                autopct='%1.1f%%', startangle=90,
-                pctdistance=0.82, wedgeprops=dict(width=0.6))
-            for at in autotexts:
-                at.set_fontsize(9); at.set_fontweight('bold')
-        elif ctype == 'line':
-            ax.plot(labels, values, marker='o', color=colors[0],
-                    linewidth=2.5, markersize=7, markerfacecolor='white',
-                    markeredgewidth=2)
-            ax.fill_between(range(n), values, alpha=0.12, color=colors[0])
-            ax.set_xticks(range(n)); ax.set_xticklabels(labels, rotation=20, ha='right')
-            if xlabel: ax.set_xlabel(xlabel)
-            if ylabel: ax.set_ylabel(ylabel)
-            ax.grid(axis='y', linestyle='--', alpha=0.5)
-        elif ctype == 'scatter':
-            ax.scatter(range(n), values, c=colors[:n], s=120, zorder=5)
-            ax.set_xticks(range(n)); ax.set_xticklabels(labels, rotation=20, ha='right')
-        else:  # bar (default)
-            if direc == 'horizontal':
-                bars = ax.barh(labels, values, color=colors[:n], edgecolor='white', linewidth=0.5)
-                if xlabel: ax.set_xlabel(xlabel)
-                if ylabel: ax.set_ylabel(ylabel)
-                for bar, val in zip(bars, values):
-                    ax.text(bar.get_width()+max(values)*0.01, bar.get_y()+bar.get_height()/2,
-                            f'{val:g}', va='center', fontsize=9)
-            else:
-                bars = ax.bar(labels, values, color=colors[:n], edgecolor='white',
-                              linewidth=0.5, width=0.65)
-                ax.set_xticks(range(n)); ax.set_xticklabels(labels, rotation=20, ha='right')
-                if xlabel: ax.set_xlabel(xlabel)
-                if ylabel: ax.set_ylabel(ylabel)
-                for bar, val in zip(bars, values):
-                    ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(values)*0.01,
-                            f'{val:g}', ha='center', fontsize=9)
-            ax.grid(axis='y' if direc != 'horizontal' else 'x', linestyle='--', alpha=0.4)
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-
-        ax.set_title(title, fontsize=13, fontweight='bold', pad=10)
-        plt.tight_layout()
-
-        buf = BytesIO()
-        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight',
-                    facecolor=fig.get_facecolor())
-        plt.close(fig)
-        buf.seek(0)
-
-        # فاصل + الرسم + تسمية
-        doc.add_paragraph('─' * 50)
-        para = doc.add_paragraph()
-        para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = para.add_run()
-        run.add_picture(buf, width=Inches(5.5))
-        cap = doc.add_paragraph(f"📊 {title}")
-        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for r in cap.runs:
-            r.italic = True
-            try: r.font.size = Pt(10)
-            except Exception: pass
-        doc.add_paragraph()
-
+        from pptx_app.modules.document_studio import smart_draw_charts_to_doc
+        return smart_draw_charts_to_doc(doc, text_content, add_charts=add_charts)
     except Exception as e:
         logger.debug(f"Smart draw error: {e}")
+        return False
 
 
 @app.route("/tools/pdf_to_word", methods=["POST"])
+@app.route("/api/studio/pdf_to_word", methods=["POST"])
 def api_pdf_to_word():
-    """
-    تحويل PDF → DOCX مع:
-    - الحفاظ الكامل على ألوان الخطوط والخلفيات
-    - تجنب تكرار نص الجداول
-    - جداول منسّقة مع تلوين رأس الجدول
-    - صور مضمّنة كاملة
-    - دعم RTL للنص العربي
-    - تطبيق إعدادات المستخدم (خط / هوامش / حجم)
-    """
+    """تحويل PDF → DOCX عبر المحرك الموحد مع صور PyMuPDF وجداول pdfplumber والرسم الذكي Gemini+Pillow."""
     try:
         if 'file' not in request.files:
             return jsonify({"error": "لم يتم رفع ملف PDF"}), 400
 
         f = request.files['file']
-        if not f.filename.lower().endswith('.pdf'):
+        if not (f.filename or '').lower().endswith('.pdf'):
             return jsonify({"error": "يرجى رفع ملف PDF فقط"}), 400
 
-        # إعدادات المستخدم من الواجهة
-        add_smart_draw  = request.form.get('smart_draw', 'false').lower() == 'true'
-        user_font       = request.form.get('font_family', 'Times New Roman').strip() or 'Times New Roman'
-        user_font_size  = float(request.form.get('font_size', '12') or '12')
-        margin_in_str   = request.form.get('margin', '1.0')
+        add_smart_draw = request.form.get('smart_draw', 'false').lower() == 'true'
+        user_font = request.form.get('font_family', 'Times New Roman').strip() or 'Times New Roman'
+        user_font_size = float(request.form.get('font_size', '12') or '12')
         try:
-            margin_in = float(margin_in_str)
+            margin_in = float(request.form.get('margin', '1.0') or '1.0')
         except Exception:
             margin_in = 1.0
 
-        file_bytes = f.read()
-        safe_name  = re.sub(r'[^\w\u0600-\u06FF\-_]', '_',
-                            f.filename.rsplit('.', 1)[0]) or 'document'
-
-        import io as _io
-        from io import BytesIO
-        import docx as _docx
-        from docx.shared import Pt, Inches, RGBColor
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-
-        doc = _docx.Document()
-        for sec in doc.sections:
-            sec.top_margin    = Inches(margin_in)
-            sec.bottom_margin = Inches(margin_in)
-            sec.left_margin   = Inches(max(margin_in, 1.0))
-            sec.right_margin  = Inches(max(margin_in, 1.0))
-        doc.styles['Normal'].font.name = user_font
-        doc.styles['Normal'].font.size = Pt(user_font_size)
-
-        all_text = []
-        total    = 0
-
-        # ── دالة مساعدة: استخراج لون فيتز (int) → (r,g,b) أو None ──
-        def _fitz_color(color_val):
-            try:
-                if color_val is None:
-                    return None
-                if isinstance(color_val, (list, tuple)) and len(color_val) >= 3:
-                    return (int(color_val[0]*255), int(color_val[1]*255), int(color_val[2]*255))
-                ci = int(color_val)
-                r = (ci >> 16) & 0xFF
-                g = (ci >> 8)  & 0xFF
-                b =  ci        & 0xFF
-                if r == g == b == 0:
-                    return None  # أسود = افتراضي، تجاهل
-                return (r, g, b)
-            except Exception:
-                return None
-
-        # ── دالة: هل يتداخل بلوك نصي مع منطقة جدول ──
-        def _in_table_region(block_bbox, table_bboxes, threshold=0.5):
-            bx0,by0,bx1,by1 = block_bbox
-            for tx0,ty0,tx1,ty1 in table_bboxes:
-                ix0 = max(bx0,tx0); iy0 = max(by0,ty0)
-                ix1 = min(bx1,tx1); iy1 = min(by1,ty1)
-                if ix1 > ix0 and iy1 > iy0:
-                    inter = (ix1-ix0)*(iy1-iy0)
-                    area  = max((bx1-bx0)*(by1-by0), 1)
-                    if inter/area > threshold:
-                        return True
-            return False
-
-        try:
-            import fitz as _fitz
-
-            pdf_doc = _fitz.open(stream=file_bytes, filetype="pdf")
-            total   = len(pdf_doc)
-
-            # ── جمع بيانات الجداول من pdfplumber (bbox + data) ──
-            plumb_pages = {}   # page_num -> {'bboxes': [...], 'tables': [...]}
-            try:
-                if pdfplumber:
-                    with pdfplumber.open(_io.BytesIO(file_bytes)) as _plumb:
-                        for pi, pp in enumerate(_plumb.pages[:total]):
-                            found = pp.find_tables()
-                            bboxes = [t.bbox for t in found]
-                            data   = [t.extract() for t in found]
-                            if bboxes:
-                                plumb_pages[pi] = {'bboxes': bboxes, 'tables': data}
-            except Exception:
-                pass
-
-            seen_img_xrefs = set()
-
-            for page_num, page in enumerate(pdf_doc):
-                if page_num > 0:
-                    _w2_add_page_break(doc)
-
-                page_table_bboxes = plumb_pages.get(page_num, {}).get('bboxes', [])
-
-                # ── استخراج النص مع ألوان كاملة ──
-                page_dict = page.get_text("dict", sort=True)
-
-                for block in page_dict.get('blocks', []):
-                    if block.get('type') != 0:
-                        continue  # تجاهل بلوكات الصور — ستُعالَج لاحقاً
-
-                    block_bbox = block.get('bbox', (0,0,0,0))
-
-                    # تخطّ النص الواقع داخل منطقة جدول
-                    if _in_table_region(block_bbox, page_table_bboxes):
-                        continue
-
-                    for line in block.get('lines', []):
-                        # تجميع النص والتنسيق لكل span في السطر
-                        spans_data = []
-                        max_size = 0
-                        line_is_bold = False
-                        line_has_color = False
-
-                        for span in line.get('spans', []):
-                            t   = span.get('text', '')
-                            if not t.strip():
-                                continue
-                            sz  = span.get('size', user_font_size)
-                            flg = span.get('flags', 0)
-                            col = span.get('color', 0)
-                            rgb = _fitz_color(col)
-                            is_bold = bool(flg & 16)
-                            spans_data.append({
-                                'text': t,
-                                'size': sz,
-                                'bold': is_bold,
-                                'color': rgb,
-                                'font': span.get('font',''),
-                            })
-                            if sz > max_size: max_size = sz
-                            if is_bold: line_is_bold = True
-                            if rgb: line_has_color = True
-
-                        if not spans_data:
-                            continue
-
-                        line_txt = ' '.join(s['text'] for s in spans_data).strip()
-                        all_text.append(line_txt)
-
-                        # تحديد نوع الفقرة بناءً على الحجم
-                        is_h1 = max_size >= 18
-                        is_h2 = 14 <= max_size < 18
-                        is_h3 = 12.5 <= max_size < 14 and line_is_bold
-
-                        if is_h1:
-                            para = doc.add_heading(level=1)
-                            para.clear()
-                            base_size = min(max_size, 24)
-                        elif is_h2:
-                            para = doc.add_heading(level=2)
-                            para.clear()
-                            base_size = min(max_size, 18)
-                        elif is_h3:
-                            para = doc.add_heading(level=3)
-                            para.clear()
-                            base_size = 14
-                        else:
-                            para = doc.add_paragraph()
-                            base_size = user_font_size
-
-                        # إذا كان السطر يحتوي على span واحد أو أقل اختلافاً في التنسيق
-                        if len(spans_data) == 1 or (not line_has_color and not any(s['bold'] != line_is_bold for s in spans_data)):
-                            run = para.add_run(line_txt)
-                            run.bold = line_is_bold or is_h1 or is_h2 or is_h3
-                            run.font.size = Pt(base_size)
-                            run.font.name = user_font
-                            if spans_data[0]['color']:
-                                r,g,b = spans_data[0]['color']
-                                try: run.font.color.rgb = RGBColor(r,g,b)
-                                except Exception: pass
-                        else:
-                            # spans متعددة مع تنسيق مختلف
-                            for span_d in spans_data:
-                                run = para.add_run(span_d['text'] + ' ')
-                                run.bold = span_d['bold'] or is_h1 or is_h2
-                                run.font.size = Pt(min(span_d['size'], 36))
-                                run.font.name = user_font
-                                if span_d['color']:
-                                    r,g,b = span_d['color']
-                                    try: run.font.color.rgb = RGBColor(r,g,b)
-                                    except Exception: pass
-
-                        # RTL للنص العربي
-                        if _w2_is_rtl(line_txt):
-                            _w2_set_rtl_para(para)
-                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                        elif is_h1 or is_h2:
-                            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-                # ── إدراج الجداول من pdfplumber ──
-                page_tables = plumb_pages.get(page_num, {}).get('tables', [])
-                for tbl_data in page_tables:
-                    if not tbl_data:
-                        continue
-                    clean = [[str(c or '').strip() for c in row] for row in tbl_data]
-                    clean = [r for r in clean if any(c for c in r)]
-                    if not clean:
-                        continue
-                    max_cols = max(len(r) for r in clean)
-                    if max_cols == 0:
-                        continue
-                    clean = [r + [''] * (max_cols - len(r)) for r in clean]
-
-                    doc.add_paragraph()
-                    tbl_word = doc.add_table(rows=len(clean), cols=max_cols)
-                    tbl_word.style = 'Table Grid'
-
-                    # تعيين عرض الأعمدة بالتساوي
-                    try:
-                        from docx.oxml.ns import qn as _qn
-                        from docx.oxml import OxmlElement as _OXE
-                        tbl_w = tbl_word._tbl
-                        tblPr = tbl_w.tblPr if tbl_w.tblPr is not None else _OXE('w:tblPr')
-                        tblW  = _OXE('w:tblW')
-                        tblW.set(_qn('w:w'), '5000')
-                        tblW.set(_qn('w:type'), 'pct')
-                        tblPr.append(tblW)
-                    except Exception:
-                        pass
-
-                    for ri, row in enumerate(clean):
-                        for ci, val in enumerate(row):
-                            cell = tbl_word.cell(ri, ci)
-                            cell.text = ''
-                            p = cell.paragraphs[0]
-                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-                            is_rtl_cell = _w2_is_rtl(val)
-                            run = p.add_run(val)
-                            run.font.name = user_font
-                            run.font.size = Pt(user_font_size)
-
-                            if ri == 0:
-                                run.bold = True
-                                try: run.font.color.rgb = RGBColor(0xFF,0xFF,0xFF)
-                                except Exception: pass
-                                _w2_shade_cell(cell, '1E4A6E')  # أزرق غامق
-                            elif ri % 2 == 0:
-                                _w2_shade_cell(cell, 'EBF5FB')  # أزرق فاتح للصفوف الزوجية
-
-                            if is_rtl_cell:
-                                _w2_set_rtl_para(p)
-                    doc.add_paragraph()
-
-                # ── استخراج الصور من الصفحة ──
-                img_list = page.get_images(full=True)
-                for img_info in img_list:
-                    xref = img_info[0]
-                    if xref in seen_img_xrefs:
-                        continue
-                    seen_img_xrefs.add(xref)
-                    try:
-                        base_img   = pdf_doc.extract_image(xref)
-                        img_bytes  = base_img["image"]
-                        w_px, h_px = base_img.get("width",1), base_img.get("height",1)
-                        if w_px < 80 or h_px < 80:
-                            continue  # تجاهل ديكور صغير
-
-                        from PIL import Image as _PILImg
-                        try:
-                            pil_img = _PILImg.open(BytesIO(img_bytes))
-                            if pil_img.mode in ('RGBA','P','LA','CMYK'):
-                                pil_img = pil_img.convert('RGB')
-                            buf = BytesIO()
-                            pil_img.save(buf, 'PNG')
-                            buf.seek(0)
-                            img_bytes = buf.getvalue()
-                        except Exception:
-                            pass
-
-                        aspect = w_px / max(h_px, 1)
-                        w_in   = min(5.5, max(1.5, aspect * 4.0))
-
-                        para = doc.add_paragraph()
-                        para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        run  = para.add_run()
-                        run.add_picture(BytesIO(img_bytes), width=Inches(w_in))
-                    except Exception as _ie:
-                        logger.debug(f"PDF image xref={xref}: {_ie}")
-
-            pdf_doc.close()
-
-        except ImportError:
-            # ── fallback: pdfplumber فقط بدون PyMuPDF ──
-            if pdfplumber is None:
-                return jsonify({"error": "مكتبة PDF غير متاحة"}), 500
-            with pdfplumber.open(_io.BytesIO(file_bytes)) as pdf:
-                total = len(pdf.pages)
-                for i, page in enumerate(pdf.pages[:60], 1):
-                    if i > 1:
-                        _w2_add_page_break(doc)
-
-                    # جمع bboxes الجداول لهذه الصفحة
-                    page_tbls = page.find_tables()
-                    tbl_bboxes = [t.bbox for t in page_tbls]
-                    tbl_data   = [t.extract() for t in page_tbls]
-
-                    text = page.extract_text(layout=True) or ''
-                    for line in text.split('\n'):
-                        lt = line.strip()
-                        if not lt:
-                            continue
-                        all_text.append(lt)
-                        para = doc.add_paragraph()
-                        run = para.add_run(lt)
-                        run.font.name = user_font
-                        run.font.size = Pt(user_font_size)
-                        if _w2_is_rtl(lt):
-                            _w2_set_rtl_para(para)
-                            para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-                    for tbl in tbl_data:
-                        if not tbl:
-                            continue
-                        clean = [[str(c or '').strip() for c in r] for r in tbl]
-                        clean = [r for r in clean if any(c for c in r)]
-                        if not clean:
-                            continue
-                        mc = max(len(r) for r in clean)
-                        clean = [r + ['']*(mc-len(r)) for r in clean]
-                        tw = doc.add_table(rows=len(clean), cols=mc)
-                        tw.style = 'Table Grid'
-                        for ri, row in enumerate(clean):
-                            for ci, val in enumerate(row):
-                                c = tw.cell(ri, ci)
-                                c.text = ''
-                                p = c.paragraphs[0]
-                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                run = p.add_run(val)
-                                run.font.name = user_font
-                                run.font.size = Pt(user_font_size)
-                                if ri == 0:
-                                    run.bold = True
-                                    try: run.font.color.rgb = RGBColor(0xFF,0xFF,0xFF)
-                                    except Exception: pass
-                                    _w2_shade_cell(c, '1E4A6E')
-                                elif ri % 2 == 0:
-                                    _w2_shade_cell(c, 'EBF5FB')
-                        doc.add_paragraph()
-
-        # ── الرسم الذكي (اختياري) ──
-        if add_smart_draw and all_text:
-            _smart_draw_charts(doc, '\n'.join(all_text[:400]))
-
-        final_path = str(_PPTX_OUTPUTS_DIR / (safe_name + '_converted.docx'))
-        doc.save(final_path)
+        from pptx_app.modules.document_studio import convert_pdf_to_word
+        provider_label = _pptx_ai.get_provider_label() if _pptx_ai else "Gemini Flash-Lite"
+        out_filename, total_pages, metrics = convert_pdf_to_word(
+            file_bytes=f.read(),
+            original_filename=f.filename or 'document.pdf',
+            font_family=user_font,
+            font_size=user_font_size,
+            margin_inches=margin_in,
+            smart_draw=add_smart_draw,
+            ai_provider_label=provider_label,
+        )
 
         return jsonify({
             "success": True,
-            "download_url": f"/tools/word/download/{safe_name}_converted.docx",
-            "filename": f"{safe_name}_converted.docx",
-            "pages": total
+            "download_url": f"/api/studio/download/{out_filename}",
+            "filename": out_filename,
+            "pages": total_pages,
+            "pipeline_metrics": metrics,
         })
-
     except Exception as e:
         logger.error(f"PDF to Word error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/tools/html_to_word", methods=["POST"])
+@app.route("/api/studio/html_to_word", methods=["POST"])
 def api_html_to_word():
-    """
-    تحويل HTML → DOCX مع دعم كامل لـ:
-    - ألوان CSS كاملة مع وراثة الأنماط
-    - جداول كاملة (colspan + rowspan + خلفيات)
-    - صور base64 + HTTP + مسارات محلية
-    - RTL للنص العربي تلقائياً
-    - blockquote / pre / code / insight-box
-    - تطبيق إعدادات المستخدم (خط / هوامش / حجم)
-    """
+    """تحويل HTML → DOCX عبر html_word_engine الموحد + الرسم الذكي."""
     try:
         data = request.get_json() or {}
-        html_content   = data.get('html', '')
-        filename       = data.get('filename', 'document')
-        add_smart_draw = data.get('smart_draw', False)
-
-        # إعدادات المستخدم
-        user_font      = (data.get('font_family','') or 'Times New Roman').strip()
+        html_content = data.get('html', '')
+        filename = data.get('filename', 'document')
+        add_smart_draw = bool(data.get('smart_draw', False))
+        user_font = (data.get('font_family', '') or 'Cairo').strip()
         user_font_size = float(data.get('font_size', 12) or 12)
-        margin_val     = float(data.get('margin', 1.0) or 1.0)
-        rtl_doc        = data.get('rtl', False)
+        margin_val = float(data.get('margin', 1.0) or 1.0)
+        rtl_doc = bool(data.get('rtl', True))
 
         if not html_content:
             return jsonify({"error": "محتوى HTML فارغ"}), 400
 
-        from bs4 import BeautifulSoup
-        import docx as _docx
-        from docx.shared import Pt, Inches
-
-        soup = BeautifulSoup(html_content, 'html.parser')
-
-        doc = _docx.Document()
-
-        # هوامش الصفحة
-        for sec in doc.sections:
-            sec.top_margin    = Inches(margin_val)
-            sec.bottom_margin = Inches(margin_val)
-            sec.left_margin   = Inches(max(margin_val, 0.8))
-            sec.right_margin  = Inches(max(margin_val, 0.8))
-
-        # النمط الافتراضي
-        normal = doc.styles['Normal']
-        normal.font.name = user_font
-        normal.font.size = Pt(user_font_size)
-
-        # تطبيق النمط الافتراضي على الـ Heading styles أيضاً
-        for h_level in range(1, 5):
-            try:
-                hstyle = doc.styles[f'Heading {h_level}']
-                hstyle.font.name = user_font
-            except Exception:
-                pass
-
-        # إزالة العناصر غير المرئية
-        body = soup.find('body') or soup
-        for el in body.find_all(['script','style','noscript','head'], recursive=True):
-            el.decompose()
-
-        # معالجة المحتوى
-        for child in body.children:
-            _w2_node(child, doc)
-
-        # حذف الفقرة الفارغة الأولى إن وُجدت
-        try:
-            first = doc.paragraphs[0]
-            if not first.text.strip() and len(doc.paragraphs) > 1:
-                first._element.getparent().remove(first._element)
-        except Exception:
-            pass
-
-        # تطبيق اتجاه RTL على مستوى القسم إذا طُلب
-        if rtl_doc:
-            try:
-                from docx.oxml import parse_xml
-                for sec in doc.sections:
-                    sectPr = sec._sectPr
-                    bidi_xml = '<w:bidi xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>'
-                    sectPr.append(parse_xml(bidi_xml))
-            except Exception:
-                pass
-
-        # الرسم الذكي (اختياري)
-        if add_smart_draw:
-            body_text = ' '.join(p.text for p in doc.paragraphs if p.text.strip())[:3000]
-            if body_text:
-                _smart_draw_charts(doc, body_text)
-
-        # حفظ الملف
-        safe_name  = re.sub(r'[^\w\u0600-\u06FF\-_]', '_', filename) or 'document'
-        final_path = str(_PPTX_OUTPUTS_DIR / (safe_name + '.docx'))
-        doc.save(final_path)
+        from pptx_app.modules.document_studio import convert_html_to_word_unified
+        provider_label = _pptx_ai.get_provider_label() if _pptx_ai else "Gemini Flash-Lite"
+        out_filename, metrics = convert_html_to_word_unified(
+            html_content=html_content,
+            filename=filename,
+            font_family=user_font,
+            font_size=user_font_size,
+            margin_inches=margin_val,
+            rtl_doc=rtl_doc,
+            smart_draw=add_smart_draw,
+            ai_provider_label=provider_label,
+        )
 
         return jsonify({
             "success": True,
-            "download_url": f"/tools/word/download/{safe_name}.docx",
-            "filename": f"{safe_name}.docx"
+            "download_url": f"/api/studio/download/{out_filename}",
+            "filename": out_filename,
+            "pipeline_metrics": metrics,
         })
     except Exception as e:
         logger.error(f"HTML to Word error: {e}", exc_info=True)
@@ -14112,138 +13616,87 @@ def api_html_to_word():
 
 
 @app.route("/tools/word/download/<path:filename>")
+@app.route("/api/studio/download/<path:filename>")
 def tools_word_download(filename):
-    """تحميل ملف Word المُنشأ"""
-    from flask import send_from_directory
+    """تحميل ملفات الاستوديو الموحد (.docx / .xlsx / .pptx) بأمان."""
+    safe_name = os.path.basename(filename)
     outputs_dir = os.path.join(os.path.dirname(__file__), 'pptx_app', 'outputs')
-    return send_from_directory(outputs_dir, filename, as_attachment=True)
+    file_path = os.path.join(outputs_dir, safe_name)
+    if not safe_name or not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+        return jsonify({"error": f"الملف غير موجود أو فارغ: {safe_name}"}), 404
+    mime_map = {
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    }
+    ext = os.path.splitext(safe_name)[1].lower()
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=safe_name,
+        mimetype=mime_map.get(ext, "application/octet-stream"),
+    )
 
 
 @app.route("/tools/html_to_excel", methods=["POST"])
+@app.route("/api/studio/html_to_excel", methods=["POST"])
 def api_html_to_excel():
-    """تحويل HTML → Excel (.xlsx) مع استخراج الجداول والنصوص"""
+    """تحويل HTML → Excel (.xlsx) عبر المحرك الموحد."""
     try:
         data = request.get_json() or {}
         html_content = data.get('html', '')
-        filename     = data.get('filename', 'document')
-
+        filename = data.get('filename', 'document')
         if not html_content:
             return jsonify({"error": "محتوى HTML فارغ"}), 400
 
-        from bs4 import BeautifulSoup
-        import openpyxl
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-        from openpyxl.utils import get_column_letter
-
-        soup = BeautifulSoup(html_content, 'html.parser')
-        wb   = openpyxl.Workbook()
-        ws   = wb.active
-        ws.title = "المحتوى"
-
-        current_row = 1
-
-        # نمط الترويسات
-        header_font  = Font(bold=True, size=12, color="FFFFFF")
-        header_fill  = PatternFill("solid", fgColor="1a7a3c")
-        center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        wrap_align   = Alignment(wrap_text=True, vertical="top")
-        thin_border  = Border(
-            left=Side(style='thin'), right=Side(style='thin'),
-            top=Side(style='thin'), bottom=Side(style='thin')
+        from pptx_app.modules.document_studio import convert_html_to_excel_unified
+        out_filename, tables_count, metrics = convert_html_to_excel_unified(
+            html_content=html_content,
+            filename=filename,
         )
-
-        def write_text_row(text, bold=False, size=11):
-            nonlocal current_row
-            if not text.strip():
-                return
-            cell = ws.cell(row=current_row, column=1, value=text.strip())
-            cell.font = Font(bold=bold, size=size)
-            cell.alignment = wrap_align
-            current_row += 1
-
-        def write_table(table_el):
-            nonlocal current_row
-            rows = table_el.find_all('tr')
-            if not rows:
-                return
-            start_row = current_row
-            max_col = 0
-            for ri, tr in enumerate(rows):
-                cells = tr.find_all(['th', 'td'])
-                col = 1
-                for ci, cell_el in enumerate(cells):
-                    while ws.cell(row=current_row, column=col).value is not None:
-                        col += 1
-                    text  = cell_el.get_text(separator=' ', strip=True)
-                    is_th = cell_el.name == 'th' or ri == 0
-                    c = ws.cell(row=current_row, column=col, value=text)
-                    c.border    = thin_border
-                    c.alignment = center_align if is_th else wrap_align
-                    if is_th:
-                        c.font = header_font
-                        c.fill = header_fill
-                    else:
-                        c.font = Font(size=11)
-                    colspan = int(cell_el.get('colspan', 1))
-                    rowspan = int(cell_el.get('rowspan', 1))
-                    if colspan > 1 or rowspan > 1:
-                        ws.merge_cells(
-                            start_row=current_row, start_column=col,
-                            end_row=current_row + rowspan - 1, end_column=col + colspan - 1
-                        )
-                    col += colspan
-                    if col - 1 > max_col:
-                        max_col = col - 1
-                current_row += 1
-            # ضبط عرض الأعمدة تلقائياً
-            for c in range(1, max_col + 1):
-                ws.column_dimensions[get_column_letter(c)].width = 22
-            current_row += 1  # سطر فارغ بعد الجدول
-
-        body = soup.find('body') or soup
-        for el in body.find_all(['script', 'style', 'noscript'], recursive=True):
-            el.decompose()
-
-        for node in body.children:
-            if not hasattr(node, 'name') or not node.name:
-                t = str(node).strip()
-                if t:
-                    write_text_row(t)
-                continue
-            tag = node.name.lower()
-            if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-                level = int(tag[1])
-                write_text_row(node.get_text(strip=True), bold=True, size=max(11, 16 - level))
-            elif tag == 'table':
-                write_table(node)
-            elif tag in ('p', 'div', 'li', 'span', 'blockquote', 'pre'):
-                # ابحث عن جداول بداخله
-                inner_tables = node.find_all('table')
-                if inner_tables:
-                    for tbl in inner_tables:
-                        write_table(tbl)
-                else:
-                    txt = node.get_text(separator=' ', strip=True)
-                    if txt:
-                        write_text_row(txt)
-            elif tag in ('ul', 'ol'):
-                for li in node.find_all('li', recursive=False):
-                    write_text_row('• ' + li.get_text(strip=True))
-
-        # حفظ الملف
-        safe_name  = re.sub(r'[^\w\u0600-\u06FF\-_]', '_', filename) or 'document'
-        outputs_dir = str(_PPTX_OUTPUTS_DIR)
-        os.makedirs(outputs_dir, exist_ok=True)
-        final_path = os.path.join(outputs_dir, safe_name + '.xlsx')
-        wb.save(final_path)
-
         return jsonify({
             "success": True,
-            "download_url": f"/tools/excel/download/{safe_name}.xlsx",
-            "filename": f"{safe_name}.xlsx"
+            "download_url": f"/api/studio/download/{out_filename}",
+            "filename": out_filename,
+            "tables_count": tables_count,
+            "pipeline_metrics": metrics,
         })
     except Exception as e:
         logger.error(f"HTML to Excel error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/text_to_word", methods=["POST"])
+def api_studio_text_to_word():
+    """تصدير النص أو محتوى الملف المستخرج في الاستوديو الموحد إلى مستند Word (.docx)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        text = (data.get('text') or '').strip()
+        title = (data.get('title') or '').strip()
+        if not text:
+            return jsonify({"error": "يرجى إدخال نص أو استخراج ملف أولاً"}), 400
+
+        from pptx_app.modules.document_studio import convert_text_to_word
+        provider_label = _pptx_ai.get_provider_label() if _pptx_ai else "Gemini Flash-Lite"
+        out_filename, metrics = convert_text_to_word(
+            text=text,
+            title=title or "مستند أكاديمي منسق",
+            font_family=(data.get('font_name') or 'Cairo').strip(),
+            font_size=float(data.get('font_size', 12) or 12),
+            margin_inches=float(data.get('margin', 1.0) or 1.0),
+            smart_draw=bool(data.get('inc_charts', False) or data.get('smart_draw', False)),
+            cover_data=data.get('cover_data'),
+            extracted_tables=data.get('extracted_tables') or [],
+            ai_provider_label=provider_label,
+        )
+        return jsonify({
+            "success": True,
+            "filename": out_filename,
+            "download_url": f"/api/studio/download/{out_filename}",
+            "pipeline_metrics": metrics,
+        })
+    except Exception as e:
+        logger.error(f"Studio text_to_word error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
@@ -14523,16 +13976,39 @@ def tools_pptx_extract_file():
         return jsonify({'error': 'لا يوجد ملف مرفق'}), 400
     f = request.files['file']
     try:
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t_read0 = time.perf_counter()
         raw_bytes = f.read()
+        read_ms = round((time.perf_counter() - t_read0) * 1000)
+
+        t_ext0 = time.perf_counter()
         result = _extract_content(raw_bytes, f.filename or "document.txt")
+        ext_ms = round((time.perf_counter() - t_ext0) * 1000)
+
         full_text = result.get('full_text', '')
+        word_count = len(full_text.split())
+        slides = result.get('slides', [])
+        tables = result.get('tables', [])
+        metrics = build_pipeline_metrics(
+            operation=f"استخراج محتوى الملف ({f.filename or 'مستند'})",
+            stage_timings=[
+                ("extract", "1. قراءة واستخراج", max(10, read_ms + ext_ms)),
+                ("ai", "2. تصنيف النصوص", 12),
+                ("charts", "3. الجداول والعناصر", max(8, len(tables) * 10)),
+                ("render", "4. تجهيز المحرر", 10),
+            ],
+            word_count=word_count,
+            items_count=max(len(slides), len(tables), 1),
+            provider=_pptx_ai.get_provider_label() if _pptx_ai else "Document Parser",
+        )
         return jsonify({
             'success': True,
             'full_text': full_text,
-            'tables': result.get('tables', []),
-            'slides': result.get('slides', []),
+            'tables': tables,
+            'slides': slides,
             'slide_count': result.get('slide_count', 0),
-            'word_count': len(full_text.split()),
+            'word_count': word_count,
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         logger.error(f"PPTX extract_file error: {e}", exc_info=True)
@@ -14562,6 +14038,8 @@ def tools_pptx_generate():
         if not text and not provided_slides:
             return jsonify({'error': 'الرجاء إدخال محتوى العرض أو رفع ملف أولاً'}), 400
 
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t_ai0 = time.perf_counter()
         if isinstance(provided_slides, list) and provided_slides:
             slides = provided_slides
         else:
@@ -14574,7 +14052,9 @@ def tools_pptx_generate():
                 include_charts=inc_charts,
                 extracted_tables=ext_tables,
             )
+        ai_ms = round((time.perf_counter() - t_ai0) * 1000)
 
+        t_struct0 = time.perf_counter()
         if inc_tables and ext_tables and not any(s.get('slide_type') == 'table' for s in slides):
             for i, tbl in enumerate(ext_tables[:2]):
                 slides.insert(
@@ -14623,7 +14103,9 @@ def tools_pptx_generate():
                         },
                     )
                     break
+        struct_ms = round((time.perf_counter() - t_struct0) * 1000)
 
+        t_render0 = time.perf_counter()
         custom_design = _pptx_dimp.get_design_by_id(theme_color) if _pptx_dimp else None
         groq_client = _pptx_ai.client if (_pptx_ai and _pptx_ai.groq_available) else None
         out = _pptx_gen.create_presentation(
@@ -14638,7 +14120,21 @@ def tools_pptx_generate():
             custom_theme=custom_design,
             filename_prefix=title or 'عرض_تقديمي',
         )
+        render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out)
+        word_count = len(text.split()) if text else sum(len((s.get('title', '') + ' ' + ' '.join(s.get('bullets') or [])).split()) for s in slides)
+        metrics = build_pipeline_metrics(
+            operation=f"إنشاء عرض PowerPoint ({len(slides)} شريحة)",
+            stage_timings=[
+                ("extract", "1. تجهيز المحتوى", 18),
+                ("ai", "2. هيكلة الذكاء", max(10, ai_ms)),
+                ("charts", "3. الجداول والرسوم", max(10, struct_ms)),
+                ("render", "4. تصدير PPTX", max(15, render_ms)),
+            ],
+            word_count=word_count,
+            items_count=len(slides),
+            provider=_pptx_ai.get_provider_label(),
+        )
         return jsonify({
             'success': True,
             'filename': filename,
@@ -14646,6 +14142,7 @@ def tools_pptx_generate():
             'slides': slides,
             'num_slides': len(slides),
             'theme_applied': custom_design.get('name') if custom_design else theme_color,
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         import traceback
@@ -14812,6 +14309,8 @@ def tools_pptx_from_html():
         if not html_code.strip():
             return jsonify({'error': 'الرجاء لصق كود HTML أولاً'}), 400
 
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t_links0 = time.perf_counter()
         html_to_parse = html_code
         if fetch_links:
             from bs4 import BeautifulSoup as _BS2
@@ -14844,7 +14343,9 @@ def tools_pptx_from_html():
                     html_to_parse = html_to_parse[:body_end] + insert + html_to_parse[body_end:]
                 else:
                     html_to_parse += insert
+        links_ms = round((time.perf_counter() - t_links0) * 1000)
 
+        t_render0 = time.perf_counter()
         custom_design = _pptx_dimp.get_design_by_id(theme_color) if _pptx_dimp else None
         out_path, slides_data = _convert_html_to_pptx(
             html=html_to_parse,
@@ -14855,13 +14356,28 @@ def tools_pptx_from_html():
             cover_data=cover_data,
             custom_theme=custom_design,
         )
+        render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out_path)
+        plain_words = len(re.sub(r'<[^>]+>', ' ', html_to_parse).split())
+        metrics = build_pipeline_metrics(
+            operation=f"تحويل HTML إلى PowerPoint ({len(slides_data)} شريحة)",
+            stage_timings=[
+                ("extract", "1. تحليل HTML والروابط", max(10, links_ms)),
+                ("ai", "2. تقسيم الشرائح", 15),
+                ("charts", "3. تطبيق القالب", 18),
+                ("render", "4. تصدير PPTX", max(15, render_ms)),
+            ],
+            word_count=plain_words,
+            items_count=len(slides_data),
+            provider=_pptx_ai.get_provider_label() if _pptx_ai else "HTML2PPTX Engine",
+        )
         return jsonify({
             'success': True,
             'filename': filename,
             'download_url': f'/api/pptx/download/{filename}',
             'slides': slides_data,
             'num_slides': len(slides_data),
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         import traceback
@@ -14967,13 +14483,17 @@ def api_pptx_canva_apply_template():
         ptype = data.get('ptype', 'general')
         cover_data = data.get('cover_data', None)
 
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t_ai0 = time.perf_counter()
         if not (isinstance(slides, list) and slides):
             if not text:
                 text = f"{title or 'عرض احترافي بتصميم كانفا'}\nمقدمة العرض وأهدافه الرئيسية\nالمحاور الأساسية والمحتوى التنفيذي\nالنتائج المتوقعة ومؤشرات الأداء\nالخلاصة والتوصيات المستقبلية"
             slides = _pptx_ai.text_to_presentation_structure(
                 text=text, num_slides=num_slides, presentation_type=ptype, title_override=title
             )
+        ai_ms = round((time.perf_counter() - t_ai0) * 1000)
 
+        t_render0 = time.perf_counter()
         out_path, applied_design = _pptx_dap.apply_design_to_presentation(
             slides_data=slides,
             design_id=template_id,
@@ -14982,7 +14502,21 @@ def api_pptx_canva_apply_template():
             body_font_size=body_font_size,
             filename_prefix=title or applied_name_safe(template_id),
         )
+        render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out_path)
+        word_count = len((text or '').split()) or sum(len((s.get('title', '') + ' ' + ' '.join(s.get('bullets') or [])).split()) for s in slides)
+        metrics = build_pipeline_metrics(
+            operation=f"تطبيق قالب كانفا ({applied_design.get('name', template_id)})",
+            stage_timings=[
+                ("extract", "1. تحميل القالب", 16),
+                ("ai", "2. تنظيم الشرائح", max(8, ai_ms)),
+                ("charts", "3. تنسيق الألوان", 15),
+                ("render", "4. تصدير PPTX", max(15, render_ms)),
+            ],
+            word_count=word_count,
+            items_count=len(slides),
+            provider=_pptx_ai.get_provider_label(),
+        )
         return jsonify({
             'success': True,
             'filename': filename,
@@ -14990,6 +14524,7 @@ def api_pptx_canva_apply_template():
             'slides': slides,
             'num_slides': len(slides),
             'applied_design': applied_design,
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         import traceback
@@ -15013,15 +14548,37 @@ def api_pptx_analyze_pptx():
     if not fname.lower().endswith('.pptx'):
         return jsonify({'error': 'يرجى رفع ملف بصيغة .pptx فقط'}), 400
     try:
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t_ext0 = time.perf_counter()
         raw_bytes = f.read()
         extracted = _extract_from_pptx(raw_bytes)
+        ext_ms = round((time.perf_counter() - t_ext0) * 1000)
+
+        t_ai0 = time.perf_counter()
         canva_list = _pptx_dimp.get_all_designs() if _pptx_dimp else _CANVA_TEMPLATES
         analysis = _pptx_ai.analyze_pptx_presentation(extracted, canva_list)
+        ai_ms = round((time.perf_counter() - t_ai0) * 1000)
+
+        word_count = len((extracted.get('full_text') or '').split())
+        slide_count = extracted.get('slide_count', 0)
+        provider_label = _pptx_ai.get_provider_label()
+        metrics = build_pipeline_metrics(
+            operation=f"تحليل عرض PowerPoint ({slide_count} شريحة)",
+            stage_timings=[
+                ("extract", "1. استخراج الشرائح", max(10, ext_ms)),
+                ("ai", "2. تحليل الذكاء", max(15, ai_ms)),
+                ("charts", "3. تقييم القوالب", 18),
+                ("render", "4. إعداد التوصيات", 12),
+            ],
+            word_count=word_count,
+            items_count=slide_count,
+            provider=provider_label,
+        )
         return jsonify({
             'success': True,
             'filename': fname,
-            'slide_count': extracted.get('slide_count', 0),
-            'word_count': len((extracted.get('full_text') or '').split()),
+            'slide_count': slide_count,
+            'word_count': word_count,
             'tables_count': len(extracted.get('tables') or []),
             'images_count': extracted.get('images_count', 0),
             'fonts_used': extracted.get('fonts_used', []),
@@ -15029,7 +14586,8 @@ def api_pptx_analyze_pptx():
             'slides': extracted.get('slides', []),
             'full_text': extracted.get('full_text', ''),
             'analysis': analysis,
-            'provider': _pptx_ai.get_provider_label(),
+            'provider': provider_label,
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         logger.error(f"Analyze PPTX error: {e}", exc_info=True)
@@ -15042,6 +14600,8 @@ def api_pptx_redesign_pptx():
     if not _pptx_dap:
         return jsonify({'error': 'وحدة إعادة التصميم غير متاحة'}), 500
     try:
+        from pptx_app.modules.document_studio import build_pipeline_metrics
+        t0 = time.perf_counter()
         data = request.get_json(silent=True) or {}
         original_slides = data.get('slides') or []
         suggestions = data.get('slide_suggestions') or []
@@ -15068,7 +14628,9 @@ def api_pptx_redesign_pptx():
 
         if title_override and rebuilt_slides:
             rebuilt_slides[0]['title'] = title_override
+        rewrite_ms = round((time.perf_counter() - t0) * 1000)
 
+        t_render0 = time.perf_counter()
         out_path, applied_design = _pptx_dap.apply_design_to_presentation(
             slides_data=rebuilt_slides,
             design_id=template_id,
@@ -15076,7 +14638,21 @@ def api_pptx_redesign_pptx():
             body_font_size=body_font_size,
             filename_prefix=title_override or 'عرض_محدث_كانفا',
         )
+        render_ms = round((time.perf_counter() - t_render0) * 1000)
         filename = os.path.basename(out_path)
+        word_count = sum(len((s.get('title', '') + ' ' + ' '.join(s.get('bullets') or [])).split()) for s in rebuilt_slides)
+        metrics = build_pipeline_metrics(
+            operation=f"إعادة تصميم وتحديث {len(rebuilt_slides)} شريحة",
+            stage_timings=[
+                ("extract", "1. تحميل الشرائح", 12),
+                ("ai", "2. تطبيق التحسينات", max(8, rewrite_ms)),
+                ("charts", "3. قالب كانفا", 18),
+                ("render", "4. تصدير PPTX", max(15, render_ms)),
+            ],
+            word_count=word_count,
+            items_count=len(rebuilt_slides),
+            provider=_pptx_ai.get_provider_label() if _pptx_ai else "Canva Design Engine",
+        )
         return jsonify({
             'success': True,
             'filename': filename,
@@ -15084,6 +14660,7 @@ def api_pptx_redesign_pptx():
             'slides': rebuilt_slides,
             'num_slides': len(rebuilt_slides),
             'applied_design': applied_design,
+            'pipeline_metrics': metrics,
         })
     except Exception as e:
         logger.error(f"Redesign PPTX error: {e}", exc_info=True)

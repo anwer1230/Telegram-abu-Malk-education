@@ -1479,10 +1479,11 @@
                                     </button>
                                 </div>
                                 <div class="col-6 col-md-4">
-                                    <button type="button" class="btn btn-outline-danger w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnQuickPresentationCreator" data-bs-toggle="modal" data-bs-target="#presentationModal" onclick="openPresentationStudio('text')">
-                                        <i class="fas fa-file-powerpoint fa-2x mb-2" style="color:#d24726;"></i>
-                                        <span class="small fw-bold">منشئ العروض (PPTX + Canva)</span>
-                                        <span class="badge bg-danger mt-1" style="font-size:0.6rem;">✨ قوالب كانفا + AI</span>
+                                    <button type="button" class="btn btn-outline-danger w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnQuickPresentationCreator" data-bs-toggle="modal" data-bs-target="#presentationModal" onclick="openPresentationStudio('text')" title="إنشاء عروض .pptx ومستندات .docx · تحويل PDF و HTML إلى Word و Excel و PowerPoint · قوالب كانفا وحسابات Google · تحليل وتحديث .pptx + مراقبة السرعة عبر Recharts">
+                                        <i class="fas fa-layer-group fa-2x mb-2" style="color:#d24726;"></i>
+                                        <span class="small fw-bold">استوديو العروض والمستندات الاحترافي</span>
+                                        <span class="badge bg-warning text-dark mt-1" style="font-size:0.58rem;">النسخة الموحدة AI · Recharts</span>
+                                        <span class="badge bg-danger mt-1" style="font-size:0.58rem;">PPTX · Word · Excel · Canva</span>
                                     </button>
                                 </div>
                             </div>
@@ -1825,57 +1826,6 @@
             </div>
         </div>
 
-        <!-- ===== أيقونة وبطاقة منشئ ومنسق العروض التقديمية في الواجهة الرئيسية ===== -->
-        <div class="row mb-4" id="mainPresentationLauncherRow">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm overflow-hidden" style="border-radius:16px; background:linear-gradient(135deg,#0f2942 0%,#1d4e89 55%,#008b94 100%);">
-                    <div class="card-body p-3 p-md-4 text-white">
-                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="d-flex align-items-center justify-content-center rounded-4 shadow"
-                                     style="width:62px;height:62px;min-width:62px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);">
-                                    <i class="fas fa-file-powerpoint fa-2x text-warning"></i>
-                                </div>
-                                <div>
-                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                                        <h4 class="mb-0 fw-bold text-white" style="font-size:1.2rem;">منشئ ومنسق العروض التقديمية (PowerPoint + Canva)</h4>
-                                        <span class="badge bg-warning text-dark fw-bold">النسخة المتكاملة AI</span>
-                                    </div>
-                                    <p class="mb-0 text-white-50 small">
-                                        إنشاء عروض .pptx احترافية · ربط كانفا وحسابات Google وتطبيق الجوال · رفع وتحليل وتحديث ملفات PowerPoint الحالية
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-                                <button type="button"
-                                        id="mainHomeOpenPptxBtn"
-                                        class="btn btn-warning fw-bold px-3 py-2 rounded-3 shadow-sm text-dark"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#presentationModal"
-                                        onclick="openPresentationStudio('text')">
-                                    <i class="fas fa-magic me-1"></i> فتح منشئ العروض
-                                </button>
-                                <button type="button"
-                                        class="btn btn-light fw-bold px-3 py-2 rounded-3 shadow-sm text-primary"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#presentationModal"
-                                        onclick="openPresentationStudio('canva')">
-                                    <i class="fas fa-palette me-1"></i> قوالب كانفا
-                                </button>
-                                <button type="button"
-                                        class="btn btn-outline-light fw-bold px-3 py-2 rounded-3"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#presentationModal"
-                                        onclick="openPresentationStudio('analyze')">
-                                    <i class="fas fa-file-upload me-1"></i> تحليل وتحديث .pptx
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- ===== الأدوات الأكاديمية والتحليلية ===== -->
         <div class="row mb-4">
             <div class="col-12">
@@ -1919,83 +1869,6 @@
                                         <span>
                                             <strong class="d-block">التحليل الأكاديمي الذكي</strong>
                                             <small class="text-muted">ليكرت · ارتباط · انحدار · ذكاء اصطناعي · PDF</small>
-                                        </span>
-                                    </a>
-                                </li>
-                                <!-- 2. تحويل PDF إلى وورد -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" style="border-bottom:1px solid #f0f0f0;"
-                                       data-bs-toggle="modal" data-bs-target="#fileFormatterModal"
-                                       onclick="document.getElementById('formatterFrame').src='/formatter?section=pdf2word'">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#e74c3c,#c0392b);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-file-pdf text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">تحويل ملف PDF إلى ملف وورد</strong>
-                                            <small class="text-muted">استخراج النص والصور والجداول</small>
-                                        </span>
-                                    </a>
-                                </li>
-                                <!-- 3. تحويل HTML إلى وورد (استوديو مباشر + ذكاء اصطناعي) -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="javascript:void(0)" style="border-bottom:1px solid #f0f0f0;"
-                                       data-bs-toggle="modal" data-bs-target="#htmlToWordStudioModal"
-                                       onclick="openHtmlToWordStudio()">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-file-word text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">استوديو تحويل كود HTML إلى Word (معاينة حية + ذكاء اصطناعي)</strong>
-                                            <small class="text-muted">واجهة داخلية متكاملة · محرر كود · معاينة حية · تصدير Word حقيقي وثابت</small>
-                                        </span>
-                                        <span class="badge bg-primary ms-auto">✨ استوديو داخلي</span>
-                                    </a>
-                                </li>
-                                <!-- 4. تحويل HTML إلى اكسل -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" style="border-bottom:1px solid #f0f0f0;"
-                                       data-bs-toggle="modal" data-bs-target="#fileFormatterModal"
-                                       onclick="document.getElementById('formatterFrame').src='/formatter?section=html2excel'">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#27ae60,#1e8449);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-file-excel text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">تحويل كود HTML إلى ملف اكسل</strong>
-                                            <small class="text-muted">استخراج الجداول وتحويلها لـ Excel</small>
-                                        </span>
-                                    </a>
-                                </li>
-                                <!-- 5. تحويل HTML إلى باوربوينت -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#" style="border-bottom:1px solid #f0f0f0;"
-                                       data-bs-toggle="modal" data-bs-target="#fileFormatterModal"
-                                       onclick="document.getElementById('formatterFrame').src='/formatter?section=html2ppt'">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#e67e22,#ca6f1e);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-file-powerpoint text-white"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">تحويل كود HTML إلى ملف باوربوينت</strong>
-                                            <small class="text-muted">تحويل HTML إلى شرائح PowerPoint</small>
-                                        </span>
-                                    </a>
-                                </li>
-                                <!-- 6. منشئ ومنسق العروض التقديمية (PowerPoint + Canva) -->
-                                <li>
-                                    <a class="dropdown-item py-3 d-flex align-items-center gap-3"
-                                       href="#"
-                                       data-bs-toggle="modal" data-bs-target="#presentationModal"
-                                       onclick="openPresentationStudio('text')"
-                                       style="border-bottom:1px solid #f0f0f0;">
-                                        <span style="width:38px;height:38px;background:linear-gradient(135deg,#0f2942,#008b94);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-file-powerpoint text-warning"></i>
-                                        </span>
-                                        <span>
-                                            <strong class="d-block">منشئ ومنسق العروض (PowerPoint + Canva + AI)</strong>
-                                            <small class="text-muted">إنشاء عروض · قوالب كانفا وحسابات Google · تحليل وتحديث .pptx</small>
                                         </span>
                                     </a>
                                 </li>
@@ -5004,29 +4877,6 @@
       </div>
     </div>
 
-    <!-- ===== مودال منسّق الملفات ===== -->
-    <div class="modal fade" id="fileFormatterModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-xl" style="max-width:1140px;height:calc(100% - 2rem);margin:1rem auto;">
-        <div class="modal-content" style="height:100%;display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#1cc88a,#13855c)">
-            <h5 class="modal-title"><i class="fas fa-file-word me-2"></i>منسّق المستندات الاحترافي</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center">
-              <a href="/formatter" target="_blank" class="btn btn-sm btn-light opacity-75" title="فتح في تبويب جديد">
-                <i class="fas fa-external-link-alt"></i>
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-          </div>
-          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
-            <iframe id="formatterFrame" src="about:blank"
-              style="width:100%;height:100%;border:none;display:block;"
-              allow="downloads"
-              title="منسّق المستندات"></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== مودال المستكشف والمحلل الذكي للمستندات والصور (AI Document & Image Q&A) ===== -->
     <div class="modal fade" id="aiDocAnalyzerModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
@@ -5057,40 +4907,6 @@
       </div>
     </div>
 
-    <!-- ===== مودال استوديو تحويل كود HTML إلى Word الاحترافي بالذكاء الاصطناعي (واجهة داخلية) ===== -->
-    <div class="modal fade" id="htmlToWordStudioModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content" style="display:flex;flex-direction:column;background:#090d16;">
-          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-bottom:1px solid rgba(255,255,255,0.1);">
-            <div class="d-flex align-items-center gap-2">
-              <span class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-20 rounded-circle" style="width: 38px; height: 38px;">
-                <i class="fas fa-file-word fa-lg text-white"></i>
-              </span>
-              <div>
-                <h5 class="modal-title mb-0 fw-bold">استوديو تحويل كود HTML إلى مستند Word</h5>
-                <small class="text-white-50" style="font-size:0.75rem;">محرر كود متقدم · معاينة فورية · تحسين وتوليد بالذكاء الاصطناعي · تصدير DOCX حقيقي ومطابق</small>
-              </div>
-            </div>
-            <div class="ms-auto d-flex gap-2 align-items-center">
-              <button type="button" class="btn btn-sm btn-outline-light" onclick="reloadHtmlToWordStudioFrame()" title="إعادة تحميل الاستوديو">
-                <i class="fas fa-sync-alt me-1"></i> تحديث
-              </button>
-              <a href="/html_to_word" target="_blank" class="btn btn-sm btn-light opacity-90" title="فتح كنافذة مستقلة">
-                <i class="fas fa-external-link-alt me-1"></i> نافذة مستقلة
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-            </div>
-          </div>
-          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;background:#090d16;">
-            <iframe id="htmlToWordStudioFrame" src="about:blank"
-              style="width:100%;height:100%;border:none;display:block;"
-              allow="downloads; clipboard-read; clipboard-write;"
-              title="استوديو تحويل كود HTML إلى Word"></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== مودال التحليل الأكاديمي الذكي ===== -->
     <div class="modal fade" id="academicModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
@@ -5114,16 +4930,16 @@
     </div>
 
 
-    <!-- ===== مودال منشئ ومنسق العروض التقديمية (PowerPoint + Canva + AI) ===== -->
+    <!-- ===== مودال استوديو العروض والمستندات الموحد (PowerPoint + Word + Excel + Canva + AI) ===== -->
     <div class="modal fade" id="presentationModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
           <div class="modal-header text-white border-0" style="background:linear-gradient(135deg,#0f2942 0%,#1d4e89 60%,#008b94 100%);">
             <div class="d-flex align-items-center gap-2">
-              <i class="fas fa-file-powerpoint fa-lg text-warning"></i>
+              <i class="fas fa-layer-group fa-lg text-warning"></i>
               <div>
-                <h5 class="modal-title mb-0 fw-bold">منشئ ومنسق العروض التقديمية (PowerPoint + Canva)</h5>
-                <small class="text-white-50" style="font-size:0.75rem;">توليد ذكي · قوالب كانفا التلقائية · تحليل وتحديث ملفات .pptx</small>
+                <h5 class="modal-title mb-0 fw-bold">استوديو العروض والمستندات الاحترافي (PowerPoint + Word + Excel + Canva)</h5>
+                <small class="text-white-50" style="font-size:0.75rem;">توليد عروض ومستندات · تحويل PDF و HTML · قوالب كانفا التلقائية · تحليل .pptx · مراقبة السرعة via Recharts</small>
               </div>
             </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
@@ -5153,11 +4969,16 @@
               </div>
             </div>
 
-            <!-- تبويبات الاستوديو الخمسة -->
+            <!-- تبويبات الاستوديو الموحدة -->
             <ul class="nav nav-pills mb-3 gap-1 flex-wrap bg-light p-2 rounded-3" id="pptxInputTabs" role="tablist">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active fw-bold small" id="pptxTabTextBtn" data-bs-toggle="tab" data-bs-target="#pptxTabText" type="button" role="tab">
-                  <i class="fas fa-magic me-1"></i>إنشاء عرض (نص / ملف)
+                  <i class="fas fa-magic me-1"></i>إنشاء عرض / مستند (نص أو ملف)
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabDocsBtn" data-bs-toggle="tab" data-bs-target="#pptxTabDocs" type="button" role="tab">
+                  <i class="fas fa-file-export me-1"></i>تحويل PDF و HTML (Word / Excel / PPTX)
                 </button>
               </li>
               <li class="nav-item" role="presentation">
@@ -5168,11 +4989,6 @@
               <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold small" id="pptxTabCanvaBtn" data-bs-toggle="tab" data-bs-target="#pptxTabCanva" type="button" role="tab" onclick="pptxLoadCanvaData()">
                   <i class="fas fa-palette me-1"></i>كانفا وحسابات Google
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold small" id="pptxTabHtmlBtn" data-bs-toggle="tab" data-bs-target="#pptxTabHtml" type="button" role="tab">
-                  <i class="fas fa-code me-1"></i>HTML إلى PPTX
                 </button>
               </li>
               <li class="nav-item" role="presentation">
@@ -5536,35 +5352,154 @@
                 <div id="pptxCanvaGallery" class="row g-2" style="max-height:360px;overflow-y:auto;"></div>
               </div>
 
-              <!-- ===== التاب 4: HTML إلى PPTX ===== -->
-              <div class="tab-pane fade" id="pptxTabHtml" role="tabpanel">
-                <div class="alert alert-info py-2 small mb-2">
-                  <i class="fas fa-code me-2"></i>
-                  الصق كود HTML — سيتم معاينته وقراءة روابطه الخارجية، ثم تحويله إلى ملف PowerPoint بالتصميم المختار.
-                </div>
-                <textarea id="pptxHtmlCode" class="form-control font-monospace" rows="8" dir="ltr"
-                  style="font-size:0.8rem"
-                  placeholder="<html>...</html> — الصق الكود هنا"></textarea>
-                <div class="d-flex gap-2 mt-2">
-                  <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1" onclick="pptxPreviewHtml()">
-                    <i class="fas fa-eye me-1"></i>معاينة HTML وقراءة الروابط
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('pptxHtmlCode').value=''; var a=document.getElementById('pptxHtmlPreviewArea'); if(a) a.style.display='none';">
-                    <i class="fas fa-trash me-1"></i>مسح
-                  </button>
+              <!-- ===== التاب 2: محوّل PDF و HTML الموحد (Word / Excel / PPTX + Gemini AI + Chart.js) ===== -->
+              <div class="tab-pane fade" id="pptxTabDocs" role="tabpanel">
+                <!-- القسم أ: تحويل PDF إلى Word أو PowerPoint -->
+                <div class="card border-danger border-opacity-25 bg-light mb-3">
+                  <div class="card-body py-3">
+                    <h6 class="fw-bold text-danger mb-2">
+                      <i class="fas fa-file-pdf me-2"></i>تحويل ملفات PDF مع الحفاظ على الصور والجداول (PyMuPDF + pdfplumber)
+                    </h6>
+                    <div class="row g-2 align-items-end">
+                      <div class="col-md-4">
+                        <label class="form-label fw-bold small mb-1">اختر ملف PDF:</label>
+                        <input type="file" id="studioPdfFile" class="form-control form-control-sm" accept=".pdf">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">الخط:</label>
+                        <select id="studioPdfFont" class="form-select form-select-sm">
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Cairo">Cairo</option>
+                          <option value="Arial">Arial</option>
+                          <option value="Calibri">Calibri</option>
+                          <option value="Traditional Arabic">Traditional Arabic</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">حجم الخط:</label>
+                        <input type="number" id="studioPdfFontSize" class="form-control form-control-sm" value="12" min="8" max="24">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">الهوامش (بوصة):</label>
+                        <input type="number" id="studioPdfMargin" class="form-control form-control-sm" value="1.0" step="0.1" min="0.4" max="2.0">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <div class="form-check mb-2">
+                          <input type="checkbox" id="studioPdfSmartDraw" class="form-check-input" checked>
+                          <label for="studioPdfSmartDraw" class="form-check-label small fw-bold">رسم ذكي AI</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                      <button type="button" id="studioPdfToWordBtn" class="btn btn-primary btn-sm fw-bold px-3" onclick="studioConvertPdfToWord()">
+                        <i class="fas fa-file-word me-1"></i>تحويل PDF إلى Word (.docx)
+                      </button>
+                      <button type="button" id="studioPdfToPptxBtn" class="btn btn-outline-danger btn-sm fw-bold px-3" onclick="studioConvertPdfToPptx()">
+                        <i class="fas fa-file-powerpoint me-1"></i>استخراج PDF وتحويله إلى PowerPoint (.pptx)
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div id="pptxHtmlPreviewArea" style="display:none" class="mt-3">
-                  <div class="border rounded mb-2" style="overflow:hidden">
-                    <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center gap-2">
-                      <i class="fas fa-globe text-primary"></i>
-                      <strong class="small">معاينة HTML</strong>
-                      <span id="pptxHtmlFrameStatus" class="ms-auto badge bg-success" style="font-size:0.7rem">✓ معاينة جاهزة</span>
+                <!-- القسم ب: استوديو HTML المتكامل (معاينة حية + Gemini AI + Chart.js -> Word / Excel / PPTX) -->
+                <div class="card border-primary border-opacity-25 shadow-sm">
+                  <div class="card-body py-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                      <h6 class="fw-bold text-primary mb-0">
+                        <i class="fas fa-code me-2"></i>استوديو HTML الذكي (Word .docx / Excel .xlsx / PowerPoint .pptx)
+                      </h6>
+                      <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" onclick="studioLoadDemoHtml()">
+                          <i class="fas fa-flask me-1"></i>نموذج تجريبي
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" onclick="pptxPreviewHtml()">
+                          <i class="fas fa-eye me-1"></i>معاينة حية والروابط
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="studioClearHtmlEditor()">
+                          <i class="fas fa-trash me-1"></i>مسح
+                        </button>
+                      </div>
                     </div>
-                    <iframe id="pptxHtmlIframe" style="width:100%;height:340px;border:none;"
-                      sandbox="allow-same-origin allow-scripts"></iframe>
+
+                    <!-- أدوات التحسين بالذكاء الاصطناعي Gemini -->
+                    <div class="d-flex flex-wrap align-items-center gap-1 mb-2 p-2 rounded bg-light border">
+                      <span class="small fw-bold text-dark me-1"><i class="fas fa-wand-magic-sparkles text-warning me-1"></i>ذكاء Gemini:</span>
+                      <button type="button" class="btn btn-sm btn-outline-dark py-0 px-2" onclick="studioAiHtmlAction('optimize')">تنظيف وتثبيت CSS</button>
+                      <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="studioAiHtmlAction('academic')">تنسيق أكاديمي فاخر</button>
+                      <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" onclick="studioAiHtmlAction('add_toc_cover')">إضافة غلاف وفهرس</button>
+                      <div class="input-group input-group-sm ms-auto" style="max-width:300px;">
+                        <input type="text" id="studioHtmlCustomPrompt" class="form-control" placeholder="أمر AI مخصص (مثال: أنشئ جدول مقارنة)" dir="rtl">
+                        <button type="button" class="btn btn-warning fw-bold" onclick="studioAiHtmlCustom()">تنفيذ</button>
+                      </div>
+                    </div>
+
+                    <textarea id="pptxHtmlCode" class="form-control font-monospace mb-2" rows="7" dir="ltr"
+                      style="font-size:0.8rem"
+                      placeholder="<html>...</html> — الصق كود HTML أو اضغط 'نموذج تجريبي' لتجربته فوراً"></textarea>
+
+                    <!-- إعدادات التصدير لـ Word/Excel/PPTX -->
+                    <div class="row g-2 mb-3 align-items-end">
+                      <div class="col-md-3">
+                        <label class="form-label fw-bold small mb-1">اسم الملف المُصدّر:</label>
+                        <input type="text" id="studioHtmlFilename" class="form-control form-control-sm" value="مستند_احترافي" dir="rtl">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">خط Word:</label>
+                        <select id="studioHtmlWordFont" class="form-select form-select-sm">
+                          <option value="Cairo">Cairo</option>
+                          <option value="Traditional Arabic">Traditional Arabic</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Arial">Arial</option>
+                          <option value="Calibri">Calibri</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">حجم الخط:</label>
+                        <input type="number" id="studioHtmlWordSize" class="form-control form-control-sm" value="12" min="8" max="24">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">الهوامش (بوصة):</label>
+                        <input type="number" id="studioHtmlWordMargin" class="form-control form-control-sm" value="1.0" step="0.1" min="0.4" max="2.0">
+                      </div>
+                      <div class="col-6 col-md-3 d-flex flex-wrap gap-3 pb-1">
+                        <div class="form-check form-check-sm">
+                          <input type="checkbox" id="studioHtmlWordRtl" class="form-check-input" checked>
+                          <label for="studioHtmlWordRtl" class="form-check-label small fw-bold">عربي RTL</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input type="checkbox" id="studioHtmlSmartDraw" class="form-check-input" checked>
+                          <label for="studioHtmlSmartDraw" class="form-check-label small fw-bold">رسم ذكي</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- أزرار التصدير الثلاثة -->
+                    <div class="d-flex flex-wrap gap-2">
+                      <button type="button" id="studioHtmlToWordBtn" class="btn btn-primary fw-bold flex-grow-1" onclick="studioConvertHtmlToWord()">
+                        <i class="fas fa-file-word me-1"></i>تصدير مستند Word (.docx)
+                      </button>
+                      <button type="button" id="studioHtmlToExcelBtn" class="btn btn-success fw-bold flex-grow-1" onclick="studioConvertHtmlToExcel()">
+                        <i class="fas fa-file-excel me-1"></i>تصدير جدول Excel (.xlsx)
+                      </button>
+                      <button type="button" id="studioHtmlToPptxBtn" class="btn btn-warning text-dark fw-bold flex-grow-1" onclick="studioConvertHtmlToPptx()">
+                        <i class="fas fa-file-powerpoint me-1"></i>تصدير شرائح PowerPoint (.pptx)
+                      </button>
+                    </div>
+
+                    <!-- منطقة المعاينة الحية والروابط -->
+                    <div id="pptxHtmlPreviewArea" style="display:none" class="mt-3">
+                      <div class="border rounded mb-2" style="overflow:hidden">
+                        <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center gap-2">
+                          <i class="fas fa-globe text-primary"></i>
+                          <strong class="small">معاينة HTML الحية</strong>
+                          <span id="pptxHtmlFrameStatus" class="ms-auto badge bg-success" style="font-size:0.7rem">✓ معاينة جاهزة</span>
+                        </div>
+                        <iframe id="pptxHtmlIframe" style="width:100%;height:320px;border:none;"
+                          sandbox="allow-same-origin allow-scripts"></iframe>
+                      </div>
+                      <div id="pptxHtmlLinksArea"></div>
+                    </div>
                   </div>
-                  <div id="pptxHtmlLinksArea"></div>
                 </div>
               </div>
 
@@ -5572,7 +5507,7 @@
               <div class="tab-pane fade" id="pptxTabChat" role="tabpanel">
                 <div id="pptxChatMessages" class="bg-light rounded p-3 mb-2 border"
                      style="min-height:190px;max-height:280px;overflow-y:auto;direction:rtl;font-size:0.86rem">
-                  <div class="text-muted small">👋 أهلاً بك! اسألني عن هيكلة العرض، صياغة الشرائح، أو اختيار أنسب قالب كانفا لموضوعك.</div>
+                  <div class="text-muted small">👋 أهلاً بك! اسألني عن هيكلة العرض، تنسيق المستندات، أو اختيار أنسب قالب كانفا لموضوعك.</div>
                 </div>
                 <div class="input-group input-group-sm">
                   <input type="text" id="pptxChatInput" class="form-control" dir="rtl"
@@ -5585,13 +5520,25 @@
               </div>
             </div>
 
-            <!-- زر البدء الرئيسي الموحّد -->
-            <div class="d-grid gap-2 mt-2" id="pptxMainStartWrap">
-              <button type="button" id="pptxGenerateBtn" class="btn btn-lg text-white fw-bold shadow-sm"
-                style="background:linear-gradient(135deg,#0f2942,#008b94);font-size:1.05rem;border-radius:12px;"
-                onclick="pptxGenerate()">
-                <i class="fas fa-play-circle me-2"></i>بدء إنشاء العرض التقديمي (PowerPoint .pptx)
-              </button>
+            <!-- مكون مسار عمل الذكاء الاصطناعي وسرعة التحليل (Recharts) -->
+            <div id="aiPipelineRechartsBox" class="mb-3"></div>
+
+            <!-- زر البدء الرئيسي الموحّد (تاب 1: PowerPoint أو Word) -->
+            <div class="row g-2 mt-1" id="pptxMainStartWrap">
+              <div class="col-md-7">
+                <button type="button" id="pptxGenerateBtn" class="btn btn-lg text-white fw-bold shadow-sm w-100"
+                  style="background:linear-gradient(135deg,#0f2942,#008b94);font-size:1rem;border-radius:12px;"
+                  onclick="pptxGenerate()">
+                  <i class="fas fa-play-circle me-2"></i>بدء إنشاء العرض التقديمي (PowerPoint .pptx)
+                </button>
+              </div>
+              <div class="col-md-5">
+                <button type="button" id="pptxExportWordBtn" class="btn btn-lg btn-outline-primary fw-bold shadow-sm w-100"
+                  style="font-size:1rem;border-radius:12px;border-width:2px;"
+                  onclick="studioExportTextToWord()">
+                  <i class="fas fa-file-word me-2"></i>تصدير كمستند Word (.docx)
+                </button>
+              </div>
             </div>
 
             <!-- شريط التقدم -->
@@ -5600,7 +5547,7 @@
                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:100%"></div>
               </div>
               <p class="text-center text-muted small mb-0" id="pptxProgressText">
-                <i class="fas fa-cog fa-spin me-1"></i>جاري إنشاء وتصميم شرائح PowerPoint... يرجى الانتظار
+                <i class="fas fa-cog fa-spin me-1"></i>جاري المعالجة والتصميم... يرجى الانتظار
               </p>
             </div>
 
@@ -5611,15 +5558,15 @@
             <div id="pptxResult" class="mt-3" style="display:none">
               <div class="alert alert-success border-success d-flex align-items-center justify-content-between gap-3 flex-wrap shadow-sm">
                 <div class="d-flex align-items-center gap-3">
-                  <i class="fas fa-check-circle fa-2x text-success flex-shrink-0"></i>
+                  <i id="pptxResultIcon" class="fas fa-check-circle fa-2x text-success flex-shrink-0"></i>
                   <div>
-                    <strong class="d-block">🎉 العرض جاهز للتحميل الآن!</strong>
+                    <strong id="pptxResultHeadline" class="d-block">🎉 الملف جاهز للتحميل الآن!</strong>
                     <div id="pptxResultInfo" class="small text-dark mt-1"></div>
                   </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                   <button type="button" id="pptxDownloadBtn" class="btn btn-success fw-bold px-4 shadow-sm" onclick="pptxDownloadCurrentFile()">
-                    <i class="fas fa-download me-2"></i>تحميل ملف PowerPoint (.pptx)
+                    <i class="fas fa-download me-2"></i>تحميل الملف
                   </button>
                   <a id="pptxDirectHrefFallback" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm align-self-center" title="رابط تحميل مباشر احتياطي">
                     <i class="fas fa-external-link-alt"></i>
@@ -5639,6 +5586,7 @@
       .academic-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
     </style>
 
+    <script src="/static/js/recharts_pipeline.js"></script>
     <script>
       /* ===== التحليل الإحصائي ===== */
       async function runStatsAnalysis() {
@@ -5707,6 +5655,71 @@
       let _pptxFirebaseConfig = null;
       let _pptxAnalyzedPayload = null;
       let _pptxCanvaLoadedOnce = false;
+      let _studioPipelineHistory = [];
+      let _studioPipelineState = {
+        operation: 'جاهز لتحليل وإنشاء المستندات والعروض',
+        provider: 'Gemini Flash-Lite',
+        status: 'idle',
+        total_ms: 0,
+        words_per_sec: 0,
+        items_count: 0,
+        stages: [
+          { key: 'extract', stage: '1. استخراج المستند', shortName: 'الاستخراج', duration_ms: 0, status: 'idle' },
+          { key: 'ai', stage: '2. تحليل الذكاء', shortName: 'تحليل الذكاء', duration_ms: 0, status: 'idle' },
+          { key: 'charts', stage: '3. الرسوم والجداول', shortName: 'الرسوم والجداول', duration_ms: 0, status: 'idle' },
+          { key: 'render', stage: '4. التصميم والتصدير', shortName: 'التصدير', duration_ms: 0, status: 'idle' }
+        ],
+        history: []
+      };
+
+      function studioRenderPipeline(stateOverride) {
+        if (stateOverride) {
+          _studioPipelineState = Object.assign({}, _studioPipelineState, stateOverride, {
+            history: _studioPipelineHistory
+          });
+        }
+        if (window.AiPipelineVisualizer && typeof window.AiPipelineVisualizer.render === 'function') {
+          window.AiPipelineVisualizer.render('aiPipelineRechartsBox', _studioPipelineState);
+        }
+      }
+
+      function studioPipelineStart(opLabel, activeStep = 1) {
+        studioRenderPipeline({
+          operation: opLabel || 'جاري التحليل والمعالجة...',
+          status: 'running',
+          activeStep: activeStep,
+          stages: [
+            { key: 'extract', stage: '1. استخراج المستند', shortName: 'الاستخراج', duration_ms: 0, status: activeStep > 0 ? 'done' : 'running' },
+            { key: 'ai', stage: '2. تحليل الذكاء', shortName: 'تحليل الذكاء', duration_ms: 0, status: activeStep === 1 ? 'running' : (activeStep > 1 ? 'done' : 'idle') },
+            { key: 'charts', stage: '3. الرسوم والجداول', shortName: 'الرسوم والجداول', duration_ms: 0, status: activeStep === 2 ? 'running' : 'idle' },
+            { key: 'render', stage: '4. التصميم والتصدير', shortName: 'التصدير', duration_ms: 0, status: activeStep === 3 ? 'running' : 'idle' }
+          ]
+        });
+      }
+
+      function studioPipelineComplete(metrics, fallbackOp) {
+        const m = metrics || {};
+        const opName = m.operation || fallbackOp || 'عملية تحليل وتصدير';
+        if (m.total_ms > 0) {
+          _studioPipelineHistory = _studioPipelineHistory.concat([{
+            name: '#' + (_studioPipelineHistory.length + 1),
+            operation: opName,
+            stage: opName,
+            total_ms: m.total_ms || 0,
+            words_per_sec: m.words_per_sec || 0
+          }]).slice(-12);
+        }
+        studioRenderPipeline({
+          operation: opName,
+          provider: m.provider || 'Gemini Flash-Lite',
+          status: m.status || 'done',
+          total_ms: m.total_ms || 0,
+          words_per_sec: m.words_per_sec || 0,
+          word_count: m.word_count || 0,
+          items_count: m.items_count || 0,
+          stages: Array.isArray(m.stages) && m.stages.length ? m.stages : _studioPipelineState.stages
+        });
+      }
 
       function _pptxEsc(str) {
         return String(str == null ? '' : str)
@@ -5764,9 +5777,10 @@
       function openPresentationStudio(tabKey) {
         const tabMap = {
           text: 'pptxTabTextBtn',
+          docs: 'pptxTabDocsBtn',
+          html: 'pptxTabDocsBtn',
           analyze: 'pptxTabAnalyzeBtn',
           canva: 'pptxTabCanvaBtn',
-          html: 'pptxTabHtmlBtn',
           chat: 'pptxTabChatBtn',
         };
         const btnId = tabMap[tabKey || 'text'] || 'pptxTabTextBtn';
@@ -5780,7 +5794,12 @@
             }
           } catch(e) { tabEl.click(); }
         }
+        const startWrap = document.getElementById('pptxMainStartWrap');
+        if (startWrap) {
+          startWrap.style.display = (tabKey === 'text' || !tabKey) ? 'flex' : 'none';
+        }
         if (tabKey === 'canva') pptxLoadCanvaData();
+        setTimeout(() => studioRenderPipeline(), 60);
       }
 
       function pptxSelectTheme(themeId, label, swatchColor) {
@@ -5803,6 +5822,7 @@
           modalEl.addEventListener('show.bs.modal', function() {
             pptxCheckAiStatus();
             if (!_pptxCanvaLoadedOnce) pptxLoadCanvaData();
+            setTimeout(() => studioRenderPipeline(), 80);
           });
         }
 
@@ -5818,8 +5838,9 @@
             const target = ev.target && ev.target.getAttribute('data-bs-target');
             const startWrap = document.getElementById('pptxMainStartWrap');
             if (startWrap) {
-              startWrap.style.display = (target === '#pptxTabText' || target === '#pptxTabHtml') ? 'grid' : 'none';
+              startWrap.style.display = (target === '#pptxTabText') ? 'flex' : 'none';
             }
+            setTimeout(() => studioRenderPipeline(), 40);
           });
         });
 
@@ -5841,7 +5862,8 @@
           const d = await res.json();
           if (d.available) {
             el.className = 'alert alert-success py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small';
-            el.innerHTML = `<i class="fas fa-check-circle me-1"></i><strong>الذكاء الاصطناعي متاح (${_pptxEsc(d.provider)})</strong> — جاهز لبناء وتحليل العروض`;
+            el.innerHTML = `<i class="fas fa-check-circle me-1"></i><strong>الذكاء الاصطناعي متاح (${_pptxEsc(d.provider)})</strong> — جاهز لبناء وتحليل العروض والمستندات`;
+            studioRenderPipeline({ provider: d.provider });
           } else {
             el.className = 'alert alert-warning py-2 px-3 mb-0 flex-grow-1 d-flex align-items-center gap-2 small';
             el.innerHTML = '<i class="fas fa-info-circle me-1"></i>يعمل حالياً بالمعالج الذكي المحلي — يمكنك الإنشاء والتحويل بالكامل';
@@ -5860,6 +5882,7 @@
           return false;
         }
         if (resultEl) resultEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري استخراج محتوى الملف...';
+        studioPipelineStart('استخراج محتوى الملف...', 0);
         try {
           const fd = new FormData();
           fd.append('file', fileInput.files[0]);
@@ -5874,9 +5897,11 @@
           if (resultEl) {
             resultEl.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>تم استخراج ${d.word_count || 0} كلمة و${_pptxExtractedTables.length} جدول بنجاح</span>`;
           }
+          studioPipelineComplete(d.pipeline_metrics, 'استخراج محتوى الملف');
           return true;
         } catch(e) {
           if (resultEl) resultEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${_pptxEsc(e.message)}</span>`;
+          studioRenderPipeline({ status: 'error', operation: 'فشل استخراج الملف' });
           return false;
         }
       }
@@ -5920,8 +5945,11 @@
       }
 
       function pptxRenderResultAndSlides(d, labelOverride) {
-        const filename = d.filename;
-        const downloadUrl = d.download_url || ('/api/pptx/download/' + encodeURIComponent(filename));
+        const filename = d.filename || 'document';
+        const lower = filename.toLowerCase();
+        const isDocx = lower.endsWith('.docx');
+        const isXlsx = lower.endsWith('.xlsx');
+        const downloadUrl = d.download_url || ((isDocx || isXlsx) ? ('/api/studio/download/' + encodeURIComponent(filename)) : ('/api/pptx/download/' + encodeURIComponent(filename)));
         _pptxLastFilename = filename;
         _pptxLastDownloadUrl = downloadUrl;
         _pptxCurrentSlides = Array.isArray(d.slides) ? d.slides : [];
@@ -5932,24 +5960,59 @@
           directLink.setAttribute('download', filename);
         }
 
+        const dlBtn = document.getElementById('pptxDownloadBtn');
+        const headline = document.getElementById('pptxResultHeadline');
+        const resIcon = document.getElementById('pptxResultIcon');
+        if (isDocx) {
+          if (dlBtn) dlBtn.innerHTML = '<i class="fas fa-file-word me-2"></i>تحميل مستند Word (.docx)';
+          if (headline) headline.textContent = '🎉 مستند Word (.docx) جاهز للتحميل الآن!';
+          if (resIcon) resIcon.className = 'fas fa-file-word fa-2x text-primary flex-shrink-0';
+        } else if (isXlsx) {
+          if (dlBtn) dlBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>تحميل جدول Excel (.xlsx)';
+          if (headline) headline.textContent = '🎉 جدول Excel (.xlsx) جاهز للتحميل الآن!';
+          if (resIcon) resIcon.className = 'fas fa-file-excel fa-2x text-success flex-shrink-0';
+        } else {
+          if (dlBtn) dlBtn.innerHTML = '<i class="fas fa-download me-2"></i>تحميل ملف PowerPoint (.pptx)';
+          if (headline) headline.textContent = '🎉 العرض التقديمي جاهز للتحميل الآن!';
+          if (resIcon) resIcon.className = 'fas fa-check-circle fa-2x text-success flex-shrink-0';
+        }
+
         const infoEl = document.getElementById('pptxResultInfo');
         if (infoEl) {
-          const themeUsed = labelOverride || (d.applied_design && d.applied_design.name) || d.theme_applied || _pptxSelectedThemeLabel;
-          infoEl.textContent = `${_pptxCurrentSlides.length} شريحة · ${filename} · التصميم: ${themeUsed}`;
+          if (isDocx) {
+            const pgNote = d.pages ? ` · ${d.pages} صفحة` : '';
+            infoEl.textContent = `${filename}${pgNote} · مستند Word منسّق وجاهز`;
+          } else if (isXlsx) {
+            const tblNote = d.tables_count !== undefined ? ` · ${d.tables_count} جدول` : '';
+            infoEl.textContent = `${filename}${tblNote} · مصنف Excel منسّق`;
+          } else {
+            const themeUsed = labelOverride || (d.applied_design && d.applied_design.name) || d.theme_applied || _pptxSelectedThemeLabel;
+            infoEl.textContent = `${_pptxCurrentSlides.length} شريحة · ${filename} · التصميم: ${themeUsed}`;
+          }
         }
 
         const typeIcons = { title:'🎯', bullets:'📌', table:'📊', chart:'📈', conclusion:'✅', content:'📄' };
         const preview = document.getElementById('pptxSlidesPreview');
         if (preview) {
-          preview.innerHTML = '<div class="fw-bold small text-muted mb-2">معاينة الشرائح الجاهزة:</div>' +
-            _pptxCurrentSlides.map((s, i) => `
-              <div class="d-flex align-items-start gap-2 p-2 mb-1 rounded bg-white border">
-                <span class="badge bg-primary flex-shrink-0">${typeIcons[s.slide_type] || '📄'} ${i + 1}</span>
-                <div class="overflow-hidden flex-grow-1">
-                  <div class="fw-bold small text-truncate">${_pptxEsc(s.title || 'شريحة')}</div>
-                  ${s.bullets && s.bullets.length ? `<div class="text-muted small" style="font-size:0.75rem">${_pptxEsc(s.bullets.slice(0, 2).join(' • '))}</div>` : ''}
-                </div>
-              </div>`).join('');
+          if (_pptxCurrentSlides.length > 0 && !isDocx && !isXlsx) {
+            preview.style.display = 'block';
+            preview.innerHTML = '<div class="fw-bold small text-muted mb-2">معاينة الشرائح الجاهزة:</div>' +
+              _pptxCurrentSlides.map((s, i) => `
+                <div class="d-flex align-items-start gap-2 p-2 mb-1 rounded bg-white border">
+                  <span class="badge bg-primary flex-shrink-0">${typeIcons[s.slide_type] || '📄'} ${i + 1}</span>
+                  <div class="overflow-hidden flex-grow-1">
+                    <div class="fw-bold small text-truncate">${_pptxEsc(s.title || 'شريحة')}</div>
+                    ${s.bullets && s.bullets.length ? `<div class="text-muted small" style="font-size:0.75rem">${_pptxEsc(s.bullets.slice(0, 2).join(' • '))}</div>` : ''}
+                  </div>
+                </div>`).join('');
+          } else {
+            preview.style.display = 'none';
+            preview.innerHTML = '';
+          }
+        }
+
+        if (d.pipeline_metrics) {
+          studioPipelineComplete(d.pipeline_metrics, filename);
         }
 
         const prog = document.getElementById('pptxProgress');
@@ -5961,12 +6024,12 @@
         }
 
         pptxPlayReadyChime();
-        pptxShowToast(`✅ العرض جاهز للتحميل: ${filename} (${_pptxCurrentSlides.length} شريحة)`, true);
+        pptxShowToast(`✅ جاهز للتحميل: ${filename}`, true);
       }
 
       async function pptxDownloadCurrentFile() {
         if (!_pptxLastDownloadUrl) {
-          pptxShowError('لا يوجد ملف مُنشأ بعد. اضغط على زر البدء أو اختر قالب كانفا أولاً.');
+          pptxShowError('لا يوجد ملف مُنشأ بعد. اضغط على زر البدء أو التصدير أولاً.');
           return;
         }
         const btn = document.getElementById('pptxDownloadBtn');
@@ -6010,8 +6073,8 @@
 
       async function pptxGenerate() {
         pptxClearMessages();
-        const htmlBtn = document.getElementById('pptxTabHtmlBtn');
-        const htmlTabActive = htmlBtn && htmlBtn.classList.contains('active');
+        const docsBtn = document.getElementById('pptxTabDocsBtn');
+        const htmlTabActive = docsBtn && docsBtn.classList.contains('active') && (document.getElementById('pptxHtmlCode').value || '').trim().length > 0;
         const htmlCode = htmlTabActive ? (document.getElementById('pptxHtmlCode').value || '').trim() : '';
         let text = htmlTabActive ? '' : (document.getElementById('pptxText').value || '').trim();
 
@@ -6029,7 +6092,7 @@
         }
 
         if (htmlTabActive && !htmlCode) {
-          pptxShowError('الرجاء لصق كود HTML أولاً في خانة HTML قبل الضغط على البدء.');
+          pptxShowError('الرجاء لصق كود HTML أولاً قبل التصدير.');
           return;
         }
         if (!htmlTabActive && !text) {
@@ -6043,9 +6106,12 @@
           btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإنشاء والتنسيق...';
         }
         const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
         const resDiv = document.getElementById('pptxResult');
         if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = '<i class="fas fa-cog fa-spin me-1"></i>جاري بناء وتنسيق شرائح PowerPoint بالذكاء الاصطناعي...';
         if (resDiv) resDiv.style.display = 'none';
+        studioPipelineStart(htmlTabActive ? 'تحويل HTML إلى PowerPoint...' : 'تحليل وبناء شرائح PowerPoint بالذكاء...', 1);
 
         const title = (document.getElementById('pptxTitle').value || '').trim();
         const org = (document.getElementById('pptxCoverOrg').value || '').trim();
@@ -6067,7 +6133,7 @@
           const endpoint = htmlTabActive ? '/api/pptx/html_to_pptx' : '/api/pptx/generate';
           const payload = htmlTabActive ? {
             html: htmlCode,
-            title,
+            title: title || (document.getElementById('studioHtmlFilename').value || '').trim(),
             theme_color: _pptxSelectedTheme,
             canva_template_id: _pptxSelectedTheme.startsWith('canva_') ? _pptxSelectedTheme : undefined,
             font_name: document.getElementById('pptxFontName').value,
@@ -6100,6 +6166,7 @@
           pptxRenderResultAndSlides(d, _pptxSelectedThemeLabel);
         } catch(e) {
           if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر إنشاء العرض' });
           pptxShowError(e.message || 'حدث خطأ غير متوقع');
         } finally {
           if (btn) {
@@ -6107,6 +6174,365 @@
             btn.innerHTML = '<i class="fas fa-play-circle me-2"></i>بدء إنشاء العرض التقديمي (PowerPoint .pptx)';
           }
         }
+      }
+
+      /* ───── وظائف المستندات المدمجة: Word / PDF / HTML / Excel ───── */
+      async function studioExportTextToWord() {
+        pptxClearMessages();
+        let text = (document.getElementById('pptxText').value || '').trim();
+        if (!text) {
+          const fileInput = document.getElementById('pptxFile');
+          if (fileInput && fileInput.files && fileInput.files.length) {
+            const ok = await pptxExtractFile(true);
+            if (ok) text = (document.getElementById('pptxText').value || '').trim();
+          }
+        }
+        if (!text) {
+          pptxShowError('يرجى إدخال نص أو استخراج ملف أولاً قبل التصدير إلى Word.');
+          return;
+        }
+        const btn = document.getElementById('pptxExportWordBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري تصدير Word...'; }
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = '<i class="fas fa-file-word fa-spin me-1"></i>جاري بناء وتنسيق مستند Word (.docx)...';
+        studioPipelineStart('تصدير المحتوى إلى مستند Word (.docx)...', 2);
+
+        const title = (document.getElementById('pptxTitle').value || '').trim();
+        const org = (document.getElementById('pptxCoverOrg').value || '').trim();
+        const presenter = (document.getElementById('pptxCoverPresenter').value || '').trim();
+        const subtitle = (document.getElementById('pptxCoverSubtitle').value || '').trim();
+        const date = (document.getElementById('pptxCoverDate').value || '').trim();
+        const coverData = (org || presenter || subtitle || date || title) ? {
+          title, subtitle, organization: org, presenter, date
+        } : null;
+
+        try {
+          const res = await fetch('/api/studio/text_to_word', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text,
+              title,
+              font_name: document.getElementById('pptxFontName').value === 'Dubai' ? 'Cairo' : document.getElementById('pptxFontName').value,
+              font_size: 12,
+              margin: 1.0,
+              inc_charts: document.getElementById('pptxIncCharts').checked,
+              cover_data: coverData,
+              extracted_tables: _pptxExtractedTables
+            })
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'تعذّر تصدير ملف Word');
+          pptxRenderResultAndSlides(d);
+        } catch(e) {
+          if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر التصدير إلى Word' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioConvertPdfToWord() {
+        pptxClearMessages();
+        const fileIn = document.getElementById('studioPdfFile');
+        if (!fileIn || !fileIn.files || !fileIn.files.length) {
+          pptxShowError('يرجى اختيار ملف PDF أولاً.');
+          return;
+        }
+        const btn = document.getElementById('studioPdfToWordBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري التحويل...'; }
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = '<i class="fas fa-file-pdf fa-spin me-1"></i>جاري استخراج PDF والجداول والصور وبناء مستند Word...';
+        studioPipelineStart('تحويل PDF إلى Word (.docx)...', 1);
+
+        try {
+          const fd = new FormData();
+          fd.append('file', fileIn.files[0]);
+          fd.append('font_family', document.getElementById('studioPdfFont').value || 'Times New Roman');
+          fd.append('font_size', document.getElementById('studioPdfFontSize').value || '12');
+          fd.append('margin', document.getElementById('studioPdfMargin').value || '1.0');
+          fd.append('smart_draw', document.getElementById('studioPdfSmartDraw').checked ? 'true' : 'false');
+
+          const res = await fetch('/api/studio/pdf_to_word', { method: 'POST', body: fd });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل تحويل ملف PDF');
+          pptxRenderResultAndSlides(d);
+        } catch(e) {
+          if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحويل PDF إلى Word' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioConvertPdfToPptx() {
+        pptxClearMessages();
+        const fileIn = document.getElementById('studioPdfFile');
+        if (!fileIn || !fileIn.files || !fileIn.files.length) {
+          pptxShowError('يرجى اختيار ملف PDF أولاً.');
+          return;
+        }
+        const btn = document.getElementById('studioPdfToPptxBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الاستخراج والبناء...'; }
+        studioPipelineStart('استخراج PDF وتحويله إلى PowerPoint...', 0);
+        try {
+          const fd = new FormData();
+          fd.append('file', fileIn.files[0]);
+          const exRes = await fetch('/api/pptx/extract_file', { method: 'POST', body: fd });
+          const exData = await exRes.json();
+          if (!exRes.ok || exData.error) throw new Error(exData.error || 'تعذر قراءة PDF');
+          if (exData.pipeline_metrics) studioPipelineComplete(exData.pipeline_metrics);
+          _pptxExtractedTables = exData.tables || [];
+          document.getElementById('pptxText').value = exData.full_text || '';
+          studioPipelineStart('بناء شرائح PowerPoint من PDF...', 1);
+          const genRes = await fetch('/api/pptx/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: exData.full_text || '',
+              title: (fileIn.files[0].name || 'PDF').replace(/\.pdf$/i, ''),
+              num_slides: Math.min(14, Math.max(6, Math.ceil((exData.word_count || 300) / 110))),
+              ptype: 'educational',
+              inc_tables: _pptxExtractedTables.length > 0,
+              inc_charts: document.getElementById('studioPdfSmartDraw').checked,
+              theme_color: _pptxSelectedTheme,
+              canva_template_id: _pptxSelectedTheme.startsWith('canva_') ? _pptxSelectedTheme : undefined,
+              font_name: document.getElementById('pptxFontName').value,
+              body_font_size: parseInt(document.getElementById('pptxFontSize').value, 10) || 22,
+              extracted_tables: _pptxExtractedTables
+            })
+          });
+          const genData = await genRes.json();
+          if (!genRes.ok || genData.error) throw new Error(genData.error || 'فشل بناء PPTX');
+          pptxRenderResultAndSlides(genData, _pptxSelectedThemeLabel);
+        } catch(e) {
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحويل PDF إلى PowerPoint' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      function studioLoadDemoHtml() {
+        const sample = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<style>
+  body { font-family: 'Cairo', sans-serif; direction: rtl; }
+  .header-banner { background: linear-gradient(135deg, #1e3a8a, #0284c7); color: #ffffff; padding: 22px; border-radius: 12px; text-align: center; }
+  table.custom-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  table.custom-table th { background-color: #0f172a; color: #ffffff; padding: 10px; border: 1px solid #334155; text-align: center; }
+  table.custom-table td { padding: 9px; border: 1px solid #cbd5e1; text-align: center; }
+  .highlight-box { background-color: #eff6ff; border-right: 5px solid #2563eb; padding: 14px; border-radius: 8px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="header-banner">
+  <h1 style="color:#ffffff;margin:0;">تقرير مؤشرات الأداء والتحليل الأكاديمي</h1>
+  <p style="color:#e0f2fe;margin-top:6px;">نموذج تجريبي متوافق مع التصدير إلى Word و Excel و PowerPoint</p>
+</div>
+<table class="custom-table">
+  <thead><tr><th>م</th><th>المحور الرئيسي</th><th>المتوسط</th><th>التقييم</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>جودة المحتوى العلمي</td><td>4.85</td><td>ممتاز جداً</td></tr>
+    <tr><td>2</td><td>سرعة التحليل الذكي</td><td>4.76</td><td>ممتاز</td></tr>
+    <tr><td>3</td><td>دقة التنسيق والتصدير</td><td>4.95</td><td>فائق الدقة</td></tr>
+  </tbody>
+</table>
+<div class="highlight-box">
+  <h4 style="color:#1e40af;margin-top:0;">ملاحظة التكامل الموحد:</h4>
+  <p style="margin-bottom:0;">يحافظ النظام الموحد على الجداول والألوان واتجاه النص العربي RTL عند التحويل إلى Word أو Excel أو PowerPoint.</p>
+</div>
+</body>
+</html>`;
+        document.getElementById('pptxHtmlCode').value = sample;
+        pptxPreviewHtml();
+      }
+
+      function studioClearHtmlEditor() {
+        document.getElementById('pptxHtmlCode').value = '';
+        const area = document.getElementById('pptxHtmlPreviewArea');
+        if (area) area.style.display = 'none';
+      }
+
+      async function studioAiHtmlAction(action, customPrompt = '') {
+        pptxClearMessages();
+        const codeEl = document.getElementById('pptxHtmlCode');
+        const html = (codeEl.value || '').trim();
+        if (!html) {
+          pptxShowError('يرجى لصق كود HTML أولاً قبل استخدام المعالجة بالذكاء الاصطناعي.');
+          return;
+        }
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = '<i class="fas fa-wand-magic-sparkles fa-spin me-1"></i>يقوم Gemini AI بمعالجة وتحسين كود HTML...';
+        studioPipelineStart(`تحسين HTML بالذكاء (${action})...`, 1);
+        try {
+          const res = await fetch('/api/html_to_word/ai_process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, action, custom_prompt: customPrompt })
+          });
+          const d = await res.json();
+          if (!res.ok || !d.success || !d.processed_html) {
+            throw new Error(d.error || 'تعذرت المعالجة بالذكاء الاصطناعي');
+          }
+          codeEl.value = d.processed_html;
+          pptxPreviewHtml();
+          if (d.pipeline_metrics) studioPipelineComplete(d.pipeline_metrics);
+          pptxShowToast('✅ تم تحسين كود HTML بالذكاء الاصطناعي بنجاح', false);
+        } catch(e) {
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحسين HTML بالذكاء' });
+          pptxShowError(e.message);
+        } finally {
+          if (prog) prog.style.display = 'none';
+        }
+      }
+
+      function studioAiHtmlCustom() {
+        const prompt = (document.getElementById('studioHtmlCustomPrompt').value || '').trim();
+        if (!prompt) {
+          pptxShowError('اكتب الأمر المخصص للذكاء الاصطناعي أولاً.');
+          return;
+        }
+        studioAiHtmlAction('custom', prompt);
+      }
+
+      function studioPrepareHtmlWithCharts(rawHtml) {
+        return new Promise((resolve) => {
+          if (!rawHtml.includes('Chart(') && !rawHtml.includes('<canvas')) {
+            resolve(rawHtml);
+            return;
+          }
+          const iframe = document.createElement('iframe');
+          iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:960px;height:800px;visibility:hidden;border:none;';
+          iframe.sandbox = 'allow-scripts allow-same-origin';
+          document.body.appendChild(iframe);
+          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const signalScript = `<script>window.__chartsReady=false;window.addEventListener('load',function(){setTimeout(function(){window.__chartsReady=true;},350);});<\/script>`;
+          const htmlWithSignal = rawHtml.includes('</head>')
+            ? rawHtml.replace(/<\/head>/i, signalScript + '</head>')
+            : (signalScript + rawHtml);
+          iDoc.open();
+          iDoc.write(htmlWithSignal);
+          iDoc.close();
+          let waited = 0;
+          const timer = setInterval(() => {
+            waited += 200;
+            const ready = iframe.contentWindow && iframe.contentWindow.__chartsReady;
+            if (ready || waited >= 3600) {
+              clearInterval(timer);
+              try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                doc.querySelectorAll('canvas').forEach(canvas => {
+                  try {
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
+                    if (dataUrl && dataUrl.length > 100 && dataUrl !== 'data:,') {
+                      const img = doc.createElement('img');
+                      img.src = dataUrl;
+                      img.setAttribute('width', Math.min(canvas.width || 600, 900));
+                      img.style.cssText = 'max-width:100%;height:auto;display:block;margin:8px auto;';
+                      canvas.parentNode && canvas.parentNode.replaceChild(img, canvas);
+                    }
+                  } catch(_) {}
+                });
+                const out = doc.documentElement.outerHTML;
+                document.body.removeChild(iframe);
+                resolve(out);
+              } catch(_) {
+                try { document.body.removeChild(iframe); } catch(__) {}
+                resolve(rawHtml);
+              }
+            }
+          }, 200);
+        });
+      }
+
+      async function studioConvertHtmlToWord() {
+        pptxClearMessages();
+        let html = (document.getElementById('pptxHtmlCode').value || '').trim();
+        if (!html) {
+          pptxShowError('الرجاء لصق كود HTML أولاً قبل التصدير إلى Word.');
+          return;
+        }
+        const btn = document.getElementById('studioHtmlToWordBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري تصدير Word...'; }
+        const prog = document.getElementById('pptxProgress');
+        const progTxt = document.getElementById('pptxProgressText');
+        if (prog) prog.style.display = 'block';
+        if (progTxt) progTxt.innerHTML = '<i class="fas fa-file-word fa-spin me-1"></i>جاري تحويل HTML والرسوم إلى مستند Word حقيقي...';
+        studioPipelineStart('تحويل HTML إلى Word (.docx)...', 1);
+
+        try {
+          html = await studioPrepareHtmlWithCharts(html);
+          const payload = {
+            html,
+            filename: (document.getElementById('studioHtmlFilename').value || 'document').trim() || 'document',
+            font_family: document.getElementById('studioHtmlWordFont').value || 'Cairo',
+            font_size: parseFloat(document.getElementById('studioHtmlWordSize').value || '12') || 12,
+            margin: parseFloat(document.getElementById('studioHtmlWordMargin').value || '1.0') || 1.0,
+            rtl: document.getElementById('studioHtmlWordRtl').checked,
+            smart_draw: document.getElementById('studioHtmlSmartDraw').checked,
+          };
+          const res = await fetch('/api/studio/html_to_word', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل تحويل HTML إلى Word');
+          pptxRenderResultAndSlides(d);
+        } catch(e) {
+          if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحويل HTML إلى Word' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioConvertHtmlToExcel() {
+        pptxClearMessages();
+        const html = (document.getElementById('pptxHtmlCode').value || '').trim();
+        if (!html) {
+          pptxShowError('الرجاء لصق كود HTML أولاً قبل التصدير إلى Excel.');
+          return;
+        }
+        const btn = document.getElementById('studioHtmlToExcelBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري تصدير Excel...'; }
+        studioPipelineStart('تحويل HTML إلى Excel (.xlsx)...', 2);
+        try {
+          const filename = (document.getElementById('studioHtmlFilename').value || 'document').trim() || 'document';
+          const res = await fetch('/api/studio/html_to_excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, filename })
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || 'فشل تحويل HTML إلى Excel');
+          pptxRenderResultAndSlides(d);
+        } catch(e) {
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحويل HTML إلى Excel' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioConvertHtmlToPptx() {
+        return pptxGenerate();
       }
 
       /* ───── قوالب كانفا + حسابات Google ───── */
@@ -6380,6 +6806,7 @@
         const progTxt = document.getElementById('pptxProgressText');
         if (prog) prog.style.display = 'block';
         if (progTxt) progTxt.innerHTML = `<i class="fas fa-cog fa-spin me-1"></i>جاري تطبيق قالب <strong>${_pptxEsc(tplName)}</strong> وبناء ملف PowerPoint تلقائياً...`;
+        studioPipelineStart(`تطبيق قالب كانفا (${tplName})...`, 2);
 
         try {
           const textVal = (document.getElementById('pptxText') ? document.getElementById('pptxText').value : '').trim();
@@ -6406,6 +6833,7 @@
           pptxRenderResultAndSlides(d, tplName);
         } catch(e) {
           if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تطبيق قالب كانفا' });
           pptxShowError('تعذر تطبيق قالب كانفا: ' + e.message);
         }
       }
@@ -6472,6 +6900,7 @@
         if (progEl) progEl.style.display = 'block';
         if (resArea) resArea.style.display = 'none';
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري التحليل...'; }
+        studioPipelineStart(`تحليل عرض PowerPoint (${fileIn.files[0].name}) بالذكاء...`, 1);
 
         try {
           if (!_pptxCanvaLoadedOnce) await pptxLoadCanvaData();
@@ -6484,8 +6913,10 @@
           _pptxAnalyzedPayload = d;
           _pptxCurrentSlides = d.slides || [];
           pptxRenderAnalyzedPresentation(d);
+          if (d.pipeline_metrics) studioPipelineComplete(d.pipeline_metrics);
         } catch(e) {
           if (errEl) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تحليل .pptx' });
         } finally {
           if (progEl) progEl.style.display = 'none';
           if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-wand-magic-sparkles me-1"></i>بدء التحليل الذكي'; }
@@ -6578,6 +7009,7 @@
         const progTxt = document.getElementById('pptxProgressText');
         if (prog) prog.style.display = 'block';
         if (progTxt) progTxt.innerHTML = `<i class="fas fa-cog fa-spin me-1"></i>جاري تحديث الشرائح وتطبيق قالب <strong>${_pptxEsc(tplName)}</strong>...`;
+        studioPipelineStart(`إعادة تصميم العرض بقالب ${tplName}...`, 2);
 
         try {
           const payload = {
@@ -6600,6 +7032,7 @@
           pptxRenderResultAndSlides(d, tplName);
         } catch(e) {
           if (prog) prog.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر إعادة التصميم' });
           pptxShowError('تعذّر تحديث العرض: ' + e.message);
         } finally {
           if (btn) { btn.disabled = false; btn.innerHTML = orig; }
@@ -7932,20 +8365,6 @@
         //  تحميل الـ iframes عند فتح الـ modals
         // ══════════════════════════════════════════════════════
         document.addEventListener('DOMContentLoaded', function() {
-            var formatterModal = document.getElementById('fileFormatterModal');
-            if (formatterModal) {
-                formatterModal.addEventListener('show.bs.modal', function() {
-                    var fr = document.getElementById('formatterFrame');
-                    if (fr && (fr.src === '' || fr.src === 'about:blank' || !fr.src)) {
-                        fr.src = '/formatter';
-                    }
-                });
-                formatterModal.addEventListener('hidden.bs.modal', function() {
-                    var fr = document.getElementById('formatterFrame');
-                    if (fr) fr.src = 'about:blank';
-                });
-            }
-
             var academicModal = document.getElementById('academicModal');
             if (academicModal) {
                 academicModal.addEventListener('show.bs.modal', function() {
@@ -9340,31 +9759,8 @@ function stopLiveVoiceRecording(keep) {
 }
 
 // ============================================================
-// استوديو تحويل HTML إلى Word داخل التطبيق
+// معالجة الملفات المرفقة بالمساعد الذكي
 // ============================================================
-function openHtmlToWordStudio() {
-    var fr = document.getElementById('htmlToWordStudioFrame');
-    if (fr) {
-        if (!fr.src || fr.src === 'about:blank' || !fr.src.includes('/html_to_word')) {
-            fr.src = '/html_to_word';
-        }
-    }
-}
-
-function reloadHtmlToWordStudioFrame() {
-    var fr = document.getElementById('htmlToWordStudioFrame');
-    if (fr) fr.src = '/html_to_word?t=' + Date.now();
-}
-
-window.addEventListener('message', function(e) {
-    if (e.data === 'closeHtmlToWordModal') {
-        var modalEl = document.getElementById('htmlToWordStudioModal');
-        if (modalEl) {
-            var modal = bootstrap.Modal.getInstance(modalEl);
-            if (modal) modal.hide();
-        }
-    }
-});
 
 function handleAiFileSelect(e) {
     var file = e.target.files && e.target.files[0];

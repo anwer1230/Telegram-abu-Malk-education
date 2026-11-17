@@ -775,12 +775,134 @@ def convert_html_to_excel_unified(html_content: str, filename: str = "document")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  وحدة تحويل HTML إلى فيديو احترافي (@hyperframes/producer + FFmpeg)
+#  وحدة تحويل HTML إلى فيديو احترافي (@hyperframes/producer + FFmpeg + الصوت والذكاء)
 # ═════════════════════════════════════════════════════════════════════════════
 
 HTML_VIDEO_MODULE_DIR = Path(__file__).resolve().parent.parent.parent / "html-to-video-module"
+STUDIO_AUDIO_DIR = HTML_VIDEO_MODULE_DIR / "temp_audio"
+STUDIO_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 _VIDEO_JOBS: Dict[str, Dict[str, Any]] = {}
 _VIDEO_JOBS_LOCK = __import__("threading").Lock()
+_VALID_GEMINI_VOICES = {"Kore", "Charon", "Puck", "Fenrir", "Zephyr"}
+
+
+def _cleanup_old_audio_files(max_age_seconds: int = 7200) -> None:
+    """حذف ملفات الصوت المؤقتة الأقدم من ساعتين."""
+    try:
+        cutoff = time.time() - max_age_seconds
+        if STUDIO_AUDIO_DIR.exists():
+            for p in STUDIO_AUDIO_DIR.iterdir():
+                if p.is_file() and p.stat().st_mtime < cutoff:
+                    p.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _call_studio_gemini_text(
+    prompt: str,
+    system_instruction: str = "",
+    max_tokens: int = 8192,
+    timeout_total: float = 35.0,
+) -> Tuple[Optional[str], str]:
+    """استدعاء موثوق لنماذج Gemini النصية مع تدوير المفاتيح وتعدد النماذج."""
+    import requests
+    try:
+        import config as _cfg
+        keys = _cfg.get_all_gemini_keys()
+    except Exception:
+        keys = []
+
+    if keys:
+        models = [
+            "gemini-3.1-flash-lite",
+            "gemini-4-hydrogen",
+            "gemini-flash-lite-latest",
+            "gemini-3-flash-preview",
+        ]
+        payload: Dict[str, Any] = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": max_tokens},
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+
+        deadline = time.time() + timeout_total
+        for key in keys[:5]:
+            if time.time() >= deadline:
+                break
+            for model in models:
+                rem = deadline - time.time()
+                if rem <= 1.5:
+                    break
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                    resp = requests.post(
+                        url,
+                        headers={"Content-Type": "application/json", "X-goog-api-key": key},
+                        json=payload,
+                        timeout=min(15.0, rem),
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        cands = data.get("candidates") or []
+                        if cands and cands[0].get("content", {}).get("parts"):
+                            parts = cands[0]["content"]["parts"]
+                            txt = "".join(str(p.get("text", "")) for p in parts).strip()
+                            if txt:
+                                return txt, model
+                    elif resp.status_code in (403, 429):
+                        break
+                except Exception:
+                    continue
+
+    # بديل Groq إذا توفر المفتاح
+    try:
+        groq_key = os.environ.get("GROQ_API_KEY", "").strip()
+        if groq_key:
+            from groq import Groq
+            client = Groq(api_key=groq_key)
+            msgs = []
+            if system_instruction:
+                msgs.append({"role": "system", "content": system_instruction})
+            msgs.append({"role": "user", "content": prompt})
+            resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=msgs,
+                temperature=0.3,
+                max_tokens=min(max_tokens, 8000),
+            )
+            txt = (resp.choices[0].message.content or "").strip()
+            if txt:
+                return txt, "Groq Llama-3.3"
+    except Exception:
+        pass
+
+    return None, ""
+
+
+def _strip_html_fences(raw: str) -> str:
+    cleaned = re.sub(r"^```(?:html|json)?\s*", "", (raw or "").strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+    return cleaned.strip()
+
+
+def _extract_visible_text_from_html(html_content: str) -> str:
+    """استخراج النص المرئي والعنوان من كود HTML بدون وسوم CSS/JS."""
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html_content or "", "html.parser")
+        for tag in soup(["script", "style", "noscript"]):
+            tag.decompose()
+        title_txt = soup.title.get_text(" ", strip=True) if soup.title else ""
+        body_txt = soup.get_text(" ", strip=True)
+        body_txt = re.sub(r"\s+", " ", body_txt).strip()
+        if title_txt and title_txt not in body_txt:
+            return f"{title_txt}. {body_txt}".strip()
+        return body_txt
+    except Exception:
+        txt = re.sub(r"<(script|style)[^>]*>[\s\S]*?</\1>", " ", html_content or "", flags=re.IGNORECASE)
+        txt = re.sub(r"<[^>]+>", " ", txt)
+        return re.sub(r"\s+", " ", txt).strip()
 
 
 def get_html_video_example() -> str:
@@ -791,35 +913,38 @@ def get_html_video_example() -> str:
     return ""
 
 
-def ai_generate_animated_html(prompt_text: str, width: int = 1080, height: int = 1080, duration: float = 10.0) -> str:
+def ai_generate_animated_html(
+    prompt_text: str,
+    width: int = 1080,
+    height: int = 1080,
+    duration: float = 10.0,
+    notes: str = "",
+) -> str:
     """توليد كود HTML متحرك متجاوب مع وحدات vw/vh وبنفس مدة الفيديو المطلوبة عبر Gemini."""
     topic = (prompt_text or "").strip()
+    extra_notes = (notes or "").strip()
+    if not topic and not extra_notes:
+        raise ValueError("يرجى كتابة فكرة أو ملاحظات العرض المتحرك أولاً.")
     if not topic:
-        raise ValueError("يرجى كتابة فكرة أو نص العرض المتحرك أولاً.")
+        topic = extra_notes
 
     safe_dur = max(1.0, min(300.0, float(duration or 10.0)))
     orientation = "أفقي (16:9)" if width > height else ("عمودي (9:16)" if height > width else "مربع (1:1)")
+    notes_block = f"\n\nملاحظات وتعليمات إضافية من المستخدم يجب تطبيقها بدقة:\n{extra_notes}\n" if extra_notes and extra_notes != topic else ""
     ai_prompt = (
         f"أنت مصمم Motion Graphics محترف بالويب (HTML + CSS @keyframes + SVG).\n"
         f"صمّم صفحة HTML كاملة جاهزة للتحويل إلى فيديو بأبعاد {width}x{height} ({orientation}) ومدة عرض بالضبط {safe_dur} ثانية حول الموضوع التالي:\n"
-        f"«{topic}»\n\n"
+        f"«{topic}»{notes_block}\n"
         "القواعد الصارمة:\n"
         "1. أخرج كود HTML كاملاً يبدأ بـ <!DOCTYPE html> وينتهي بـ </html> بدون أي شرح أو markdown.\n"
         f"2. استخدم <html lang=\"ar\" dir=\"rtl\"> وضع على <body data-composition-id=\"studio-root\" data-start=\"0\" data-duration=\"{safe_dur}\" data-width=\"{width}\" data-height=\"{height}\"> مع body {{ margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; }}.\n"
-        "3. استخدم وحدات vw و vh فقط لضمان تطابق العرض والارتفاع مع أي دقة فيديو.\n"
+        "3. استخدم وحدات vw و vh و vmin فقط لضمان تطابق العرض والارتفاع مع أي دقة فيديو.\n"
         f"4. اجعل حركات CSS @keyframes موزعة على كامل مدة العرض ({safe_dur}s) حتى نهاية الفيديو دون توقف مبكر.\n"
         "5. اجعل الخلفية والألوان احترافية ومتباينة بوضوح دون الاعتماد على صور خارجية غير مضمونة.\n"
     )
-    raw = None
-    try:
-        from pptx_app.modules.ai_processor import _call_gemini
-        raw = _call_gemini(ai_prompt)
-    except Exception as exc:
-        logger.debug(f"ai_generate_animated_html Gemini error: {exc}")
-
+    raw, _ = _call_studio_gemini_text(ai_prompt, max_tokens=8192)
     if raw:
-        cleaned = re.sub(r"^```(?:html)?\s*", "", raw.strip(), flags=re.IGNORECASE)
-        cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+        cleaned = _strip_html_fences(raw)
         if "<html" in cleaned.lower() or "<body" in cleaned.lower() or "<div" in cleaned.lower():
             return cleaned
 
@@ -891,6 +1016,513 @@ def ai_generate_animated_html(prompt_text: str, width: int = 1080, height: int =
 </html>"""
 
 
+def ai_refine_animated_html(
+    html_content: str,
+    notes: str,
+    width: int = 1080,
+    height: int = 1080,
+    duration: float = 10.0,
+) -> Dict[str, Any]:
+    """تطبيق ملاحظات وتعليمات المستخدم الإضافية على كود HTML الحالي عبر الذكاء الاصطناعي وإخراجه."""
+    clean_notes = (notes or "").strip()
+    if not clean_notes:
+        raise ValueError("يرجى كتابة الملاحظات أو التعليمات المطلوب تطبيقها على الكود، أو رفع ملف ملاحظات.")
+
+    safe_dur = max(1.0, min(300.0, float(duration or 10.0)))
+    raw_html = (html_content or "").strip()
+    if not raw_html:
+        generated = ai_generate_animated_html(clean_notes, width=width, height=height, duration=safe_dur)
+        return {"html": generated, "model": "Gemini AI (توليد جديد)"}
+
+    sys_inst = (
+        "أنت مهندس واجهات ومصمم Motion Graphics بالويب (HTML/CSS/JS/SVG). "
+        "مهمتك تعديل كود HTML المقدّم وتطبيق جميع ملاحظات وتعليمات المستخدم بدقة متناهية "
+        "مع الحفاظ على التجاوب عبر وحدات vw/vh ودمج سمات التكوين الخاصة بمحرك الفيديو، وإخراج كود HTML كاملاً صالحاً للتشغيل فقط."
+    )
+    prompt = (
+        f"قم بتعديل وتحسين كود HTML التالي لتنفيذ جميع الملاحظات والتعليمات المذكورة أدناه بدقة:\n\n"
+        f"=== ملاحظات وتعليمات المستخدم ===\n{clean_notes}\n\n"
+        f"=== مواصفات الفيديو المستهدفة ===\n"
+        f"- الأبعاد: {width}×{height} بكسل\n"
+        f"- المدة المطلوبة: {safe_dur} ثانية (تأكد من وجود data-composition-id=\"studio-root\" و data-duration=\"{safe_dur}\" و data-width=\"{width}\" و data-height=\"{height}\" على body أو جذر التكوين)\n"
+        f"- اجعل الحركات (@keyframes) متناسقة مع كامل مدة {safe_dur} ثانية، وتأكد من margin:0 و overflow:hidden على body.\n"
+        "- أخرج كود HTML الكامل فقط بدءاً من <!DOCTYPE html> حتى </html> بدون أي شرح أو علامات markdown.\n\n"
+        f"=== كود HTML الحالي ===\n{raw_html[:28000]}"
+    )
+
+    reply, used_model = _call_studio_gemini_text(prompt, system_instruction=sys_inst, max_tokens=8192, timeout_total=40.0)
+    if not reply:
+        raise RuntimeError("تعذر الاتصال بنموذج الذكاء الاصطناعي لتطبيق الملاحظات حالياً؛ يرجى المحاولة بعد لحظات.")
+
+    cleaned = _strip_html_fences(reply)
+    if not any(tag in cleaned.lower() for tag in ("<html", "<body", "<div", "<!doctype")):
+        raise RuntimeError("لم يُرجع الذكاء الاصطناعي كود HTML صالحاً. جرّب صياغة الملاحظات بشكل أوضح.")
+
+    return {"html": cleaned, "model": used_model or "Gemini AI"}
+
+
+def ai_prepare_video_audio_plan(
+    html_content: str,
+    duration: float = 10.0,
+    notes: str = "",
+    user_script: str = "",
+) -> Dict[str, Any]:
+    """تحليل محتوى HTML وتوليد نص تعليق صوتي متزامن مع مدة الفيديو واختيار النبرة والمزاج الموسيقي."""
+    safe_dur = max(1.0, min(300.0, float(duration or 10.0)))
+    visible_text = _extract_visible_text_from_html(html_content)
+    target_words = max(6, min(200, int(round(max(2.0, safe_dur - 0.7) * 2.1))))
+    custom_script = (user_script or "").strip()
+
+    if custom_script:
+        # نكتفي بتحديد المزاج وأسلوب الإلقاء المناسب إذا كان النص مكتوباً مسبقاً
+        mood_prompt = (
+            f"بناءً على هذا النص والمحتوى:\nالنص: {custom_script[:600]}\nمحتوى العرض: {visible_text[:800]}\n"
+            'أرجع JSON فقط بهذا الشكل:\n'
+            '{"mood": "academic|corporate|cinematic|upbeat|calm", '
+            '"recommended_voice": "Kore|Charon|Puck|Fenrir|Zephyr", '
+            '"style_instruction": "وصف قصير بالإنجليزية لنبرة الإلقاء المناسبة"}'
+        )
+        raw_meta, _ = _call_studio_gemini_text(mood_prompt, max_tokens=300, timeout_total=15.0)
+        parsed: Dict[str, Any] = {}
+        if raw_meta:
+            m = re.search(r"\{[\s\S]*\}", raw_meta)
+            if m:
+                try:
+                    parsed = json.loads(m.group(0))
+                except Exception:
+                    parsed = {}
+        voice = parsed.get("recommended_voice") if parsed.get("recommended_voice") in _VALID_GEMINI_VOICES else "Kore"
+        mood = parsed.get("mood") if parsed.get("mood") in ("academic", "corporate", "cinematic", "upbeat", "calm") else "calm"
+        return {
+            "script": custom_script,
+            "mood": mood,
+            "recommended_voice": voice,
+            "style_instruction": parsed.get("style_instruction") or "Clear, warm, natural narrator",
+        }
+
+    notes_ctx = f"\nملاحظات المستخدم: {notes[:500]}" if (notes or "").strip() else ""
+    ai_prompt = (
+        f"أنت كاتب سيناريو تعليق صوتي (Voiceover) محترف ومخرج صوتي.\n"
+        f"المطلوب تحليل محتوى عرض HTML التالي وكتابة نص تعليق صوتي متقن يناسب المحتوى ويكتمل نطقه في حوالي {safe_dur:.1f} ثانية "
+        f"(أي قرابة {target_words} كلمة بالضبط).\n"
+        f"محتوى العرض المستخرج:\n{visible_text[:2500]}{notes_ctx}\n\n"
+        "القواعد:\n"
+        "- اكتب بنفس لغة المحتوى الأساسي (العربية الفصحى السلسة إذا كان عربياً، أو الإنجليزية إذا كان إنجليزياً).\n"
+        "- بدون رموز تنسيق أو أقواس أو وصف مؤثرات؛ نص منطوق جاهز للقراءة الصوتية مباشرة.\n"
+        "- أرجع كائن JSON صالح فقط بدون أي نص خارجه:\n"
+        "{\n"
+        '  "script": "النص المنطوق الجاهز للقراءة",\n'
+        '  "style_instruction": "Clear, engaging, well-paced presenter",\n'
+        '  "mood": "academic | corporate | cinematic | upbeat | calm",\n'
+        '  "recommended_voice": "Kore | Charon | Puck | Fenrir | Zephyr"\n'
+        "}"
+    )
+    raw, _ = _call_studio_gemini_text(ai_prompt, max_tokens=1024, timeout_total=22.0)
+    if raw:
+        m = re.search(r"\{[\s\S]*\}", raw)
+        if m:
+            try:
+                parsed = json.loads(m.group(0))
+                script = (parsed.get("script") or "").strip()
+                if script:
+                    voice = parsed.get("recommended_voice") if parsed.get("recommended_voice") in _VALID_GEMINI_VOICES else "Kore"
+                    mood = parsed.get("mood") if parsed.get("mood") in ("academic", "corporate", "cinematic", "upbeat", "calm") else "calm"
+                    return {
+                        "script": script,
+                        "mood": mood,
+                        "recommended_voice": voice,
+                        "style_instruction": (parsed.get("style_instruction") or "Clear, warm, engaging presenter").strip(),
+                    }
+            except Exception:
+                pass
+
+    # بديل محلي ذكي إذا تعذر توليد النص عبر Gemini
+    words = [w for w in re.split(r"\s+", visible_text) if w]
+    if words:
+        fallback_script = " ".join(words[:target_words])
+    else:
+        fallback_script = "مرحباً بكم في هذا العرض المرئي المصمم عبر استوديو العروض والمستندات الذكي."
+    return {
+        "script": fallback_script,
+        "mood": "calm",
+        "recommended_voice": "Kore",
+        "style_instruction": "Clear, warm, natural narrator",
+    }
+
+
+def synthesize_gemini_tts_wav(
+    text: str,
+    output_wav_path: Path,
+    voice_name: str = "Kore",
+    style_instruction: str = "",
+) -> Path:
+    """توليد تعليق صوتي حقيقي بصيغة WAV عبر Gemini TTS (gemini-3.8-flash-lite-tts)."""
+    import base64
+    import wave
+    import requests
+
+    spoken_text = (text or "").strip()
+    if not spoken_text:
+        raise ValueError("النص الصوتي فارغ.")
+    voice = voice_name if voice_name in _VALID_GEMINI_VOICES else "Kore"
+
+    try:
+        import config as _cfg
+        keys = _cfg.get_all_gemini_keys()
+    except Exception:
+        keys = []
+    if not keys:
+        raise RuntimeError("لا تتوفر مفاتيح Gemini لتوليد الصوت.")
+
+    prompt_text = f"{style_instruction}: {spoken_text}" if style_instruction else spoken_text
+    tts_models = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"]
+
+    last_err = ""
+    for key in keys[:5]:
+        for model in tts_models:
+            try:
+                part_obj: Dict[str, Any] = {"text": spoken_text}
+                if style_instruction:
+                    part_obj["speechMetadata"] = {"style": style_instruction}
+                payload = {
+                    "contents": [{"role": "user", "parts": [part_obj]}],
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {
+                            "voiceConfig": {
+                                "prebuiltVoiceConfig": {"voiceName": voice}
+                            }
+                        },
+                    },
+                }
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                resp = requests.post(
+                    url,
+                    headers={"Content-Type": "application/json", "X-goog-api-key": key},
+                    json=payload,
+                    timeout=35,
+                )
+                # في حال عدم دعم speechMetadata في بعض البيئات نعيد المحاولة بدونه
+                if resp.status_code == 400 and style_instruction:
+                    payload["contents"][0]["parts"] = [{"text": prompt_text}]
+                    resp = requests.post(
+                        url,
+                        headers={"Content-Type": "application/json", "X-goog-api-key": key},
+                        json=payload,
+                        timeout=35,
+                    )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    inline = parts[0].get("inlineData", {}) if parts else {}
+                    b64 = inline.get("data", "")
+                    mime = (inline.get("mimeType") or "").lower()
+                    if b64:
+                        raw_bytes = base64.b64decode(b64)
+                        output_wav_path.parent.mkdir(parents=True, exist_ok=True)
+                        if raw_bytes[:4] == b"RIFF" and ("wav" in mime or not mime):
+                            output_wav_path.write_bytes(raw_bytes)
+                        else:
+                            rate_m = re.search(r"rate=(\d+)", mime)
+                            sample_rate = int(rate_m.group(1)) if rate_m else 24000
+                            with wave.open(str(output_wav_path), "wb") as wf:
+                                wf.setnchannels(1)
+                                wf.setsampwidth(2)
+                                wf.setframerate(sample_rate)
+                                wf.writeframes(raw_bytes)
+                        if output_wav_path.exists() and output_wav_path.stat().st_size > 44:
+                            return output_wav_path
+                else:
+                    last_err = f"HTTP {resp.status_code}: {resp.text[:160]}"
+                    if resp.status_code in (403, 429):
+                        break
+            except Exception as exc:
+                last_err = str(exc)
+                continue
+
+    raise RuntimeError(f"تعذر توليد التعليق الصوتي عبر Gemini TTS: {last_err or 'استنفاد المحاولات'}")
+
+
+def synthesize_ambient_music_wav(output_wav_path: Path, duration: float = 10.0, mood: str = "calm") -> Path:
+    """توليد خلفية موسيقية هادئة ومتناغمة عبر FFmpeg تناسب مزاج العرض وطوله."""
+    import subprocess
+
+    dur = max(1.0, min(300.0, float(duration or 10.0)))
+    mood_exprs = {
+        "academic": "0.14*sin(2*PI*220*t)+0.10*sin(2*PI*277.18*t)+0.09*sin(2*PI*329.63*t)+0.07*sin(2*PI*415.30*t)*(0.6+0.4*sin(2*PI*0.25*t))",
+        "corporate": "0.14*sin(2*PI*261.63*t)+0.10*sin(2*PI*329.63*t)+0.09*sin(2*PI*392.00*t)+0.07*sin(2*PI*493.88*t)*(0.6+0.4*sin(2*PI*0.35*t))",
+        "cinematic": "0.16*sin(2*PI*130.81*t)+0.12*sin(2*PI*196.00*t)+0.09*sin(2*PI*261.63*t)+0.07*sin(2*PI*311.13*t)*(0.55+0.45*sin(2*PI*0.2*t))",
+        "upbeat": "0.13*sin(2*PI*293.66*t)+0.10*sin(2*PI*369.99*t)+0.09*sin(2*PI*440.00*t)+0.07*sin(2*PI*587.33*t)*(0.5+0.5*sin(2*PI*1.2*t))",
+        "calm": "0.14*sin(2*PI*196.00*t)+0.11*sin(2*PI*246.94*t)+0.09*sin(2*PI*293.66*t)+0.06*sin(2*PI*392.00*t)*(0.65+0.35*sin(2*PI*0.22*t))",
+    }
+    expr = mood_exprs.get(mood, mood_exprs["calm"])
+    fade_out_st = max(0.0, dur - 0.85)
+    filter_chain = (
+        f"lowpass=f=1450,highpass=f=70,"
+        f"aecho=0.8:0.75:45:0.32,"
+        f"afade=t=in:st=0:d=0.45,"
+        f"afade=t=out:st={fade_out_st:.3f}:d=0.85"
+    )
+    output_wav_path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-f", "lavfi",
+            "-i", f"aevalsrc={expr}:s=44100:d={dur:.3f}",
+            "-af", filter_chain,
+            "-ac", "2", "-ar", "44100",
+            str(output_wav_path),
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        timeout=60,
+    )
+    return output_wav_path
+
+
+def probe_media_info(media_path: Path) -> Dict[str, Any]:
+    """استخراج معلومات المدة ووجود مسار صوتي/مرئي عبر ffprobe."""
+    import subprocess
+    try:
+        out = subprocess.check_output(
+            [
+                "ffprobe", "-v", "error",
+                "-show_entries", "format=duration:stream=codec_type,nb_frames,width,height",
+                "-of", "json",
+                str(media_path),
+            ],
+            text=True,
+            timeout=20,
+        )
+        parsed = json.loads(out or "{}")
+        streams = parsed.get("streams") or []
+        fmt_dur = parsed.get("format", {}).get("duration")
+        dur_val = round(float(fmt_dur), 2) if fmt_dur else None
+        has_audio = any(s.get("codec_type") == "audio" for s in streams)
+        v_stream = next((s for s in streams if s.get("codec_type") == "video"), {})
+        return {
+            "duration_seconds": dur_val,
+            "has_audio": has_audio,
+            "width": v_stream.get("width"),
+            "height": v_stream.get("height"),
+            "nb_frames": int(v_stream["nb_frames"]) if str(v_stream.get("nb_frames", "")).isdigit() else None,
+        }
+    except Exception:
+        return {"duration_seconds": None, "has_audio": False}
+
+
+def save_uploaded_studio_audio(file_bytes: bytes, original_filename: str = "audio.mp3") -> Dict[str, Any]:
+    """حفظ الملف الصوتي المرفوع من الهاتف/الجهاز والتحقق من صلاحيته ومعرفة مدته."""
+    import subprocess
+    import uuid
+
+    _cleanup_old_audio_files()
+    if not file_bytes:
+        raise ValueError("الملف الصوتي المرفوع فارغ.")
+
+    ext = Path(original_filename or "audio.mp3").suffix.lower()
+    if ext not in (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".opus", ".flac", ".webm", ".mp4"):
+        ext = ".mp3"
+
+    audio_id = f"up_{uuid.uuid4().hex[:12]}"
+    raw_path = STUDIO_AUDIO_DIR / f"{audio_id}_raw{ext}"
+    norm_wav = STUDIO_AUDIO_DIR / f"{audio_id}.wav"
+    raw_path.write_bytes(file_bytes)
+
+    try:
+        # توحيد الصوت إلى WAV 44.1kHz ستيريو لضمان التوافق التام عند الدمج والمعاينة
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(raw_path), "-vn", "-ac", "2", "-ar", "44100", str(norm_wav)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=60,
+        )
+    except Exception as exc:
+        raw_path.unlink(missing_ok=True)
+        norm_wav.unlink(missing_ok=True)
+        raise RuntimeError(f"تعذر قراءة الملف الصوتي المرفوع. تأكد أنه ملف صوتي صالح ({exc}).")
+    finally:
+        raw_path.unlink(missing_ok=True)
+
+    info = probe_media_info(norm_wav)
+    return {
+        "audio_id": audio_id,
+        "filename": f"{audio_id}.wav",
+        "original_name": original_filename or "audio",
+        "duration_seconds": info.get("duration_seconds") or 0.0,
+        "preview_url": f"/api/studio/audio/{audio_id}.wav",
+    }
+
+
+def generate_studio_audio_preview(
+    *,
+    html_content: str = "",
+    duration: float = 10.0,
+    auto_audio_type: str = "voice_and_music",
+    voice_name: str = "Kore",
+    user_script: str = "",
+    notes: str = "",
+) -> Dict[str, Any]:
+    """توليد ومعاينة الصوت الآلي المناسب للمحتوى قبل أو أثناء تصيير الفيديو."""
+    import subprocess
+    import uuid
+
+    _cleanup_old_audio_files()
+    safe_dur = max(1.0, min(300.0, float(duration or 10.0)))
+    a_type = auto_audio_type if auto_audio_type in ("voice_and_music", "voice_only", "music_only") else "voice_and_music"
+
+    plan = ai_prepare_video_audio_plan(
+        html_content=html_content,
+        duration=safe_dur,
+        notes=notes,
+        user_script=user_script,
+    )
+    selected_voice = voice_name if voice_name in _VALID_GEMINI_VOICES else plan.get("recommended_voice", "Kore")
+    mood = plan.get("mood", "calm")
+    script = plan.get("script", "")
+    style_instruction = plan.get("style_instruction", "")
+
+    audio_id = f"ai_{uuid.uuid4().hex[:12]}"
+    out_wav = STUDIO_AUDIO_DIR / f"{audio_id}.wav"
+    voice_wav = STUDIO_AUDIO_DIR / f"{audio_id}_v.wav"
+    music_wav = STUDIO_AUDIO_DIR / f"{audio_id}_m.wav"
+
+    try:
+        if a_type in ("voice_and_music", "voice_only"):
+            synthesize_gemini_tts_wav(
+                text=script,
+                output_wav_path=voice_wav,
+                voice_name=selected_voice,
+                style_instruction=style_instruction,
+            )
+
+        if a_type in ("voice_and_music", "music_only"):
+            synthesize_ambient_music_wav(music_wav, duration=safe_dur, mood=mood)
+
+        if a_type == "voice_only":
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(voice_wav), "-ac", "2", "-ar", "44100", str(out_wav)],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=45,
+            )
+        elif a_type == "music_only":
+            music_wav.replace(out_wav)
+        else:
+            # دمج التعليق الصوتي مع خفض تلقائي للموسيقى (0.18) لتبقى الكلمات واضحة تماماً
+            subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-i", str(voice_wav),
+                    "-i", str(music_wav),
+                    "-filter_complex",
+                    "[0:a]aresample=44100,aformat=channel_layouts=stereo,volume=1.0[v];"
+                    "[1:a]aresample=44100,aformat=channel_layouts=stereo,volume=0.18[m];"
+                    "[v][m]amix=inputs=2:duration=longest:dropout_transition=1,alimiter=limit=0.95[aout]",
+                    "-map", "[aout]",
+                    str(out_wav),
+                ],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=60,
+            )
+    finally:
+        voice_wav.unlink(missing_ok=True)
+        music_wav.unlink(missing_ok=True)
+
+    info = probe_media_info(out_wav)
+    return {
+        "audio_id": audio_id,
+        "filename": f"{audio_id}.wav",
+        "script": script,
+        "voice_name": selected_voice,
+        "mood": mood,
+        "auto_audio_type": a_type,
+        "duration_seconds": info.get("duration_seconds") or safe_dur,
+        "preview_url": f"/api/studio/audio/{audio_id}.wav",
+    }
+
+
+def _fit_audio_to_video_duration(
+    source_audio_path: Path,
+    fitted_wav_path: Path,
+    target_duration: float,
+    fit_mode: str = "fit_pad_trim",
+    volume: float = 1.0,
+) -> Path:
+    """مواءمة طول الصوت ومستواه ليتطابق بدقة مع مدة الفيديو دون تقصير الفيديو أبداً."""
+    import subprocess
+
+    dur = max(0.5, float(target_duration))
+    vol = max(0.05, min(2.0, float(volume or 1.0)))
+    mode = fit_mode if fit_mode in ("fit_pad_trim", "loop", "fit_tempo") else "fit_pad_trim"
+    src_info = probe_media_info(source_audio_path)
+    src_dur = float(src_info.get("duration_seconds") or dur)
+    fade_out_st = max(0.0, dur - 0.55)
+
+    filters = [f"volume={vol:.2f}"]
+    cmd = ["ffmpeg", "-y"]
+
+    if mode == "loop" and src_dur < dur - 0.2:
+        cmd.extend(["-stream_loop", "-1", "-i", str(source_audio_path)])
+    elif mode == "fit_tempo" and src_dur > 0.5:
+        ratio = src_dur / dur
+        # إذا كان الصوت أطول أو أقصر بشكل معتدل نعدّل سرعته بسلاسة ضمن الحدود الطبيعية
+        if 0.8 <= ratio <= 1.5 and abs(ratio - 1.0) > 0.04:
+            filters.append(f"atempo={ratio:.3f}")
+        cmd.extend(["-i", str(source_audio_path)])
+    else:
+        cmd.extend(["-i", str(source_audio_path)])
+
+    filters.append(f"apad=whole_dur={dur:.3f}")
+    filters.append(f"atrim=0:{dur:.3f}")
+    filters.append("asetpts=PTS-STARTPTS")
+    filters.append("afade=t=in:st=0:d=0.18")
+    filters.append(f"afade=t=out:st={fade_out_st:.3f}:d=0.55")
+
+    cmd.extend([
+        "-af", ",".join(filters),
+        "-ac", "2", "-ar", "44100",
+        str(fitted_wav_path),
+    ])
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=60)
+    return fitted_wav_path
+
+
+def _mux_audio_into_video(
+    video_path: Path,
+    audio_wav_path: Path,
+    output_format: str,
+    exact_duration: float,
+) -> None:
+    """دمج المسار الصوتي داخل ملف الفيديو مع الحفاظ الصارم على المدة الأصلية للفيديو."""
+    import subprocess
+
+    tmp_muxed = video_path.with_name(f".mux_{video_path.name}")
+    fmt = (output_format or "mp4").lower()
+    audio_codec = "libopus" if fmt == "webm" else "aac"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-i", str(audio_wav_path),
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-c:v", "copy",
+        "-c:a", audio_codec,
+        "-b:a", "192k",
+        "-t", f"{max(0.5, float(exact_duration)):.3f}",
+    ]
+    if fmt == "mp4":
+        cmd.extend(["-movflags", "+faststart"])
+    cmd.append(str(tmp_muxed))
+
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
+        if tmp_muxed.exists() and tmp_muxed.stat().st_size > 0:
+            tmp_muxed.replace(video_path)
+    finally:
+        tmp_muxed.unlink(missing_ok=True)
+
+
 _VIDEO_RUNTIME_LOCK = __import__("threading").Lock()
 
 
@@ -942,10 +1574,19 @@ def _execute_html_to_video_core(
     video_frame_format: str = "png",
     device_scale_factor: int = 1,
     remove_margins: bool = True,
+    audio_mode: str = "none",
+    auto_audio_type: str = "voice_and_music",
+    voice_name: str = "Kore",
+    voice_script: str = "",
+    uploaded_audio_id: str = "",
+    pregenerated_audio_id: str = "",
+    audio_fit_mode: str = "fit_pad_trim",
+    audio_volume: float = 1.0,
+    ai_notes: str = "",
     ai_provider_label: str = "@hyperframes/producer + FFmpeg",
     job_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """تشغيل وحدة Node (@hyperframes/producer) لتحويل HTML إلى فيديو مع الالتزام الصارم بالمدة."""
+    """تشغيل وحدة Node (@hyperframes/producer) لتحويل HTML إلى فيديو مع الالتزام بالمدة ودمج الصوت."""
     import shutil
     import subprocess
     import uuid
@@ -976,6 +1617,7 @@ def _execute_html_to_video_core(
     safe_fps = max(1, min(60, int(fps)))
     safe_dur = max(0.5, min(300.0, float(duration)))
     safe_dpr = max(1, min(3, int(device_scale_factor)))
+    norm_audio_mode = audio_mode if audio_mode in ("none", "auto_ai", "upload") else "none"
 
     stamp = int(time.time())
     if fmt == "png-sequence":
@@ -1008,6 +1650,7 @@ def _execute_html_to_video_core(
     last_result: Dict[str, Any] = {}
     last_error: Optional[str] = None
     tail_logs: List[str] = []
+    fitted_audio_tmp = STUDIO_AUDIO_DIR / f"fitted_{uid}.wav"
 
     try:
         proc = subprocess.Popen(
@@ -1035,7 +1678,9 @@ def _execute_html_to_video_core(
                     if ev_type == "progress" and job_id:
                         with _VIDEO_JOBS_LOCK:
                             if job_id in _VIDEO_JOBS:
-                                _VIDEO_JOBS[job_id]["percent"] = int(ev.get("percent", 0))
+                                raw_pct = int(ev.get("percent", 0))
+                                scaled_pct = int(raw_pct * 0.85) if norm_audio_mode != "none" else raw_pct
+                                _VIDEO_JOBS[job_id]["percent"] = max(2, scaled_pct)
                                 _VIDEO_JOBS[job_id]["stage"] = ev.get("stage", "")
                     elif ev_type == "result":
                         last_result = ev
@@ -1063,26 +1708,95 @@ def _execute_html_to_video_core(
         if file_size <= 0:
             raise RuntimeError("تم إكمال العملية ولكن ملف الفيديو الناتج فارغ")
 
+        actual_dur = float(last_result.get("compositionDurationSeconds") or safe_dur)
+        has_audio = False
+        audio_script_used = ""
+        audio_mood = ""
+        audio_ms = 0
+
+        if norm_audio_mode != "none" and fmt in ("mp4", "webm", "mov"):
+            t_aud0 = time.perf_counter()
+            if job_id:
+                with _VIDEO_JOBS_LOCK:
+                    if job_id in _VIDEO_JOBS:
+                        _VIDEO_JOBS[job_id]["percent"] = 88
+                        _VIDEO_JOBS[job_id]["stage"] = (
+                            "توليد تعليق وموسيقى متناسبة مع المحتوى..."
+                            if norm_audio_mode == "auto_ai"
+                            else "معالجة ودمج الملف الصوتي المرفوع..."
+                        )
+
+            source_audio_path: Optional[Path] = None
+            if norm_audio_mode == "upload":
+                clean_aid = re.sub(r"[^a-zA-Z0-9_\-]", "", uploaded_audio_id or "")
+                cand = STUDIO_AUDIO_DIR / f"{clean_aid}.wav"
+                if not clean_aid or not cand.exists():
+                    raise RuntimeError("لم يتم العثور على الملف الصوتي المرفوع. يرجى إعادة رفع الملف الصوتي من الجهاز.")
+                source_audio_path = cand
+            elif norm_audio_mode == "auto_ai":
+                clean_pre = re.sub(r"[^a-zA-Z0-9_\-]", "", pregenerated_audio_id or "")
+                pre_cand = STUDIO_AUDIO_DIR / f"{clean_pre}.wav" if clean_pre else None
+                if pre_cand and pre_cand.exists():
+                    source_audio_path = pre_cand
+                    audio_script_used = voice_script or ""
+                else:
+                    gen = generate_studio_audio_preview(
+                        html_content=html_content,
+                        duration=actual_dur,
+                        auto_audio_type=auto_audio_type,
+                        voice_name=voice_name,
+                        user_script=voice_script,
+                        notes=ai_notes,
+                    )
+                    source_audio_path = STUDIO_AUDIO_DIR / gen["filename"]
+                    audio_script_used = gen.get("script", "")
+                    audio_mood = gen.get("mood", "")
+
+            if source_audio_path and source_audio_path.exists():
+                if job_id:
+                    with _VIDEO_JOBS_LOCK:
+                        if job_id in _VIDEO_JOBS:
+                            _VIDEO_JOBS[job_id]["percent"] = 95
+                            _VIDEO_JOBS[job_id]["stage"] = "دمج الصوت مع الفيديو عبر FFmpeg..."
+                _fit_audio_to_video_duration(
+                    source_audio_path=source_audio_path,
+                    fitted_wav_path=fitted_audio_tmp,
+                    target_duration=actual_dur,
+                    fit_mode=audio_fit_mode,
+                    volume=audio_volume,
+                )
+                _mux_audio_into_video(
+                    video_path=target_output,
+                    audio_wav_path=fitted_audio_tmp,
+                    output_format=fmt,
+                    exact_duration=actual_dur,
+                )
+                probed_after = probe_media_info(target_output)
+                if probed_after.get("duration_seconds"):
+                    actual_dur = float(probed_after["duration_seconds"])
+                has_audio = bool(probed_after.get("has_audio", True))
+                file_size = target_output.stat().st_size if target_output.exists() else file_size
+            audio_ms = max(10, round((time.perf_counter() - t_aud0) * 1000))
+
         total_ms = max(10, round((time.perf_counter() - t0) * 1000))
         raw_stages = last_result.get("stages") or {}
         compile_ms = int(raw_stages.get("compileMs") or 120)
         capture_ms = int(raw_stages.get("captureFrameMs") or raw_stages.get("captureMs") or max(20, total_ms // 2))
         encode_ms = int(raw_stages.get("encodeMs") or max(20, total_ms // 3))
-        assemble_ms = int(raw_stages.get("assembleMs") or max(10, total_ms - compile_ms - capture_ms))
+        assemble_ms = int(audio_ms or raw_stages.get("assembleMs") or max(10, total_ms - compile_ms - capture_ms))
 
-        actual_dur = float(last_result.get("compositionDurationSeconds") or safe_dur)
         plain_words = len(re.sub(r"<[^>]+>", " ", html_content).split())
         frames_count = int(last_result.get("frameCount") or round(actual_dur * safe_fps))
         out_w = int(last_result.get("width") or safe_w)
         out_h = int(last_result.get("height") or safe_h)
 
         metrics = build_pipeline_metrics(
-            operation=f"تحويل HTML إلى فيديو {fmt.upper()} ({out_w}×{out_h} · {actual_dur:.1f}s @ {safe_fps}fps)",
+            operation=f"تحويل HTML إلى فيديو {fmt.upper()} ({out_w}×{out_h} · {actual_dur:.1f}s @ {safe_fps}fps)" + (" + صوت" if has_audio else ""),
             stage_timings=[
                 ("extract", "1. تجهيز HTML والخطوط", max(10, compile_ms)),
                 ("ai", "2. التقاط الإطارات Chrome", max(15, capture_ms)),
                 ("charts", "3. ترميز الفيديو FFmpeg", max(15, encode_ms)),
-                ("render", "4. تجميع وحفظ الملف", max(10, assemble_ms)),
+                ("render", "4. دمج الصوت والحفظ" if has_audio else "4. تجميع وحفظ الملف", max(10, assemble_ms)),
             ],
             word_count=max(plain_words, frames_count),
             items_count=frames_count,
@@ -1103,12 +1817,17 @@ def _execute_html_to_video_core(
             "detected_html_duration_seconds": last_result.get("detectedHtmlDurationSeconds"),
             "frame_count": frames_count,
             "file_size": file_size,
+            "has_audio": has_audio,
+            "audio_mode": norm_audio_mode,
+            "audio_script": audio_script_used,
+            "audio_mood": audio_mood,
             "render_ms": total_ms,
             "pipeline_metrics": metrics,
         }
     finally:
         try:
             temp_html.unlink(missing_ok=True)
+            fitted_audio_tmp.unlink(missing_ok=True)
         except Exception:
             pass
 
@@ -1127,7 +1846,6 @@ def start_html_to_video_job(**kwargs) -> str:
             "stage": "تهيئة محرك Chrome و FFmpeg...",
             "created_at": time.time(),
         }
-        # تنظيف المهام القديمة الأقدم من ساعة
         cutoff = time.time() - 3600
         for old_id in [k for k, v in _VIDEO_JOBS.items() if v.get("created_at", 0) < cutoff]:
             _VIDEO_JOBS.pop(old_id, None)

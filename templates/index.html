@@ -5556,12 +5556,35 @@
                     </div>
 
                     <textarea id="studioVideoHtmlCode" class="form-control font-monospace mb-2" rows="7" dir="ltr"
-                      style="font-size:0.8rem" oninput="studioDetectHtmlDurationHint()"
+                      style="font-size:0.8rem" oninput="studioDetectHtmlDurationHint();_studioVideoPregeneratedAudioId='';"
                       placeholder="<!DOCTYPE html> — الصق كود HTML مع حركات CSS @keyframes أو اضغط «قالب تجريبي متحرك» للبدء فوراً"></textarea>
 
                     <div id="studioVideoDetectedDurWrap" class="d-none align-items-center justify-content-between bg-light border rounded px-2 py-1 mb-2 small">
                       <span><i class="fas fa-clock text-primary me-1"></i>المدة المكتشفة داخل كود HTML: <strong id="studioVideoDetectedDurBadge" class="text-primary">--</strong> ثانية</span>
                       <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" onclick="studioApplyDetectedVideoDuration()">تطبيق المدة المكتشفة</button>
+                    </div>
+
+                    <!-- ملاحظات وتعليمات إضافية للذكاء الاصطناعي -->
+                    <div class="border rounded bg-light-subtle p-2 mb-3">
+                      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">
+                        <span class="small fw-bold text-primary">
+                          <i class="fas fa-sliders-h me-1"></i>ملاحظات وتعليمات إضافية للذكاء الاصطناعي (تُطبّق على كود HTML)
+                        </span>
+                        <div class="d-flex flex-wrap gap-1">
+                          <label class="btn btn-outline-secondary btn-sm py-0 px-2 mb-0" style="cursor:pointer;">
+                            <i class="fas fa-file-upload me-1"></i>رفع ملف ملاحظات (.txt/.docx/.pdf)
+                            <input type="file" id="studioVideoNotesFile" class="d-none" accept=".txt,.md,.csv,.json,.docx,.pdf" onchange="studioVideoLoadNotesFile(this)">
+                          </label>
+                          <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="document.getElementById('studioVideoAiNotes').value=''">
+                            مسح
+                          </button>
+                        </div>
+                      </div>
+                      <textarea id="studioVideoAiNotes" class="form-control form-control-sm mb-2" rows="2" dir="rtl"
+                        placeholder="اكتب أي تعديلات أو تعليمات للذكاء الاصطناعي لتطبيقها على الكود أعلاه (مثال: اجعل الخلفية متدرجة ذهبية، أضف شعاراً بالأعلى، كبّر العناوين، عدّل السرعة لتنتهي مع وقت العرض...)"></textarea>
+                      <button type="button" id="studioVideoApplyNotesBtn" class="btn btn-outline-primary btn-sm fw-bold" onclick="studioVideoAiApplyNotes()">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i>تطبيق الملاحظات على الكود وإخراجه بالذكاء AI
+                      </button>
                     </div>
 
                     <!-- إعدادات الفيديو التفصيلية -->
@@ -5580,7 +5603,7 @@
                       </div>
                       <div class="col-4 col-md-2">
                         <label class="form-label fw-bold small mb-1">المدة (ثانية):</label>
-                        <input type="number" id="studioVideoDuration" class="form-control form-control-sm" value="10" min="0.5" max="300" step="0.5" oninput="this.dataset.userEdited='1'">
+                        <input type="number" id="studioVideoDuration" class="form-control form-control-sm" value="10" min="0.5" max="300" step="0.5" oninput="this.dataset.userEdited='1';_studioVideoPregeneratedAudioId='';">
                       </div>
                       <div class="col-4 col-md-2">
                         <label class="form-label fw-bold small mb-1">الإطارات (FPS):</label>
@@ -5635,6 +5658,96 @@
                         <div class="form-check form-check-sm">
                           <input type="checkbox" id="studioVideoRemoveMargins" class="form-check-input" checked>
                           <label for="studioVideoRemoveMargins" class="form-check-label small fw-bold">إزالة الهوامش تلقائياً</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- إعدادات الصوت والموسيقى المصاحبة للفيديو -->
+                    <div class="border border-success border-opacity-25 rounded bg-success bg-opacity-10 p-2 mb-3">
+                      <div class="row g-2 align-items-center mb-2">
+                        <div class="col-12 col-md-5">
+                          <label class="form-label fw-bold small text-success mb-0">
+                            <i class="fas fa-music me-1"></i>الصوت المدمج في الفيديو:
+                          </label>
+                        </div>
+                        <div class="col-12 col-md-7">
+                          <select id="studioVideoAudioMode" class="form-select form-select-sm fw-bold" onchange="studioVideoToggleAudioPanel()">
+                            <option value="none">بدون صوت (فيديو صامت)</option>
+                            <option value="auto_ai" selected>توليد ودمج صوت آلي مناسب للمحتوى (AI)</option>
+                            <option value="upload">رفع ملف صوتي من الهاتف / الجهاز ودمجه</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <!-- لوحة الصوت الآلي بالذكاء الاصطناعي -->
+                      <div id="studioVideoAutoAudioPanel" class="bg-white rounded border p-2 mb-2">
+                        <div class="row g-2 mb-2">
+                          <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold mb-1">نوع الصوت الآلي:</label>
+                            <select id="studioVideoAutoAudioType" class="form-select form-select-sm" onchange="_studioVideoPregeneratedAudioId=''">
+                              <option value="voice_and_music" selected>تعليق صوتي ذكي + خلفية موسيقية هادئة</option>
+                              <option value="voice_only">تعليق صوتي ذكي فقط (بدون موسيقى)</option>
+                              <option value="music_only">موسيقى خلفية متناغمة مناسبة للمحتوى فقط</option>
+                            </select>
+                          </div>
+                          <div class="col-12 col-md-6">
+                            <label class="form-label small fw-bold mb-1">نبرة الصوت (المعلّق):</label>
+                            <select id="studioVideoVoiceName" class="form-select form-select-sm" onchange="_studioVideoPregeneratedAudioId=''">
+                              <option value="Kore" selected>Kore — نبرة واضحة وهادئة (افتراضي)</option>
+                              <option value="Charon">Charon — صوت رجالي رصين وأكاديمي</option>
+                              <option value="Puck">Puck — نبرة شبابية نشيطة وإعلانية</option>
+                              <option value="Fenrir">Fenrir — صوت عميق وفخم</option>
+                              <option value="Zephyr">Zephyr — صوت سلس وعصري</option>
+                            </select>
+                          </div>
+                        </div>
+                        <textarea id="studioVideoVoiceScript" class="form-control form-control-sm mb-2" rows="2" dir="rtl"
+                          oninput="_studioVideoPregeneratedAudioId=''"
+                          placeholder="(اختياري) اتركه فارغاً ليقوم الذكاء الاصطناعي بقراءة كود HTML وتأليف تعليق صوتي متزامن مع المدة تلقائياً، أو اكتب النص المطلوب نطقه..."></textarea>
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                          <button type="button" id="studioVideoGenAudioBtn" class="btn btn-success btn-sm fw-bold" onclick="studioVideoGenerateAudioPreview()">
+                            <i class="fas fa-microphone-alt me-1"></i>توليد ومعاينة الصوت الآلي الآن
+                          </button>
+                          <small class="text-muted">أو سيُولد ويدمج تلقائياً عند الضغط على زر تصدير الفيديو</small>
+                        </div>
+                        <div id="studioVideoAiAudioPreviewWrap" class="d-none mt-2 pt-2 border-top">
+                          <div id="studioVideoAiAudioInfo" class="small text-success fw-bold mb-1"></div>
+                          <audio id="studioVideoAiAudioPlayer" controls class="w-100" style="height:36px;"></audio>
+                        </div>
+                      </div>
+
+                      <!-- لوحة رفع الصوت من الهاتف / الجهاز -->
+                      <div id="studioVideoUploadAudioPanel" class="d-none bg-white rounded border p-2 mb-2">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                          <label class="btn btn-outline-success btn-sm fw-bold mb-0" style="cursor:pointer;">
+                            <i class="fas fa-mobile-alt me-1"></i>اختيار صوت من الهاتف أو الجهاز (MP3 / WAV / M4A / OGG)
+                            <input type="file" id="studioVideoAudioFile" class="d-none" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm" onchange="studioVideoUploadAudioFile(this)">
+                          </label>
+                          <span id="studioVideoUploadStatus" class="small text-muted">لم يتم اختيار ملف صوتي بعد</span>
+                        </div>
+                        <div id="studioVideoUploadAudioPreviewWrap" class="d-none mt-2 pt-2 border-top">
+                          <audio id="studioVideoUploadAudioPlayer" controls class="w-100" style="height:36px;"></audio>
+                        </div>
+                      </div>
+
+                      <!-- خيارات دمج ومواءمة الصوت -->
+                      <div id="studioVideoAudioMergeOpts" class="row g-2">
+                        <div class="col-12 col-md-7">
+                          <label class="form-label small fw-bold mb-1">مواءمة الصوت مع مدة الفيديو:</label>
+                          <select id="studioVideoAudioFitMode" class="form-select form-select-sm">
+                            <option value="fit_pad_trim" selected>الالتزام التام بوقت الفيديو (تلاشي/قص الزائد دون تقصير الفيديو)</option>
+                            <option value="loop">تكرار المقطع الصوتي تلقائياً حتى نهاية وقت الفيديو</option>
+                            <option value="fit_tempo">ضبط سرعة النطق قليلاً لتناسب مدة الفيديو بالضبط</option>
+                          </select>
+                        </div>
+                        <div class="col-12 col-md-5">
+                          <label class="form-label small fw-bold mb-1">مستوى الصوت:</label>
+                          <select id="studioVideoAudioVolume" class="form-select form-select-sm">
+                            <option value="1.0" selected>100% — طبيعي متوازن</option>
+                            <option value="0.8">80% — متوسط</option>
+                            <option value="0.55">55% — هادئ</option>
+                            <option value="1.25">125% — مرتفع واضح</option>
+                          </select>
                         </div>
                       </div>
                     </div>
@@ -6157,7 +6270,8 @@
             const durTxt = d.duration_seconds ? ` · المدة: ${d.duration_seconds} ثانية` : '';
             const fpsTxt = d.fps ? ` @ ${d.fps}fps` : '';
             const fcTxt = d.frame_count ? ` · ${d.frame_count} إطار` : '';
-            infoEl.textContent = `${filename}${dims}${durTxt}${fpsTxt}${fcTxt}${kb}`;
+            const audTxt = d.has_audio ? ' · 🔊 صوت مدمج' : '';
+            infoEl.textContent = `${filename}${dims}${durTxt}${fpsTxt}${fcTxt}${audTxt}${kb}`;
           } else if (isDocx) {
             const pgNote = d.pages ? ` · ${d.pages} صفحة` : '';
             infoEl.textContent = `${filename}${pgNote} · مستند Word منسّق وجاهز`;
@@ -6851,12 +6965,159 @@
         if (iframe) iframe.srcdoc = html;
       }
 
+      let _studioVideoUploadedAudioId = '';
+      let _studioVideoPregeneratedAudioId = '';
+
+      function studioVideoToggleAudioPanel() {
+        const mode = document.getElementById('studioVideoAudioMode')?.value || 'none';
+        const autoPanel = document.getElementById('studioVideoAutoAudioPanel');
+        const upPanel = document.getElementById('studioVideoUploadAudioPanel');
+        const mergeOpts = document.getElementById('studioVideoAudioMergeOpts');
+        if (autoPanel) autoPanel.classList.toggle('d-none', mode !== 'auto_ai');
+        if (upPanel) upPanel.classList.toggle('d-none', mode !== 'upload');
+        if (mergeOpts) mergeOpts.classList.toggle('d-none', mode === 'none');
+      }
+
+      async function studioVideoLoadNotesFile(inputEl) {
+        const file = inputEl && inputEl.files && inputEl.files[0];
+        if (!file) return;
+        pptxClearMessages();
+        const fd = new FormData();
+        fd.append('file', file);
+        try {
+          const res = await fetch('/api/studio/html_to_video/extract_notes', { method: 'POST', body: fd });
+          const d = await res.json();
+          if (!res.ok || !d.text) throw new Error(d.error || 'تعذر قراءة ملف الملاحظات');
+          const notesBox = document.getElementById('studioVideoAiNotes');
+          if (notesBox) {
+            const cur = (notesBox.value || '').trim();
+            notesBox.value = cur ? (cur + '\n\n' + d.text) : d.text;
+          }
+          pptxShowToast(`📄 تم استيراد الملاحظات من ${file.name}`, false);
+        } catch(e) {
+          pptxShowError(e.message);
+        } finally {
+          inputEl.value = '';
+        }
+      }
+
+      async function studioVideoAiApplyNotes() {
+        pptxClearMessages();
+        const notes = (document.getElementById('studioVideoAiNotes')?.value || '').trim();
+        const html = (document.getElementById('studioVideoHtmlCode')?.value || '').trim();
+        if (!notes) {
+          pptxShowError('اكتب الملاحظات أو التعليمات أو ارفع ملف ملاحظات لتطبيقها على الكود.');
+          return;
+        }
+        const btn = document.getElementById('studioVideoApplyNotesBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري تطبيق الملاحظات على الكود...'; }
+        studioPipelineStart('تطبيق ملاحظات المستخدم على الكود بالذكاء AI...', 1);
+        try {
+          const width = parseInt(document.getElementById('studioVideoWidth').value, 10) || 1080;
+          const height = parseInt(document.getElementById('studioVideoHeight').value, 10) || 1080;
+          const duration = parseFloat(document.getElementById('studioVideoDuration').value) || 10;
+          const res = await fetch('/api/studio/html_to_video/ai_refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, notes, width, height, duration })
+          });
+          const d = await res.json();
+          if (!res.ok || !d.html) throw new Error(d.error || 'تعذر تطبيق الملاحظات على الكود');
+          document.getElementById('studioVideoHtmlCode').value = d.html;
+          _studioVideoPregeneratedAudioId = '';
+          studioDetectHtmlDurationHint(false);
+          studioVideoPreviewInline();
+          studioRenderPipeline({ status: 'done', operation: 'تم تعديل وإخراج الكود حسب ملاحظاتك بنجاح' });
+          pptxShowToast(`✅ تم تطبيق الملاحظات على الكود عبر ${d.model || 'Gemini AI'}!`, false);
+        } catch(e) {
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تطبيق الملاحظات على الكود' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioVideoUploadAudioFile(inputEl) {
+        const file = inputEl && inputEl.files && inputEl.files[0];
+        if (!file) return;
+        pptxClearMessages();
+        const stEl = document.getElementById('studioVideoUploadStatus');
+        const wrap = document.getElementById('studioVideoUploadAudioPreviewWrap');
+        const player = document.getElementById('studioVideoUploadAudioPlayer');
+        if (stEl) stEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري رفع ومعالجة الصوت...';
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          const res = await fetch('/api/studio/html_to_video/upload_audio', { method: 'POST', body: fd });
+          const d = await res.json();
+          if (!res.ok || !d.audio_id) throw new Error(d.error || 'فشل رفع الملف الصوتي');
+          _studioVideoUploadedAudioId = d.audio_id;
+          const durTxt = d.duration_seconds ? ` (${d.duration_seconds} ثانية)` : '';
+          if (stEl) stEl.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>${_pptxEsc(d.original_name)}${durTxt}</span>`;
+          if (player && wrap) {
+            player.src = d.preview_url;
+            wrap.classList.remove('d-none');
+          }
+          pptxShowToast(`🎵 تم رفع الملف الصوتي بنجاح${durTxt}`, false);
+        } catch(e) {
+          _studioVideoUploadedAudioId = '';
+          if (stEl) stEl.innerHTML = `<span class="text-danger">${_pptxEsc(e.message)}</span>`;
+          pptxShowError(e.message);
+        }
+      }
+
+      async function studioVideoGenerateAudioPreview() {
+        pptxClearMessages();
+        const html = (document.getElementById('studioVideoHtmlCode')?.value || '').trim();
+        const voiceScript = (document.getElementById('studioVideoVoiceScript')?.value || '').trim();
+        const autoAudioType = document.getElementById('studioVideoAutoAudioType')?.value || 'voice_and_music';
+        if (!html && !voiceScript && autoAudioType !== 'music_only') {
+          pptxShowError('يرجى إدخال كود HTML أو كتابة نص التعليق الصوتي أولاً.');
+          return;
+        }
+        const btn = document.getElementById('studioVideoGenAudioBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري توليد الصوت المناسب...'; }
+        try {
+          const duration = parseFloat(document.getElementById('studioVideoDuration').value) || 10;
+          const voiceName = document.getElementById('studioVideoVoiceName')?.value || 'Kore';
+          const notes = (document.getElementById('studioVideoAiNotes')?.value || '').trim();
+          const res = await fetch('/api/studio/html_to_video/generate_audio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html, duration, autoAudioType, voiceName, voiceScript, notes })
+          });
+          const d = await res.json();
+          if (!res.ok || !d.audio_id) throw new Error(d.error || 'تعذر توليد الصوت الآلي');
+          _studioVideoPregeneratedAudioId = d.audio_id;
+          const scriptEl = document.getElementById('studioVideoVoiceScript');
+          if (scriptEl && d.script && !voiceScript) {
+            scriptEl.value = d.script;
+          }
+          const wrap = document.getElementById('studioVideoAiAudioPreviewWrap');
+          const info = document.getElementById('studioVideoAiAudioInfo');
+          const player = document.getElementById('studioVideoAiAudioPlayer');
+          if (info) info.textContent = `🎧 صوت جاهز للدمج (${d.duration_seconds} ثانية · النبرة: ${d.voice_name} · المزاج: ${d.mood})`;
+          if (player && wrap) {
+            player.src = d.preview_url;
+            wrap.classList.remove('d-none');
+          }
+          pptxShowToast('✅ تم توليد الصوت المناسب للمحتوى — يمكنك الاستماع له الآن ثم تصدير الفيديو!', false);
+        } catch(e) {
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
       async function studioVideoAiGenerate() {
         pptxClearMessages();
         const promptEl = document.getElementById('studioVideoAiPrompt');
         const prompt = (promptEl ? promptEl.value : '').trim();
-        if (!prompt) {
-          pptxShowError('اكتب فكرة أو عنوان الفيديو المطلوب توليده بالذكاء الاصطناعي.');
+        const notes = (document.getElementById('studioVideoAiNotes')?.value || '').trim();
+        if (!prompt && !notes) {
+          pptxShowError('اكتب فكرة الفيديو أو ملاحظات الذكاء الاصطناعي المطلوب توليدها.');
           return;
         }
         const btn = document.getElementById('studioVideoAiBtn');
@@ -6870,11 +7131,12 @@
           const res = await fetch('/api/studio/html_to_video/ai_generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, width, height, duration })
+            body: JSON.stringify({ prompt, notes, width, height, duration })
           });
           const d = await res.json();
           if (!res.ok || !d.html) throw new Error(d.error || 'تعذر توليد كود HTML متحرك');
           document.getElementById('studioVideoHtmlCode').value = d.html;
+          _studioVideoPregeneratedAudioId = '';
           studioDetectHtmlDurationHint(false);
           studioVideoPreviewInline();
           studioRenderPipeline({ status: 'done', operation: 'تم تصميم HTML المتحرك بالذكاء بنجاح' });
@@ -6894,6 +7156,12 @@
           pptxShowError('يرجى لصق كود HTML أو الضغط على «قالب تجريبي متحرك» أولاً.');
           return;
         }
+        const audioMode = document.getElementById('studioVideoAudioMode')?.value || 'none';
+        if (audioMode === 'upload' && !_studioVideoUploadedAudioId) {
+          pptxShowError('يرجى اختيار ورفع الملف الصوتي من الهاتف أو الجهاز أولاً، أو تغيير وضع الصوت.');
+          return;
+        }
+
         const btn = document.getElementById('studioRenderVideoBtn');
         const origHtml = btn ? btn.innerHTML : '';
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري تحويل HTML إلى فيديو...'; }
@@ -6925,6 +7193,15 @@
             quality: document.getElementById('studioVideoQuality').value || 'standard',
             videoFrameFormat: document.getElementById('studioVideoFrameFormat').value || 'png',
             removeMargins: document.getElementById('studioVideoRemoveMargins').checked,
+            audioMode,
+            autoAudioType: document.getElementById('studioVideoAutoAudioType')?.value || 'voice_and_music',
+            voiceName: document.getElementById('studioVideoVoiceName')?.value || 'Kore',
+            voiceScript: (document.getElementById('studioVideoVoiceScript')?.value || '').trim(),
+            uploadedAudioId: _studioVideoUploadedAudioId,
+            pregeneratedAudioId: _studioVideoPregeneratedAudioId,
+            audioFitMode: document.getElementById('studioVideoAudioFitMode')?.value || 'fit_pad_trim',
+            audioVolume: parseFloat(document.getElementById('studioVideoAudioVolume')?.value || '1.0') || 1.0,
+            aiNotes: (document.getElementById('studioVideoAiNotes')?.value || '').trim(),
           };
 
           const startRes = await fetch('/api/studio/html_to_video/start', {

@@ -13741,26 +13741,137 @@ def api_studio_html_to_video_example():
 
 @app.route("/api/studio/html_to_video/ai_generate", methods=["POST"])
 def api_studio_html_to_video_ai_generate():
-    """توليد كود HTML متحرك متجاوب مع وحدات vw/vh عبر Gemini AI."""
+    """توليد كود HTML متحرك متجاوب مع وحدات vw/vh عبر Gemini AI مع تطبيق أي ملاحظات إضافية."""
     try:
         data = request.get_json(silent=True) or {}
         prompt_text = (data.get("prompt") or "").strip()
+        notes_text = (data.get("notes") or "").strip()
         width = int(data.get("width", 1080) or 1080)
         height = int(data.get("height", 1080) or 1080)
         duration = float(data.get("duration", 10) or 10)
-        if not prompt_text:
-            return jsonify({"error": "يرجى إدخال وصف أو عنوان الفيديو أولاً"}), 400
+        if not prompt_text and not notes_text:
+            return jsonify({"error": "يرجى إدخال وصف الفيديو أو ملاحظات للذكاء الاصطناعي أولاً"}), 400
         from pptx_app.modules.document_studio import ai_generate_animated_html
-        html = ai_generate_animated_html(prompt_text, width=width, height=height, duration=duration)
+        html = ai_generate_animated_html(
+            prompt_text,
+            width=width,
+            height=height,
+            duration=duration,
+            notes=notes_text,
+        )
         return jsonify({"success": True, "html": html})
     except Exception as e:
         logger.error(f"AI animated HTML generation error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/studio/html_to_video/ai_refine", methods=["POST"])
+def api_studio_html_to_video_ai_refine():
+    """تطبيق ملاحظات وتعليمات إضافية بالذكاء الاصطناعي على كود HTML وإخراجه."""
+    try:
+        data = request.get_json(silent=True) or {}
+        html_code = (data.get("html") or "").strip()
+        notes = (data.get("notes") or "").strip()
+        width = int(data.get("width", 1080) or 1080)
+        height = int(data.get("height", 1080) or 1080)
+        duration = float(data.get("duration", 10) or 10)
+        if not notes:
+            return jsonify({"error": "يرجى كتابة الملاحظات أو التعليمات أو رفع ملف ملاحظات لتطبيقها على الكود"}), 400
+        from pptx_app.modules.document_studio import ai_refine_animated_html
+        res = ai_refine_animated_html(
+            html_content=html_code,
+            notes=notes,
+            width=width,
+            height=height,
+            duration=duration,
+        )
+        return jsonify({"success": True, "html": res["html"], "model": res.get("model", "Gemini AI")})
+    except Exception as e:
+        logger.error(f"AI HTML refine error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/extract_notes", methods=["POST"])
+def api_studio_html_to_video_extract_notes():
+    """استخراج نص الملاحظات والتعليمات من ملف (.txt / .md / .docx / .pdf) لتطبيقها على كود الفيديو."""
+    try:
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return jsonify({"error": "يرجى اختيار ملف ملاحظات أولاً"}), 400
+        file_bytes = f.read()
+        if not file_bytes:
+            return jsonify({"error": "الملف المرفوع فارغ"}), 400
+        from pptx_app.modules.file_extractor import extract_content
+        extracted = extract_content(file_bytes, f.filename)
+        text = (extracted.get("full_text") or "").strip()
+        if not text:
+            return jsonify({"error": "لم يتم العثور على نص مقروء داخل الملف المرفق"}), 400
+        return jsonify({"success": True, "text": text, "filename": f.filename})
+    except Exception as e:
+        logger.error(f"Extract notes file error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/upload_audio", methods=["POST"])
+def api_studio_html_to_video_upload_audio():
+    """رفع ملف صوتي من الهاتف أو الجهاز ومعالجته للمعاينة والدمج داخل الفيديو."""
+    try:
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return jsonify({"error": "يرجى اختيار ملف صوتي من الهاتف أو الجهاز أولاً"}), 400
+        file_bytes = f.read()
+        if len(file_bytes) > 60 * 1024 * 1024:
+            return jsonify({"error": "حجم الملف الصوتي يتجاوز الحد الأقصى المسموح (60MB)"}), 400
+        from pptx_app.modules.document_studio import save_uploaded_studio_audio
+        res = save_uploaded_studio_audio(file_bytes, f.filename)
+        return jsonify({"success": True, **res})
+    except Exception as e:
+        logger.error(f"Upload studio audio error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/generate_audio", methods=["POST"])
+def api_studio_html_to_video_generate_audio():
+    """توليد صوت آلي مناسب لمحتوى كود HTML (تعليق Gemini TTS + موسيقى خلفية) للمعاينة والدمج."""
+    try:
+        data = request.get_json(silent=True) or {}
+        html_content = (data.get("html") or "").strip()
+        duration = float(data.get("duration", 10) or 10)
+        auto_audio_type = (data.get("autoAudioType") or data.get("auto_audio_type") or "voice_and_music").strip()
+        voice_name = (data.get("voiceName") or data.get("voice_name") or "Kore").strip()
+        user_script = (data.get("voiceScript") or data.get("voice_script") or "").strip()
+        notes = (data.get("notes") or "").strip()
+        if not html_content and not user_script and auto_audio_type != "music_only":
+            return jsonify({"error": "يرجى إدخال كود HTML أو كتابة نص التعليق الصوتي أولاً"}), 400
+        from pptx_app.modules.document_studio import generate_studio_audio_preview
+        res = generate_studio_audio_preview(
+            html_content=html_content,
+            duration=duration,
+            auto_audio_type=auto_audio_type,
+            voice_name=voice_name,
+            user_script=user_script,
+            notes=notes,
+        )
+        return jsonify({"success": True, **res})
+    except Exception as e:
+        logger.error(f"Generate studio audio error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/audio/<path:filename>", methods=["GET"])
+def api_studio_audio_preview(filename):
+    """بث ملفات الصوت المؤقتة (المولّدة بالذكاء أو المرفوعة) للمعاينة داخل الاستوديو."""
+    from pptx_app.modules.document_studio import STUDIO_AUDIO_DIR
+    safe_name = os.path.basename(filename)
+    file_path = STUDIO_AUDIO_DIR / safe_name
+    if not safe_name or not file_path.exists() or file_path.stat().st_size == 0:
+        return jsonify({"error": "ملف الصوت غير موجود أو انتهت صلاحيته"}), 404
+    return send_file(str(file_path), as_attachment=False, conditional=True, mimetype="audio/wav")
+
+
 @app.route("/api/studio/html_to_video/start", methods=["POST"])
 def api_studio_html_to_video_start():
-    """بدء تحويل HTML إلى فيديو عبر @hyperframes/producer مع تتبع التقدم الحي."""
+    """بدء تحويل HTML إلى فيديو عبر @hyperframes/producer مع تتبع التقدم الحي ودمج الصوت."""
     try:
         data = request.get_json(silent=True) or {}
         html_content = (data.get("html") or "").strip()
@@ -13782,6 +13893,15 @@ def api_studio_html_to_video_start():
             video_frame_format=(data.get("videoFrameFormat") or "png").strip(),
             device_scale_factor=int(data.get("deviceScaleFactor", 1) or 1),
             remove_margins=bool(data.get("removeMargins", True)),
+            audio_mode=(data.get("audioMode") or data.get("audio_mode") or "none").strip(),
+            auto_audio_type=(data.get("autoAudioType") or data.get("auto_audio_type") or "voice_and_music").strip(),
+            voice_name=(data.get("voiceName") or data.get("voice_name") or "Kore").strip(),
+            voice_script=(data.get("voiceScript") or data.get("voice_script") or "").strip(),
+            uploaded_audio_id=(data.get("uploadedAudioId") or data.get("uploaded_audio_id") or "").strip(),
+            pregenerated_audio_id=(data.get("pregeneratedAudioId") or data.get("pregenerated_audio_id") or "").strip(),
+            audio_fit_mode=(data.get("audioFitMode") or data.get("audio_fit_mode") or "fit_pad_trim").strip(),
+            audio_volume=float(data.get("audioVolume", data.get("audio_volume", 1.0)) or 1.0),
+            ai_notes=(data.get("aiNotes") or data.get("notes") or "").strip(),
             ai_provider_label="@hyperframes/producer + FFmpeg",
         )
         return jsonify({"success": True, "job_id": job_id})
@@ -13803,7 +13923,7 @@ def api_studio_html_to_video_status(job_id):
 @app.route("/api/studio/html_to_video", methods=["POST"])
 @app.route("/api/render", methods=["POST"])
 def api_studio_html_to_video_sync():
-    """نقطة نهاية مباشرة (متوافقة مع /api/render) لتحويل HTML إلى فيديو."""
+    """نقطة نهاية مباشرة (متوافقة مع /api/render) لتحويل HTML إلى فيديو مع دعم الصوت."""
     try:
         data = request.get_json(silent=True) or {}
         html_content = (data.get("html") or "").strip()
@@ -13825,6 +13945,15 @@ def api_studio_html_to_video_sync():
             video_frame_format=(data.get("videoFrameFormat") or "png").strip(),
             device_scale_factor=int(data.get("deviceScaleFactor", 1) or 1),
             remove_margins=bool(data.get("removeMargins", True)),
+            audio_mode=(data.get("audioMode") or data.get("audio_mode") or "none").strip(),
+            auto_audio_type=(data.get("autoAudioType") or data.get("auto_audio_type") or "voice_and_music").strip(),
+            voice_name=(data.get("voiceName") or data.get("voice_name") or "Kore").strip(),
+            voice_script=(data.get("voiceScript") or data.get("voice_script") or "").strip(),
+            uploaded_audio_id=(data.get("uploadedAudioId") or data.get("uploaded_audio_id") or "").strip(),
+            pregenerated_audio_id=(data.get("pregeneratedAudioId") or data.get("pregenerated_audio_id") or "").strip(),
+            audio_fit_mode=(data.get("audioFitMode") or data.get("audio_fit_mode") or "fit_pad_trim").strip(),
+            audio_volume=float(data.get("audioVolume", data.get("audio_volume", 1.0)) or 1.0),
+            ai_notes=(data.get("aiNotes") or data.get("notes") or "").strip(),
             ai_provider_label="@hyperframes/producer + FFmpeg",
         )
         if request.path == "/api/render" or bool(data.get("raw_file")):

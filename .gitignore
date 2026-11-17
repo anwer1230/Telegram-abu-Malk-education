@@ -76,5 +76,6 @@ data/rag/uploads/*
 ai_engine/.groq_key
 *.groq_key
 html-to-video-module/temp/
+html-to-video-module/temp_audio/
 html-to-video-module/outputs/
 pptx_app/outputs/

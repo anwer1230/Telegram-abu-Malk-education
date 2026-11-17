@@ -13618,7 +13618,7 @@ def api_html_to_word():
 @app.route("/tools/word/download/<path:filename>")
 @app.route("/api/studio/download/<path:filename>")
 def tools_word_download(filename):
-    """تحميل ملفات الاستوديو الموحد (.docx / .xlsx / .pptx) بأمان."""
+    """تحميل ملفات الاستوديو الموحد (.docx / .xlsx / .pptx / .mp4 / .webm / .mov / .gif / .zip) بأمان."""
     safe_name = os.path.basename(filename)
     outputs_dir = os.path.join(os.path.dirname(__file__), 'pptx_app', 'outputs')
     file_path = os.path.join(outputs_dir, safe_name)
@@ -13628,12 +13628,41 @@ def tools_word_download(filename):
         ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".gif": "image/gif",
+        ".zip": "application/zip",
     }
     ext = os.path.splitext(safe_name)[1].lower()
     return send_file(
         file_path,
         as_attachment=True,
         download_name=safe_name,
+        mimetype=mime_map.get(ext, "application/octet-stream"),
+    )
+
+
+@app.route("/api/studio/media/<path:filename>")
+def api_studio_media_preview(filename):
+    """بث ومعاينة ملفات الفيديو والصور الناتجة داخل الاستوديو."""
+    safe_name = os.path.basename(filename)
+    outputs_dir = os.path.join(os.path.dirname(__file__), 'pptx_app', 'outputs')
+    file_path = os.path.join(outputs_dir, safe_name)
+    if not safe_name or not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+        return jsonify({"error": f"الملف غير موجود: {safe_name}"}), 404
+    mime_map = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".gif": "image/gif",
+        ".zip": "application/zip",
+    }
+    ext = os.path.splitext(safe_name)[1].lower()
+    return send_file(
+        file_path,
+        as_attachment=False,
+        conditional=True,
         mimetype=mime_map.get(ext, "application/octet-stream"),
     )
 
@@ -13697,6 +13726,112 @@ def api_studio_text_to_word():
         })
     except Exception as e:
         logger.error(f"Studio text_to_word error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/example", methods=["GET"])
+def api_studio_html_to_video_example():
+    """جلب قالب HTML المتحرك الافتراضي من وحدة html-to-video-module."""
+    try:
+        from pptx_app.modules.document_studio import get_html_video_example
+        return jsonify({"success": True, "html": get_html_video_example()})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/ai_generate", methods=["POST"])
+def api_studio_html_to_video_ai_generate():
+    """توليد كود HTML متحرك متجاوب مع وحدات vw/vh عبر Gemini AI."""
+    try:
+        data = request.get_json(silent=True) or {}
+        prompt_text = (data.get("prompt") or "").strip()
+        width = int(data.get("width", 1080) or 1080)
+        height = int(data.get("height", 1080) or 1080)
+        duration = float(data.get("duration", 10) or 10)
+        if not prompt_text:
+            return jsonify({"error": "يرجى إدخال وصف أو عنوان الفيديو أولاً"}), 400
+        from pptx_app.modules.document_studio import ai_generate_animated_html
+        html = ai_generate_animated_html(prompt_text, width=width, height=height, duration=duration)
+        return jsonify({"success": True, "html": html})
+    except Exception as e:
+        logger.error(f"AI animated HTML generation error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/start", methods=["POST"])
+def api_studio_html_to_video_start():
+    """بدء تحويل HTML إلى فيديو عبر @hyperframes/producer مع تتبع التقدم الحي."""
+    try:
+        data = request.get_json(silent=True) or {}
+        html_content = (data.get("html") or "").strip()
+        if not html_content:
+            return jsonify({"error": "محتوى HTML فارغ"}), 400
+
+        duration_mode = (data.get("durationMode") or data.get("duration_mode") or "exact").strip()
+        from pptx_app.modules.document_studio import start_html_to_video_job
+        job_id = start_html_to_video_job(
+            html_content=html_content,
+            filename=(data.get("filename") or "studio_video").strip(),
+            width=int(data.get("width", 1920) or 1920),
+            height=int(data.get("height", 1080) or 1080),
+            fps=int(data.get("fps", 30) or 30),
+            duration=float(data.get("duration", 10) or 10),
+            duration_mode=duration_mode,
+            quality=(data.get("quality") or "standard").strip(),
+            output_format=(data.get("format") or "mp4").strip(),
+            video_frame_format=(data.get("videoFrameFormat") or "png").strip(),
+            device_scale_factor=int(data.get("deviceScaleFactor", 1) or 1),
+            remove_margins=bool(data.get("removeMargins", True)),
+            ai_provider_label="@hyperframes/producer + FFmpeg",
+        )
+        return jsonify({"success": True, "job_id": job_id})
+    except Exception as e:
+        logger.error(f"HTML to video start error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/studio/html_to_video/status/<job_id>", methods=["GET"])
+def api_studio_html_to_video_status(job_id):
+    """استعلام حالة مهمة تحويل HTML إلى فيديو."""
+    from pptx_app.modules.document_studio import get_html_to_video_job_status
+    st = get_html_to_video_job_status(job_id)
+    if not st:
+        return jsonify({"error": "المهمة غير موجودة أو انتهت صلاحيتها"}), 404
+    return jsonify(st)
+
+
+@app.route("/api/studio/html_to_video", methods=["POST"])
+@app.route("/api/render", methods=["POST"])
+def api_studio_html_to_video_sync():
+    """نقطة نهاية مباشرة (متوافقة مع /api/render) لتحويل HTML إلى فيديو."""
+    try:
+        data = request.get_json(silent=True) or {}
+        html_content = (data.get("html") or "").strip()
+        if not html_content:
+            return jsonify({"error": "الحقل 'html' مطلوب."}), 400
+
+        duration_mode = (data.get("durationMode") or data.get("duration_mode") or "exact").strip()
+        from pptx_app.modules.document_studio import _execute_html_to_video_core, OUTPUTS_DIR
+        res = _execute_html_to_video_core(
+            html_content=html_content,
+            filename=(data.get("filename") or "studio_video").strip(),
+            width=int(data.get("width", 1920) or 1920),
+            height=int(data.get("height", 1080) or 1080),
+            fps=int(data.get("fps", 30) or 30),
+            duration=float(data.get("duration", 10) or 10),
+            duration_mode=duration_mode,
+            quality=(data.get("quality") or "standard").strip(),
+            output_format=(data.get("format") or "mp4").strip(),
+            video_frame_format=(data.get("videoFrameFormat") or "png").strip(),
+            device_scale_factor=int(data.get("deviceScaleFactor", 1) or 1),
+            remove_margins=bool(data.get("removeMargins", True)),
+            ai_provider_label="@hyperframes/producer + FFmpeg",
+        )
+        if request.path == "/api/render" or bool(data.get("raw_file")):
+            return send_file(str(OUTPUTS_DIR / res["filename"]), as_attachment=True, download_name=res["filename"])
+        return jsonify(res)
+    except Exception as e:
+        logger.error(f"HTML to video sync error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 

@@ -1479,11 +1479,11 @@
                                     </button>
                                 </div>
                                 <div class="col-6 col-md-4">
-                                    <button type="button" class="btn btn-outline-danger w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnQuickPresentationCreator" data-bs-toggle="modal" data-bs-target="#presentationModal" onclick="openPresentationStudio('text')" title="إنشاء عروض .pptx ومستندات .docx · تحويل PDF و HTML إلى Word و Excel و PowerPoint · قوالب كانفا وحسابات Google · تحليل وتحديث .pptx + مراقبة السرعة عبر Recharts">
+                                    <button type="button" class="btn btn-outline-danger w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnQuickPresentationCreator" data-bs-toggle="modal" data-bs-target="#presentationModal" onclick="openPresentationStudio('text')" title="إنشاء عروض .pptx ومستندات .docx · تحويل PDF و HTML إلى Word و Excel و PowerPoint وفيديو MP4 · قوالب كانفا وحسابات Google · تحليل وتحديث .pptx + مراقبة السرعة عبر Recharts">
                                         <i class="fas fa-layer-group fa-2x mb-2" style="color:#d24726;"></i>
                                         <span class="small fw-bold">استوديو العروض والمستندات الاحترافي</span>
                                         <span class="badge bg-warning text-dark mt-1" style="font-size:0.58rem;">النسخة الموحدة AI · Recharts</span>
-                                        <span class="badge bg-danger mt-1" style="font-size:0.58rem;">PPTX · Word · Excel · Canva</span>
+                                        <span class="badge bg-danger mt-1" style="font-size:0.58rem;">PPTX · Word · Excel · Canva · MP4</span>
                                     </button>
                                 </div>
                             </div>
@@ -4938,8 +4938,8 @@
             <div class="d-flex align-items-center gap-2">
               <i class="fas fa-layer-group fa-lg text-warning"></i>
               <div>
-                <h5 class="modal-title mb-0 fw-bold">استوديو العروض والمستندات الاحترافي (PowerPoint + Word + Excel + Canva)</h5>
-                <small class="text-white-50" style="font-size:0.75rem;">توليد عروض ومستندات · تحويل PDF و HTML · قوالب كانفا التلقائية · تحليل .pptx · مراقبة السرعة via Recharts</small>
+                <h5 class="modal-title mb-0 fw-bold">استوديو العروض والمستندات الاحترافي (PowerPoint + Word + Excel + Canva + Video)</h5>
+                <small class="text-white-50" style="font-size:0.75rem;">توليد عروض ومستندات · تحويل PDF و HTML إلى Word و Excel و PowerPoint وفيديو MP4 · قوالب كانفا · مراقبة السرعة via Recharts</small>
               </div>
             </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
@@ -4989,6 +4989,11 @@
               <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold small" id="pptxTabCanvaBtn" data-bs-toggle="tab" data-bs-target="#pptxTabCanva" type="button" role="tab" onclick="pptxLoadCanvaData()">
                   <i class="fas fa-palette me-1"></i>كانفا وحسابات Google
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold small" id="pptxTabVideoBtn" data-bs-toggle="tab" data-bs-target="#pptxTabVideo" type="button" role="tab">
+                  <i class="fas fa-film me-1"></i>تحويل HTML إلى فيديو (MP4)
                 </button>
               </li>
               <li class="nav-item" role="presentation">
@@ -5473,7 +5478,7 @@
                       </div>
                     </div>
 
-                    <!-- أزرار التصدير الثلاثة -->
+                    <!-- أزرار التصدير الأربعة -->
                     <div class="d-flex flex-wrap gap-2">
                       <button type="button" id="studioHtmlToWordBtn" class="btn btn-primary fw-bold flex-grow-1" onclick="studioConvertHtmlToWord()">
                         <i class="fas fa-file-word me-1"></i>تصدير مستند Word (.docx)
@@ -5483,6 +5488,9 @@
                       </button>
                       <button type="button" id="studioHtmlToPptxBtn" class="btn btn-warning text-dark fw-bold flex-grow-1" onclick="studioConvertHtmlToPptx()">
                         <i class="fas fa-file-powerpoint me-1"></i>تصدير شرائح PowerPoint (.pptx)
+                      </button>
+                      <button type="button" id="studioHtmlToVideoQuickBtn" class="btn btn-danger fw-bold flex-grow-1" onclick="studioTransferHtmlToVideoTab()">
+                        <i class="fas fa-film me-1"></i>تحويل إلى فيديو (MP4)
                       </button>
                     </div>
 
@@ -5503,7 +5511,162 @@
                 </div>
               </div>
 
-              <!-- ===== التاب 5: مساعد العروض الذكي ===== -->
+              <!-- ===== التاب 5: تحويل HTML إلى فيديو احترافي (@hyperframes/producer) ===== -->
+              <div class="tab-pane fade" id="pptxTabVideo" role="tabpanel">
+                <div class="card border-danger border-opacity-25 shadow-sm mb-3">
+                  <div class="card-body py-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                      <div>
+                        <h6 class="fw-bold text-danger mb-0">
+                          <i class="fas fa-film me-2"></i>استوديو تحويل HTML إلى فيديو بدقة عالية (@hyperframes/producer + FFmpeg)
+                        </h6>
+                        <small class="text-muted">يدعم حركات CSS و GSAP و Web Animations مع ضبط الأبعاد (1080p / 4K / Reels) وإزالة الهوامش وتجهيز الخطوط تلقائياً.</small>
+                      </div>
+                      <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" onclick="studioVideoLoadExample()">
+                          <i class="fas fa-flask me-1"></i>قالب تجريبي متحرك
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm py-1 px-2" onclick="studioVideoSyncFromDocs()">
+                          <i class="fas fa-exchange-alt me-1"></i>جلب من محرر HTML
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2" onclick="studioVideoPreviewInline()">
+                          <i class="fas fa-eye me-1"></i>معاينة حية
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- توليد HTML متحرك بالذكاء الاصطناعي -->
+                    <div class="input-group input-group-sm mb-2">
+                      <span class="input-group-text bg-warning-subtle fw-bold"><i class="fas fa-wand-magic-sparkles text-warning me-1"></i>إنشاء بالذكاء AI:</span>
+                      <input type="text" id="studioVideoAiPrompt" class="form-control" dir="rtl"
+                        placeholder="اكتب فكرة الفيديو ليصمم Gemini صفحة HTML متحركة بوحدات vw/vh (مثال: مقدمة عرض أكاديمي عن الذكاء الاصطناعي)...">
+                      <button type="button" id="studioVideoAiBtn" class="btn btn-warning fw-bold" onclick="studioVideoAiGenerate()">
+                        توليد HTML متحرك
+                      </button>
+                    </div>
+
+                    <!-- اختيار سريع للأبعاد -->
+                    <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+                      <span class="small fw-bold text-secondary me-1">أبعاد جاهزة:</span>
+                      <button type="button" class="btn btn-outline-dark btn-sm py-0 px-2" onclick="studioVideoApplyPreset(1920,1080,1)">أفقي 1080p (1920×1080)</button>
+                      <button type="button" class="btn btn-outline-dark btn-sm py-0 px-2" onclick="studioVideoApplyPreset(1080,1920,1)">عمودي Reels/Shorts (1080×1920)</button>
+                      <button type="button" class="btn btn-outline-dark btn-sm py-0 px-2" onclick="studioVideoApplyPreset(1080,1080,1)">مربع (1080×1080)</button>
+                      <button type="button" class="btn btn-outline-dark btn-sm py-0 px-2" onclick="studioVideoApplyPreset(3840,2160,2)">فائق 4K (deviceScaleFactor=2)</button>
+                      <button type="button" class="btn btn-outline-dark btn-sm py-0 px-2" onclick="studioVideoApplyPreset(1280,720,1)">سريع HD (1280×720)</button>
+                    </div>
+
+                    <textarea id="studioVideoHtmlCode" class="form-control font-monospace mb-2" rows="7" dir="ltr"
+                      style="font-size:0.8rem" oninput="studioDetectHtmlDurationHint()"
+                      placeholder="<!DOCTYPE html> — الصق كود HTML مع حركات CSS @keyframes أو اضغط «قالب تجريبي متحرك» للبدء فوراً"></textarea>
+
+                    <div id="studioVideoDetectedDurWrap" class="d-none align-items-center justify-content-between bg-light border rounded px-2 py-1 mb-2 small">
+                      <span><i class="fas fa-clock text-primary me-1"></i>المدة المكتشفة داخل كود HTML: <strong id="studioVideoDetectedDurBadge" class="text-primary">--</strong> ثانية</span>
+                      <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" onclick="studioApplyDetectedVideoDuration()">تطبيق المدة المكتشفة</button>
+                    </div>
+
+                    <!-- إعدادات الفيديو التفصيلية -->
+                    <div class="row g-2 mb-3 align-items-end">
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">اسم الملف:</label>
+                        <input type="text" id="studioVideoFilename" class="form-control form-control-sm" value="studio_video" dir="rtl">
+                      </div>
+                      <div class="col-4 col-md-2">
+                        <label class="form-label fw-bold small mb-1">العرض (px):</label>
+                        <input type="number" id="studioVideoWidth" class="form-control form-control-sm" value="1080" min="128" max="3840" step="2">
+                      </div>
+                      <div class="col-4 col-md-2">
+                        <label class="form-label fw-bold small mb-1">الارتفاع (px):</label>
+                        <input type="number" id="studioVideoHeight" class="form-control form-control-sm" value="1080" min="128" max="3840" step="2">
+                      </div>
+                      <div class="col-4 col-md-2">
+                        <label class="form-label fw-bold small mb-1">المدة (ثانية):</label>
+                        <input type="number" id="studioVideoDuration" class="form-control form-control-sm" value="10" min="0.5" max="300" step="0.5" oninput="this.dataset.userEdited='1'">
+                      </div>
+                      <div class="col-4 col-md-2">
+                        <label class="form-label fw-bold small mb-1">الإطارات (FPS):</label>
+                        <select id="studioVideoFps" class="form-select form-select-sm">
+                          <option value="24">24 fps</option>
+                          <option value="30" selected>30 fps</option>
+                          <option value="60">60 fps</option>
+                        </select>
+                      </div>
+                      <div class="col-4 col-md-2">
+                        <label class="form-label fw-bold small mb-1">مقياس DPR:</label>
+                        <select id="studioVideoDpr" class="form-select form-select-sm">
+                          <option value="1" selected>1x قياسي</option>
+                          <option value="2">2x (4K Retina)</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small mb-1">نظام التزام الوقت:</label>
+                        <select id="studioVideoDurationMode" class="form-select form-select-sm">
+                          <option value="exact" selected>الالتزام بالمدة المحددة بالضبط (exact)</option>
+                          <option value="auto_min">لا يقل عن وقت العرض في HTML ولا المدة المحددة (auto_min)</option>
+                          <option value="from_html">كامل الوقت المحدد في كود HTML (from_html)</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold small mb-1">صيغة الإخراج:</label>
+                        <select id="studioVideoFormat" class="form-select form-select-sm">
+                          <option value="mp4" selected>MP4 (H.264 — الأكثر توافقاً)</option>
+                          <option value="webm">WebM (VP9 شفاف)</option>
+                          <option value="mov">MOV (ProRes 4444)</option>
+                          <option value="gif">GIF متحرك</option>
+                          <option value="png-sequence">PNG Sequence (.zip)</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small mb-1">جودة الترميز:</label>
+                        <select id="studioVideoQuality" class="form-select form-select-sm">
+                          <option value="draft">Draft (سريع)</option>
+                          <option value="standard" selected>Standard (متوازن)</option>
+                          <option value="high">High (جودة فائقة)</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold small mb-1">التقاط الإطارات:</label>
+                        <select id="studioVideoFrameFormat" class="form-select form-select-sm">
+                          <option value="png" selected>PNG (دقة ألوان فائقة)</option>
+                          <option value="auto">Auto</option>
+                          <option value="jpg">JPG (أسرع)</option>
+                        </select>
+                      </div>
+                      <div class="col-12 pb-1">
+                        <div class="form-check form-check-sm">
+                          <input type="checkbox" id="studioVideoRemoveMargins" class="form-check-input" checked>
+                          <label for="studioVideoRemoveMargins" class="form-check-label small fw-bold">إزالة الهوامش تلقائياً</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button type="button" id="studioRenderVideoBtn" class="btn btn-danger btn-lg fw-bold w-100 shadow-sm" onclick="studioRenderHtmlToVideo()">
+                      <i class="fas fa-video me-2"></i>بدء تحويل HTML إلى فيديو الآن
+                    </button>
+
+                    <!-- شريط التقدم المباشر للفيديو -->
+                    <div id="studioVideoProgressWrap" class="mt-3" style="display:none;">
+                      <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span id="studioVideoProgressLabel"><i class="fas fa-spinner fa-spin me-1"></i>جاري تحضير المحرك...</span>
+                        <span id="studioVideoProgressPct" class="text-danger">0%</span>
+                      </div>
+                      <div class="progress" style="height:10px;border-radius:999px;">
+                        <div id="studioVideoProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width:2%"></div>
+                      </div>
+                    </div>
+
+                    <!-- معاينة iframe حية داخل تبويب الفيديو -->
+                    <div id="studioVideoHtmlPreviewArea" class="mt-3 border rounded overflow-hidden" style="display:none;">
+                      <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center justify-content-between">
+                        <strong class="small"><i class="fas fa-desktop text-danger me-1"></i>معاينة التصميم المتحرك قبل التصيير</strong>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="document.getElementById('studioVideoHtmlPreviewArea').style.display='none'">إخفاء</button>
+                      </div>
+                      <iframe id="studioVideoHtmlIframe" style="width:100%;height:260px;border:none;background:#0b0d12;" sandbox="allow-same-origin allow-scripts"></iframe>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ===== التاب 6: مساعد العروض الذكي ===== -->
               <div class="tab-pane fade" id="pptxTabChat" role="tabpanel">
                 <div id="pptxChatMessages" class="bg-light rounded p-3 mb-2 border"
                      style="min-height:190px;max-height:280px;overflow-y:auto;direction:rtl;font-size:0.86rem">
@@ -5573,7 +5736,8 @@
                   </a>
                 </div>
               </div>
-              <!-- معاينة الشرائح -->
+              <!-- معاينة الشرائح أو الفيديو الناتج -->
+              <div id="pptxVideoPreviewBox" class="border rounded-3 p-3 bg-dark text-white text-center mb-2" style="display:none"></div>
               <div id="pptxSlidesPreview" class="border rounded-3 p-3 bg-light" style="max-height:260px;overflow-y:auto"></div>
             </div>
           </div>
@@ -5779,6 +5943,7 @@
           text: 'pptxTabTextBtn',
           docs: 'pptxTabDocsBtn',
           html: 'pptxTabDocsBtn',
+          video: 'pptxTabVideoBtn',
           analyze: 'pptxTabAnalyzeBtn',
           canva: 'pptxTabCanvaBtn',
           chat: 'pptxTabChatBtn',
@@ -5949,7 +6114,10 @@
         const lower = filename.toLowerCase();
         const isDocx = lower.endsWith('.docx');
         const isXlsx = lower.endsWith('.xlsx');
-        const downloadUrl = d.download_url || ((isDocx || isXlsx) ? ('/api/studio/download/' + encodeURIComponent(filename)) : ('/api/pptx/download/' + encodeURIComponent(filename)));
+        const isVideo = /\.(mp4|webm|mov|gif|zip)$/i.test(lower);
+        const isGif = lower.endsWith('.gif');
+        const isZip = lower.endsWith('.zip');
+        const downloadUrl = d.download_url || ((isDocx || isXlsx || isVideo) ? ('/api/studio/download/' + encodeURIComponent(filename)) : ('/api/pptx/download/' + encodeURIComponent(filename)));
         _pptxLastFilename = filename;
         _pptxLastDownloadUrl = downloadUrl;
         _pptxCurrentSlides = Array.isArray(d.slides) ? d.slides : [];
@@ -5963,7 +6131,11 @@
         const dlBtn = document.getElementById('pptxDownloadBtn');
         const headline = document.getElementById('pptxResultHeadline');
         const resIcon = document.getElementById('pptxResultIcon');
-        if (isDocx) {
+        if (isVideo) {
+          if (dlBtn) dlBtn.innerHTML = `<i class="fas fa-film me-2"></i>تحميل الفيديو (${_pptxEsc((d.format || 'MP4').toUpperCase())})`;
+          if (headline) headline.textContent = '🎬 تم تصيير الفيديو بنجاح وهو جاهز للمعاينة والتحميل!';
+          if (resIcon) resIcon.className = 'fas fa-film fa-2x text-danger flex-shrink-0';
+        } else if (isDocx) {
           if (dlBtn) dlBtn.innerHTML = '<i class="fas fa-file-word me-2"></i>تحميل مستند Word (.docx)';
           if (headline) headline.textContent = '🎉 مستند Word (.docx) جاهز للتحميل الآن!';
           if (resIcon) resIcon.className = 'fas fa-file-word fa-2x text-primary flex-shrink-0';
@@ -5979,7 +6151,14 @@
 
         const infoEl = document.getElementById('pptxResultInfo');
         if (infoEl) {
-          if (isDocx) {
+          if (isVideo) {
+            const kb = d.file_size ? ` · ${(d.file_size / 1024).toFixed(1)} KB` : '';
+            const dims = (d.width && d.height) ? ` · ${d.width}×${d.height}` : '';
+            const durTxt = d.duration_seconds ? ` · المدة: ${d.duration_seconds} ثانية` : '';
+            const fpsTxt = d.fps ? ` @ ${d.fps}fps` : '';
+            const fcTxt = d.frame_count ? ` · ${d.frame_count} إطار` : '';
+            infoEl.textContent = `${filename}${dims}${durTxt}${fpsTxt}${fcTxt}${kb}`;
+          } else if (isDocx) {
             const pgNote = d.pages ? ` · ${d.pages} صفحة` : '';
             infoEl.textContent = `${filename}${pgNote} · مستند Word منسّق وجاهز`;
           } else if (isXlsx) {
@@ -5991,10 +6170,25 @@
           }
         }
 
+        const videoBox = document.getElementById('pptxVideoPreviewBox');
+        if (videoBox) {
+          if (isVideo && d.preview_url && !isZip) {
+            videoBox.style.display = 'block';
+            if (isGif) {
+              videoBox.innerHTML = `<img src="${_pptxEsc(d.preview_url)}" alt="معاينة GIF" class="img-fluid rounded shadow-sm" style="max-height:320px;">`;
+            } else {
+              videoBox.innerHTML = `<video controls playsinline class="w-100 rounded shadow-sm" style="max-height:340px;background:#000;" src="${_pptxEsc(d.preview_url)}"></video>`;
+            }
+          } else {
+            videoBox.style.display = 'none';
+            videoBox.innerHTML = '';
+          }
+        }
+
         const typeIcons = { title:'🎯', bullets:'📌', table:'📊', chart:'📈', conclusion:'✅', content:'📄' };
         const preview = document.getElementById('pptxSlidesPreview');
         if (preview) {
-          if (_pptxCurrentSlides.length > 0 && !isDocx && !isXlsx) {
+          if (_pptxCurrentSlides.length > 0 && !isDocx && !isXlsx && !isVideo) {
             preview.style.display = 'block';
             preview.innerHTML = '<div class="fw-bold small text-muted mb-2">معاينة الشرائح الجاهزة:</div>' +
               _pptxCurrentSlides.map((s, i) => `
@@ -6533,6 +6727,244 @@
 
       async function studioConvertHtmlToPptx() {
         return pptxGenerate();
+      }
+
+      /* ───── تحويل HTML إلى فيديو (@hyperframes/producer + FFmpeg) ───── */
+      function studioDetectHtmlDurationSeconds(rawHtml) {
+        const html = String(rawHtml || '');
+        if (!html.trim()) return null;
+        const candidates = [];
+        for (const m of html.matchAll(/\bdata-(?:composition-)?duration\s*=\s*["']\s*([0-9]+(?:\.[0-9]+)?)\s*["']/gi)) {
+          const val = parseFloat(m[1]);
+          if (Number.isFinite(val) && val > 0) candidates.push(val);
+        }
+        for (const m of html.matchAll(/\bdata-end\s*=\s*["']\s*([0-9]+(?:\.[0-9]+)?)\s*["']/gi)) {
+          const val = parseFloat(m[1]);
+          if (Number.isFinite(val) && val > 0) candidates.push(val);
+        }
+        for (const m of html.matchAll(/animation(?:-duration|-delay)?\s*:[^;{}]*?([0-9]+(?:\.[0-9]+)?)\s*(ms|s)\b/gi)) {
+          const num = parseFloat(m[1]);
+          if (Number.isFinite(num) && num > 0) {
+            const sec = m[2].toLowerCase() === 'ms' ? num / 1000 : num;
+            if (sec <= 300) candidates.push(sec);
+          }
+        }
+        for (const m of html.matchAll(/setTimeout\s*\([^,]+,\s*([0-9]{3,6})\s*\)/gi)) {
+          const ms = parseFloat(m[1]);
+          if (Number.isFinite(ms) && ms >= 500 && ms <= 300000) candidates.push(ms / 1000);
+        }
+        if (!candidates.length) return null;
+        return Math.round(Math.max(...candidates) * 10) / 10;
+      }
+
+      let _studioLastDetectedVideoDur = null;
+      function studioDetectHtmlDurationHint(autoApply = false) {
+        const html = (document.getElementById('studioVideoHtmlCode')?.value || '').trim();
+        const detected = studioDetectHtmlDurationSeconds(html);
+        _studioLastDetectedVideoDur = detected;
+        const wrap = document.getElementById('studioVideoDetectedDurWrap');
+        const badge = document.getElementById('studioVideoDetectedDurBadge');
+        const durEl = document.getElementById('studioVideoDuration');
+        if (wrap && badge) {
+          if (detected && detected >= 0.5 && detected <= 300) {
+            badge.textContent = String(detected);
+            wrap.classList.remove('d-none');
+            wrap.classList.add('d-flex');
+            if (durEl && (autoApply || !durEl.dataset.userEdited)) {
+              durEl.value = String(detected);
+            }
+          } else {
+            wrap.classList.add('d-none');
+            wrap.classList.remove('d-flex');
+          }
+        }
+        return detected;
+      }
+
+      function studioApplyDetectedVideoDuration() {
+        const durEl = document.getElementById('studioVideoDuration');
+        if (_studioLastDetectedVideoDur && durEl) {
+          durEl.value = String(_studioLastDetectedVideoDur);
+          delete durEl.dataset.userEdited;
+          pptxShowToast(`⏱️ تم ضبط المدة إلى ${_studioLastDetectedVideoDur} ثانية`, false);
+        }
+      }
+
+      function studioVideoApplyPreset(w, h, dpr = 1) {
+        const wEl = document.getElementById('studioVideoWidth');
+        const hEl = document.getElementById('studioVideoHeight');
+        const dEl = document.getElementById('studioVideoDpr');
+        if (wEl) wEl.value = w;
+        if (hEl) hEl.value = h;
+        if (dEl) dEl.value = String(dpr);
+        pptxShowToast(`📐 تم ضبط أبعاد الفيديو: ${w}×${h} (DPR ${dpr}x)`, false);
+      }
+
+      async function studioVideoLoadExample() {
+        pptxClearMessages();
+        try {
+          const res = await fetch('/api/studio/html_to_video/example');
+          const d = await res.json();
+          if (!res.ok || !d.html) throw new Error(d.error || 'تعذر تحميل القالب التجريبي');
+          document.getElementById('studioVideoHtmlCode').value = d.html;
+          studioDetectHtmlDurationHint(true);
+          studioVideoPreviewInline();
+          pptxShowToast('✅ تم تحميل القالب التجريبي المتحرك (example.html)', false);
+        } catch(e) {
+          pptxShowError(e.message);
+        }
+      }
+
+      function studioVideoSyncFromDocs() {
+        const srcHtml = (document.getElementById('pptxHtmlCode').value || '').trim();
+        if (!srcHtml) {
+          pptxShowError('محرر HTML في تبويب «تحويل PDF و HTML» فارغ حالياً.');
+          return false;
+        }
+        document.getElementById('studioVideoHtmlCode').value = srcHtml;
+        const nameFromDocs = (document.getElementById('studioHtmlFilename').value || '').trim();
+        if (nameFromDocs) document.getElementById('studioVideoFilename').value = nameFromDocs;
+        studioDetectHtmlDurationHint(true);
+        studioVideoPreviewInline();
+        return true;
+      }
+
+      function studioTransferHtmlToVideoTab() {
+        pptxClearMessages();
+        const srcHtml = (document.getElementById('pptxHtmlCode').value || '').trim();
+        if (srcHtml) {
+          studioVideoSyncFromDocs();
+        }
+        openPresentationStudio('video');
+      }
+
+      function studioVideoPreviewInline() {
+        pptxClearMessages();
+        const html = (document.getElementById('studioVideoHtmlCode').value || '').trim();
+        if (!html) {
+          pptxShowError('يرجى إدخال كود HTML أو تحميل القالب التجريبي أولاً.');
+          return;
+        }
+        const area = document.getElementById('studioVideoHtmlPreviewArea');
+        const iframe = document.getElementById('studioVideoHtmlIframe');
+        if (area) area.style.display = 'block';
+        if (iframe) iframe.srcdoc = html;
+      }
+
+      async function studioVideoAiGenerate() {
+        pptxClearMessages();
+        const promptEl = document.getElementById('studioVideoAiPrompt');
+        const prompt = (promptEl ? promptEl.value : '').trim();
+        if (!prompt) {
+          pptxShowError('اكتب فكرة أو عنوان الفيديو المطلوب توليده بالذكاء الاصطناعي.');
+          return;
+        }
+        const btn = document.getElementById('studioVideoAiBtn');
+        const orig = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري التصميم...'; }
+        studioPipelineStart('تصميم HTML متحرك بالذكاء AI...', 1);
+        try {
+          const width = parseInt(document.getElementById('studioVideoWidth').value, 10) || 1080;
+          const height = parseInt(document.getElementById('studioVideoHeight').value, 10) || 1080;
+          const duration = parseFloat(document.getElementById('studioVideoDuration').value) || 10;
+          const res = await fetch('/api/studio/html_to_video/ai_generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, width, height, duration })
+          });
+          const d = await res.json();
+          if (!res.ok || !d.html) throw new Error(d.error || 'تعذر توليد كود HTML متحرك');
+          document.getElementById('studioVideoHtmlCode').value = d.html;
+          studioDetectHtmlDurationHint(false);
+          studioVideoPreviewInline();
+          studioRenderPipeline({ status: 'done', operation: 'تم تصميم HTML المتحرك بالذكاء بنجاح' });
+          pptxShowToast('✅ تم توليد تصميم HTML المتحرك — جاهز للتحويل إلى فيديو!', false);
+        } catch(e) {
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر توليد التصميم المتحرك' });
+          pptxShowError(e.message);
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+        }
+      }
+
+      async function studioRenderHtmlToVideo() {
+        pptxClearMessages();
+        const html = (document.getElementById('studioVideoHtmlCode').value || '').trim();
+        if (!html) {
+          pptxShowError('يرجى لصق كود HTML أو الضغط على «قالب تجريبي متحرك» أولاً.');
+          return;
+        }
+        const btn = document.getElementById('studioRenderVideoBtn');
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري تحويل HTML إلى فيديو...'; }
+
+        const progWrap = document.getElementById('studioVideoProgressWrap');
+        const progBar = document.getElementById('studioVideoProgressBar');
+        const progLbl = document.getElementById('studioVideoProgressLabel');
+        const progPct = document.getElementById('studioVideoProgressPct');
+        const resDiv = document.getElementById('pptxResult');
+        if (resDiv) resDiv.style.display = 'none';
+        if (progWrap) progWrap.style.display = 'block';
+        if (progBar) progBar.style.width = '4%';
+        if (progPct) progPct.textContent = '4%';
+        if (progLbl) progLbl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>بدء محرك Chrome + FFmpeg...';
+
+        studioPipelineStart('تصيير HTML إلى فيديو (@hyperframes/producer)...', 1);
+
+        try {
+          const payload = {
+            html,
+            filename: (document.getElementById('studioVideoFilename').value || 'studio_video').trim() || 'studio_video',
+            width: parseInt(document.getElementById('studioVideoWidth').value, 10) || 1080,
+            height: parseInt(document.getElementById('studioVideoHeight').value, 10) || 1080,
+            duration: parseFloat(document.getElementById('studioVideoDuration').value) || 10,
+            durationMode: document.getElementById('studioVideoDurationMode')?.value || 'exact',
+            fps: parseInt(document.getElementById('studioVideoFps').value, 10) || 30,
+            deviceScaleFactor: parseInt(document.getElementById('studioVideoDpr').value, 10) || 1,
+            format: document.getElementById('studioVideoFormat').value || 'mp4',
+            quality: document.getElementById('studioVideoQuality').value || 'standard',
+            videoFrameFormat: document.getElementById('studioVideoFrameFormat').value || 'png',
+            removeMargins: document.getElementById('studioVideoRemoveMargins').checked,
+          };
+
+          const startRes = await fetch('/api/studio/html_to_video/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const startData = await startRes.json();
+          if (!startRes.ok || !startData.job_id) {
+            throw new Error(startData.error || 'تعذر بدء مهمة تصيير الفيديو');
+          }
+
+          const jobId = startData.job_id;
+          while (true) {
+            await new Promise(r => setTimeout(r, 700));
+            const stRes = await fetch(`/api/studio/html_to_video/status/${encodeURIComponent(jobId)}`);
+            const st = await stRes.json();
+            if (!stRes.ok) throw new Error(st.error || 'فقدت متابعة مهمة الفيديو');
+
+            const pct = Math.max(2, Math.min(100, Number(st.percent || 0)));
+            if (progBar) progBar.style.width = `${pct}%`;
+            if (progPct) progPct.textContent = `${pct}%`;
+            if (progLbl) progLbl.innerHTML = `<i class="fas fa-film me-1"></i>${_pptxEsc(st.stage || 'جاري الالتقاط والترميز...')}`;
+
+            if (st.status === 'done') {
+              if (progWrap) progWrap.style.display = 'none';
+              pptxRenderResultAndSlides(st);
+              break;
+            }
+            if (st.status === 'error') {
+              throw new Error(st.error || 'فشل تحويل HTML إلى فيديو');
+            }
+          }
+        } catch(e) {
+          if (progWrap) progWrap.style.display = 'none';
+          studioRenderPipeline({ status: 'error', operation: 'تعذّر تصيير الفيديو' });
+          pptxShowError(e.message || 'حدث خطأ أثناء تحويل HTML إلى فيديو');
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+        }
       }
 
       /* ───── قوالب كانفا + حسابات Google ───── */

@@ -1,0 +1,15 @@
+{
+  "name": "html-to-video-module",
+  "version": "1.0.0",
+  "description": "وحدة تحويل HTML إلى فيديو بدقة عالية مع دعم الأبعاد المخصصة",
+  "type": "module",
+  "main": "html-to-video.js",
+  "scripts": {
+    "render": "node index.js",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "@hyperframes/producer": "^0.9.52",
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>اختبار تحويل HTML إلى فيديو</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0b0d12 0%, #1a1f2e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.5vh;
+    }
+
+    .box {
+      width: 20vw;
+      height: 20vw;
+      max-width: 220px;
+      max-height: 220px;
+      background: linear-gradient(45deg, #3291ff, #6ee7b7);
+      border-radius: 28px;
+      animation: pulse 2s ease-in-out infinite alternate;
+      box-shadow: 0 0 40px rgba(50, 145, 255, 0.45);
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.82); opacity: 0.7; }
+      to   { transform: scale(1.18); opacity: 1; }
+    }
+
+    .text {
+      color: #ffffff;
+      font-size: 3.2vw;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      animation: fadeIn 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0.45; }
+      to   { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="box"></div>
+    <div class="text">اختبار التحويل إلى فيديو — الاستوديو الموحد</div>
+  </div>
+</body>
+</html>

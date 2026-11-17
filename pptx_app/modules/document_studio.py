@@ -772,3 +772,392 @@ def convert_html_to_excel_unified(html_content: str, filename: str = "document")
         provider="OpenPyXL Unified Engine",
     )
     return out_filename, tables_count, metrics
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  وحدة تحويل HTML إلى فيديو احترافي (@hyperframes/producer + FFmpeg)
+# ═════════════════════════════════════════════════════════════════════════════
+
+HTML_VIDEO_MODULE_DIR = Path(__file__).resolve().parent.parent.parent / "html-to-video-module"
+_VIDEO_JOBS: Dict[str, Dict[str, Any]] = {}
+_VIDEO_JOBS_LOCK = __import__("threading").Lock()
+
+
+def get_html_video_example() -> str:
+    """قراءة قالب example.html المدمج في وحدة html-to-video-module."""
+    example_path = HTML_VIDEO_MODULE_DIR / "example.html"
+    if example_path.exists():
+        return example_path.read_text(encoding="utf-8")
+    return ""
+
+
+def ai_generate_animated_html(prompt_text: str, width: int = 1080, height: int = 1080, duration: float = 10.0) -> str:
+    """توليد كود HTML متحرك متجاوب مع وحدات vw/vh وبنفس مدة الفيديو المطلوبة عبر Gemini."""
+    topic = (prompt_text or "").strip()
+    if not topic:
+        raise ValueError("يرجى كتابة فكرة أو نص العرض المتحرك أولاً.")
+
+    safe_dur = max(1.0, min(300.0, float(duration or 10.0)))
+    orientation = "أفقي (16:9)" if width > height else ("عمودي (9:16)" if height > width else "مربع (1:1)")
+    ai_prompt = (
+        f"أنت مصمم Motion Graphics محترف بالويب (HTML + CSS @keyframes + SVG).\n"
+        f"صمّم صفحة HTML كاملة جاهزة للتحويل إلى فيديو بأبعاد {width}x{height} ({orientation}) ومدة عرض بالضبط {safe_dur} ثانية حول الموضوع التالي:\n"
+        f"«{topic}»\n\n"
+        "القواعد الصارمة:\n"
+        "1. أخرج كود HTML كاملاً يبدأ بـ <!DOCTYPE html> وينتهي بـ </html> بدون أي شرح أو markdown.\n"
+        f"2. استخدم <html lang=\"ar\" dir=\"rtl\"> وضع على <body data-composition-id=\"studio-root\" data-start=\"0\" data-duration=\"{safe_dur}\" data-width=\"{width}\" data-height=\"{height}\"> مع body {{ margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; }}.\n"
+        "3. استخدم وحدات vw و vh فقط لضمان تطابق العرض والارتفاع مع أي دقة فيديو.\n"
+        f"4. اجعل حركات CSS @keyframes موزعة على كامل مدة العرض ({safe_dur}s) حتى نهاية الفيديو دون توقف مبكر.\n"
+        "5. اجعل الخلفية والألوان احترافية ومتباينة بوضوح دون الاعتماد على صور خارجية غير مضمونة.\n"
+    )
+    raw = None
+    try:
+        from pptx_app.modules.ai_processor import _call_gemini
+        raw = _call_gemini(ai_prompt)
+    except Exception as exc:
+        logger.debug(f"ai_generate_animated_html Gemini error: {exc}")
+
+    if raw:
+        cleaned = re.sub(r"^```(?:html)?\s*", "", raw.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+        if "<html" in cleaned.lower() or "<body" in cleaned.lower() or "<div" in cleaned.lower():
+            return cleaned
+
+    escaped_topic = (
+        topic.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    return f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden;
+      background: radial-gradient(circle at 20% 20%, #1d4e89 0%, #0b132b 65%, #050814 100%);
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+    }}
+    .card {{
+      width: 82vw; max-width: 92%;
+      padding: 5vh 5vw;
+      border-radius: 3vw;
+      background: rgba(255, 255, 255, 0.08);
+      border: 0.25vw solid rgba(110, 231, 183, 0.45);
+      box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.45);
+      text-align: center;
+      animation: slideUp 1.2s cubic-bezier(.16,1,.3,1) both;
+    }}
+    .badge {{
+      display: inline-block;
+      padding: 1vh 2.5vw;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #00c4cc, #3291ff);
+      font-size: 2.2vmin;
+      font-weight: 700;
+      margin-bottom: 2.5vh;
+      animation: pulse 2s ease-in-out infinite alternate;
+    }}
+    h1 {{
+      margin: 0 0 2vh 0;
+      font-size: 5.2vmin;
+      line-height: 1.35;
+      color: #f8fafc;
+    }}
+    .bar-wrap {{
+      width: 60%; height: 1vh; margin: 3vh auto 0 auto;
+      background: rgba(255,255,255,0.15); border-radius: 999px; overflow: hidden;
+    }}
+    .bar-fill {{
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #6ee7b7, #38bdf8);
+      animation: fillBar {safe_dur}s linear forwards;
+    }}
+    @keyframes slideUp {{ from {{ opacity: 0; transform: translateY(6vh) scale(.95); }} to {{ opacity: 1; transform: translateY(0) scale(1); }} }}
+    @keyframes pulse {{ from {{ transform: scale(.96); }} to {{ transform: scale(1.04); }} }}
+    @keyframes fillBar {{ from {{ width: 0%; }} to {{ width: 100%; }} }}
+  </style>
+</head>
+<body data-composition-id="studio-root" data-start="0" data-duration="{safe_dur}" data-width="{width}" data-height="{height}">
+  <div class="card">
+    <div class="badge">استوديو العروض والمستندات AI</div>
+    <h1>{escaped_topic}</h1>
+    <div class="bar-wrap"><div class="bar-fill"></div></div>
+  </div>
+</body>
+</html>"""
+
+
+_VIDEO_RUNTIME_LOCK = __import__("threading").Lock()
+
+
+def _ensure_html_video_runtime(job_id: Optional[str] = None) -> None:
+    """التأكد من توفر حزم @hyperframes/producer و chrome-headless-shell عند الحاجة."""
+    import subprocess
+    with _VIDEO_RUNTIME_LOCK:
+        producer_dir = HTML_VIDEO_MODULE_DIR / "node_modules" / "@hyperframes" / "producer"
+        if not producer_dir.exists():
+            if job_id:
+                with _VIDEO_JOBS_LOCK:
+                    if job_id in _VIDEO_JOBS:
+                        _VIDEO_JOBS[job_id]["stage"] = "تثبيت مكتبة @hyperframes/producer..."
+            subprocess.run(
+                ["npm", "install", "--prefix", str(HTML_VIDEO_MODULE_DIR), "--no-audit", "--no-fund"],
+                check=True,
+                timeout=300,
+            )
+
+        cache_candidates = [
+            Path.home() / ".cache" / "puppeteer" / "chrome-headless-shell",
+            Path("/root/.cache/puppeteer/chrome-headless-shell"),
+            Path.home() / ".cache" / "hyperframes" / "chrome" / "chrome-headless-shell",
+        ]
+        has_browser = any(c.exists() and any(c.rglob("chrome-headless-shell*")) for c in cache_candidates)
+        if not has_browser:
+            if job_id:
+                with _VIDEO_JOBS_LOCK:
+                    if job_id in _VIDEO_JOBS:
+                        _VIDEO_JOBS[job_id]["stage"] = "تحميل متصفح Chrome Headless لأول مرة..."
+            subprocess.run(
+                ["npx", "--prefix", str(HTML_VIDEO_MODULE_DIR), "puppeteer", "browsers", "install", "chrome-headless-shell"],
+                check=True,
+                timeout=300,
+            )
+
+
+def _execute_html_to_video_core(
+    *,
+    html_content: str,
+    filename: str = "video",
+    width: int = 1920,
+    height: int = 1080,
+    fps: int = 30,
+    duration: float = 10.0,
+    duration_mode: str = "exact",
+    quality: str = "standard",
+    output_format: str = "mp4",
+    video_frame_format: str = "png",
+    device_scale_factor: int = 1,
+    remove_margins: bool = True,
+    ai_provider_label: str = "@hyperframes/producer + FFmpeg",
+    job_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """تشغيل وحدة Node (@hyperframes/producer) لتحويل HTML إلى فيديو مع الالتزام الصارم بالمدة."""
+    import shutil
+    import subprocess
+    import uuid
+    import zipfile
+
+    if not (html_content or "").strip():
+        raise ValueError("كود HTML فارغ")
+
+    runner_js = HTML_VIDEO_MODULE_DIR / "index.js"
+    if not runner_js.exists():
+        raise FileNotFoundError("وحدة html-to-video-module غير مثبتة بشكل كامل")
+
+    _ensure_html_video_runtime(job_id=job_id)
+
+    uid = job_id or uuid.uuid4().hex[:10]
+    temp_dir = HTML_VIDEO_MODULE_DIR / "temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    temp_html = temp_dir / f"studio-input-{uid}.html"
+    temp_html.write_text(html_content, encoding="utf-8")
+
+    safe_name = safe_filename(filename, "studio_video")
+    fmt = output_format if output_format in ("mp4", "webm", "mov", "gif", "png-sequence") else "mp4"
+    qual = quality if quality in ("draft", "standard", "high") else "standard"
+    frame_fmt = video_frame_format if video_frame_format in ("auto", "jpg", "png") else "png"
+    dur_mode = duration_mode if duration_mode in ("exact", "auto_min", "from_html") else "exact"
+    safe_w = max(64, int(width) & ~1 or 1920)
+    safe_h = max(64, int(height) & ~1 or 1080)
+    safe_fps = max(1, min(60, int(fps)))
+    safe_dur = max(0.5, min(300.0, float(duration)))
+    safe_dpr = max(1, min(3, int(device_scale_factor)))
+
+    stamp = int(time.time())
+    if fmt == "png-sequence":
+        frames_dir = OUTPUTS_DIR / f"{safe_name}_{stamp}_{uid}_frames"
+        target_output = frames_dir
+        final_filename = f"{safe_name}_{stamp}_{uid}_frames.zip"
+    else:
+        final_filename = f"{safe_name}_{stamp}_{uid}.{fmt}"
+        target_output = OUTPUTS_DIR / final_filename
+
+    cmd = [
+        "node",
+        str(runner_js),
+        "--input", str(temp_html),
+        "--output", str(target_output),
+        "--width", str(safe_w),
+        "--height", str(safe_h),
+        "--fps", str(safe_fps),
+        "--duration", str(safe_dur),
+        "--duration-mode", dur_mode,
+        "--quality", qual,
+        "--format", fmt,
+        "--frame-format", frame_fmt,
+        "--dpr", str(safe_dpr),
+        "--remove-margins", "true" if remove_margins else "false",
+        "--json",
+    ]
+
+    t0 = time.perf_counter()
+    last_result: Dict[str, Any] = {}
+    last_error: Optional[str] = None
+    tail_logs: List[str] = []
+
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(HTML_VIDEO_MODULE_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+        assert proc.stdout is not None
+        for raw_line in proc.stdout:
+            line = raw_line.strip()
+            if not line:
+                continue
+            tail_logs.append(line)
+            if len(tail_logs) > 25:
+                tail_logs.pop(0)
+            if line.startswith("{"):
+                try:
+                    ev = json.loads(line)
+                    ev_type = ev.get("type")
+                    if ev_type == "progress" and job_id:
+                        with _VIDEO_JOBS_LOCK:
+                            if job_id in _VIDEO_JOBS:
+                                _VIDEO_JOBS[job_id]["percent"] = int(ev.get("percent", 0))
+                                _VIDEO_JOBS[job_id]["stage"] = ev.get("stage", "")
+                    elif ev_type == "result":
+                        last_result = ev
+                    elif ev_type == "error":
+                        last_error = ev.get("error") or "فشل ترميز الفيديو"
+                except Exception:
+                    pass
+        wait_timeout = max(300, int(safe_dur * 25) + 120)
+        rc = proc.wait(timeout=wait_timeout)
+        if rc != 0 or last_error:
+            raise RuntimeError(last_error or f"فشل محرك الفيديو (رمز {rc}): {' | '.join(tail_logs[-3:])}")
+
+        if fmt == "png-sequence":
+            zip_path = OUTPUTS_DIR / final_filename
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                if target_output.exists():
+                    for p in sorted(target_output.rglob("*")):
+                        if p.is_file():
+                            zf.write(p, arcname=p.relative_to(target_output))
+            shutil.rmtree(target_output, ignore_errors=True)
+            file_size = zip_path.stat().st_size if zip_path.exists() else 0
+        else:
+            file_size = target_output.stat().st_size if target_output.exists() else 0
+
+        if file_size <= 0:
+            raise RuntimeError("تم إكمال العملية ولكن ملف الفيديو الناتج فارغ")
+
+        total_ms = max(10, round((time.perf_counter() - t0) * 1000))
+        raw_stages = last_result.get("stages") or {}
+        compile_ms = int(raw_stages.get("compileMs") or 120)
+        capture_ms = int(raw_stages.get("captureFrameMs") or raw_stages.get("captureMs") or max(20, total_ms // 2))
+        encode_ms = int(raw_stages.get("encodeMs") or max(20, total_ms // 3))
+        assemble_ms = int(raw_stages.get("assembleMs") or max(10, total_ms - compile_ms - capture_ms))
+
+        actual_dur = float(last_result.get("compositionDurationSeconds") or safe_dur)
+        plain_words = len(re.sub(r"<[^>]+>", " ", html_content).split())
+        frames_count = int(last_result.get("frameCount") or round(actual_dur * safe_fps))
+        out_w = int(last_result.get("width") or safe_w)
+        out_h = int(last_result.get("height") or safe_h)
+
+        metrics = build_pipeline_metrics(
+            operation=f"تحويل HTML إلى فيديو {fmt.upper()} ({out_w}×{out_h} · {actual_dur:.1f}s @ {safe_fps}fps)",
+            stage_timings=[
+                ("extract", "1. تجهيز HTML والخطوط", max(10, compile_ms)),
+                ("ai", "2. التقاط الإطارات Chrome", max(15, capture_ms)),
+                ("charts", "3. ترميز الفيديو FFmpeg", max(15, encode_ms)),
+                ("render", "4. تجميع وحفظ الملف", max(10, assemble_ms)),
+            ],
+            word_count=max(plain_words, frames_count),
+            items_count=frames_count,
+            provider=ai_provider_label,
+        )
+
+        return {
+            "success": True,
+            "filename": final_filename,
+            "download_url": f"/api/studio/download/{final_filename}",
+            "preview_url": f"/api/studio/media/{final_filename}",
+            "format": fmt,
+            "width": out_w,
+            "height": out_h,
+            "fps": safe_fps,
+            "duration_seconds": actual_dur,
+            "requested_duration_seconds": last_result.get("requestedDurationSeconds") or safe_dur,
+            "detected_html_duration_seconds": last_result.get("detectedHtmlDurationSeconds"),
+            "frame_count": frames_count,
+            "file_size": file_size,
+            "render_ms": total_ms,
+            "pipeline_metrics": metrics,
+        }
+    finally:
+        try:
+            temp_html.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def start_html_to_video_job(**kwargs) -> str:
+    """بدء مهمة تحويل HTML إلى فيديو في الخلفية وإرجاع معرف المهمة لتتبع التقدم."""
+    import threading
+    import uuid
+
+    job_id = uuid.uuid4().hex[:12]
+    with _VIDEO_JOBS_LOCK:
+        _VIDEO_JOBS[job_id] = {
+            "job_id": job_id,
+            "status": "running",
+            "percent": 2,
+            "stage": "تهيئة محرك Chrome و FFmpeg...",
+            "created_at": time.time(),
+        }
+        # تنظيف المهام القديمة الأقدم من ساعة
+        cutoff = time.time() - 3600
+        for old_id in [k for k, v in _VIDEO_JOBS.items() if v.get("created_at", 0) < cutoff]:
+            _VIDEO_JOBS.pop(old_id, None)
+
+    def _worker():
+        try:
+            res = _execute_html_to_video_core(job_id=job_id, **kwargs)
+            with _VIDEO_JOBS_LOCK:
+                _VIDEO_JOBS[job_id].update({
+                    "status": "done",
+                    "percent": 100,
+                    "stage": "اكتمل التحويل بنجاح",
+                    **res,
+                })
+        except Exception as exc:
+            logger.error(f"HTML to video job {job_id} error: {exc}", exc_info=True)
+            with _VIDEO_JOBS_LOCK:
+                _VIDEO_JOBS[job_id].update({
+                    "status": "error",
+                    "error": str(exc),
+                    "stage": "فشل التحويل",
+                })
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return job_id
+
+
+def get_html_to_video_job_status(job_id: str) -> Optional[Dict[str, Any]]:
+    """استرجاع حالة مهمة تحويل HTML إلى فيديو."""
+    with _VIDEO_JOBS_LOCK:
+        job = _VIDEO_JOBS.get(job_id)
+        return dict(job) if job else None
+

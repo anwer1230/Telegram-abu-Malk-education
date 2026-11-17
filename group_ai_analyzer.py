@@ -27,6 +27,314 @@ GEMINI_MODELS = [
     "gemini-3-flash-preview"
 ]
 
+# قاموس تحويل الكلمات المحظورة الشائعة إلى الإنجليزية / الإنجليزية المعرّبة
+FORBIDDEN_KEYWORD_ENGLISH_MAP = {
+    "سكاليف": "skalive",
+    "سكليف": "skalive",
+    "سكلـيف": "skalive",
+    "اسكاليف": "skalive",
+    "اعذار طبية": "medical excuses",
+    "اعذار طبيه": "medical excuses",
+    "عذر طبي": "medical excuse",
+    "اعذار": "excuses",
+    "عذر": "excuse",
+    "اجازه مرضيه": "sick leave",
+    "صحتي": "sehaty",
+    "تقرير طبي": "medical report",
+    "تقارير طبيه": "medical reports",
+    "واجبات": "assignments",
+    "واجب": "assignment",
+    "كويزات": "quizzes",
+    "كويز": "quiz",
+    "اختبارات": "exams",
+    "اختبار": "exam",
+    "امتحانات": "exams",
+    "امتحان": "exam",
+    "بحوث": "research",
+    "بحث": "research",
+    "ابحاث": "research",
+    "تقارير": "reports",
+    "تقرير": "report",
+    "مشاريع تخرج": "graduation projects",
+    "مشروع تخرج": "graduation project",
+    "مشاريع": "projects",
+    "مشروع": "project",
+    "تكاليف": "tasks",
+    "تكليف": "task",
+    "اسايمنت": "assignment",
+    "حلول": "solutions",
+    "ملخصات": "summaries",
+    "ملخص": "summary",
+    "عروض تقديميه": "presentations",
+    "بوربوينت": "powerpoint",
+    "ترجمه": "translation",
+    "تخرج": "graduation",
+    "اعلانات": "announcements",
+    "اعلان": "announcement",
+    "ترويج": "promotion",
+    "تسويق": "marketing",
+    "تخفيضات": "offers",
+    "تخفيض": "discount",
+    "خصومات": "discounts",
+    "خصم": "discount",
+    "عروض": "offers",
+    "عرض": "offer",
+    "للتواصل": "contact",
+    "راسلني": "dm me",
+    "واتساب": "whatsapp",
+    "واتس": "whats",
+    "تليجرام": "telegram",
+    "تليقرام": "telegram",
+    "تيليجرام": "telegram",
+    "خدمات": "services",
+    "خدمه": "service",
+    "بيع": "sale",
+    "شراء": "buy",
+    "استثمار": "investment",
+    "تداول": "trading",
+    "ارباح": "profits",
+    "ربح": "profit",
+    "اشتراك": "subscription",
+    "دورات": "courses",
+    "كورسات": "courses",
+    "اسعار": "prices",
+    "سعر": "price",
+    "عموله": "commission",
+    "كاش": "cash",
+    "تحويل": "transfer",
+    "سحب": "withdraw",
+    "ايداع": "deposit",
+    "اطلب": "order",
+    "انضموا": "join",
+    "انضم": "join",
+    "قناتي": "channel",
+    "قناه": "channel",
+    "سارع": "hurry",
+    "مدفوع": "paid",
+    "مقابل": "paid",
+}
+
+_ARABIC_DIACRITICS_RE = re.compile(r"[\u064B-\u065F\u0670\u0640]")
+
+
+def _normalize_ar_token(text):
+    """تطبيع النص العربي للمطابقة دون المساس بالنص الأصلي عند عدم الحاجة."""
+    s = _ARABIC_DIACRITICS_RE.sub("", str(text or "").strip())
+    s = s.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+    s = s.replace("ى", "ي").replace("ة", "ه")
+    s = re.sub(r"\s+", " ", s)
+    return s.lower()
+
+
+_NORMALIZED_EN_MAP = {_normalize_ar_token(k): v for k, v in FORBIDDEN_KEYWORD_ENGLISH_MAP.items()}
+_COMMON_HIGH_RISK_WORDS = sorted(FORBIDDEN_KEYWORD_ENGLISH_MAP.keys(), key=len, reverse=True)
+
+
+def space_word_with_ellipsis(word):
+    """
+    مباعدة أحرف الكلمة باستخدام المسافات والنقاط لتفادي فلاتر البوتات:
+    مثال: سكاليف -> س ك...ال...يف
+    """
+    clean = _ARABIC_DIACRITICS_RE.sub("", str(word or "").strip())
+    if not clean:
+        return word
+
+    if " " in clean:
+        return " ".join(space_word_with_ellipsis(part) for part in clean.split() if part)
+
+    n = len(clean)
+    if n <= 1:
+        return clean
+    if n == 2:
+        return f"{clean[0]}...{clean[1]}"
+    if n == 3:
+        return f"{clean[0]} {clean[1]}...{clean[2]}"
+    if n == 4:
+        return f"{clean[0]} {clean[1]}...{clean[2:]}"
+    if n == 5:
+        return f"{clean[0]} {clean[1]}...{clean[2]}...{clean[3:]}"
+    if n == 6:
+        return f"{clean[0]} {clean[1]}...{clean[2:4]}...{clean[4:]}"
+
+    chunks = [f"{clean[0]} {clean[1]}"]
+    idx = 2
+    while idx < n - 2:
+        step = 2 if (n - idx) > 3 else (n - idx - 2)
+        if step <= 0:
+            break
+        chunks.append(clean[idx:idx + step])
+        idx += step
+    chunks.append(clean[idx:])
+    return "...".join(c for c in chunks if c)
+
+
+def obfuscate_forbidden_word(word, banned_set=None, mode="auto"):
+    """
+    تحويل الكلمة المحظورة إلى الإنجليزية إن وُجد مقابل آمن (مثل سكاليف -> skalive)،
+    أو تطبيق مباعدة الأحرف بالنقاط (مثل س ك...ال...يف) على أي كلمة محظورة أخرى.
+    """
+    raw = str(word or "").strip()
+    if not raw:
+        return raw
+
+    norm = _normalize_ar_token(raw)
+    banned_norm = {_normalize_ar_token(x) for x in (banned_set or []) if x}
+
+    if mode != "space":
+        en_val = _NORMALIZED_EN_MAP.get(norm)
+        if not en_val and norm.startswith("ال") and len(norm) > 4:
+            en_val = _NORMALIZED_EN_MAP.get(norm[2:])
+        if en_val and _normalize_ar_token(en_val) not in banned_norm:
+            return en_val
+
+    return space_word_with_ellipsis(raw)
+
+
+def extract_forbidden_keywords_from_texts(texts, extra_keywords=None):
+    """
+    استخراج قائمة شاملة بكل الكلمات المحظورة المكتشفة من رسائل المجموعة أو التحذيرات أو تقارير الأمان.
+    """
+    discovered = []
+    seen = set()
+
+    def _add_kw(kw):
+        cleaned = str(kw or "").strip(" \t\n\r\"'«»()[]{}.,،:؛!؟*_-")
+        if not cleaned or len(cleaned) < 2 or len(cleaned) > 40:
+            return
+        norm = _normalize_ar_token(cleaned)
+        if norm in ("تم", "من", "في", "على", "الى", "عن", "مع", "هذا", "هذه", "ممنوع", "محظور", "محضور", "حظر", "كتم", "طرد", "تحذير", "انذار", "مخالفة", "رابط", "روابط", "رسالة", "رسائل", "الرسالة", "المجموعة", "القروب"):
+            return
+        if norm not in seen:
+            seen.add(norm)
+            discovered.append(cleaned)
+
+    for ek in (extra_keywords or []):
+        _add_kw(ek)
+
+    combined = "\n".join(str(t) for t in (texts or []) if t)
+    if not combined.strip():
+        return discovered
+
+    # 1. استخراج الكلمات المذكورة بين علامات تنصيص أو بعد عبارات المنع/الكلمات المحظورة
+    for q_match in re.finditer(r'(?:كلمة|كلمات|عبارة|عبارات|ممنوع|محظور|محضور|blacklist(?:ed)?|forbidden|banned\s+word)[^\n:]*[:\-]?\s*["\'«(\[]([^"\'»)\]\n]{2,35})["\'»)\]]', combined, flags=re.IGNORECASE):
+        _add_kw(q_match.group(1))
+
+    for q_match in re.finditer(r'(?:ممنوع|محظور|محضور)\s+(?:ذكر|كتابة|استخدام|نشر)?\s*(?:كلمة|عبارة)?\s*([^\s،,.!؟\n]{3,25})', combined, flags=re.IGNORECASE):
+        _add_kw(q_match.group(1))
+
+    # 2. مطابقة الكلمات الحساسة المعروفة داخل رسائل التحذير أو قواعد المجموعة
+    norm_combined = _normalize_ar_token(combined)
+    for raw_kw in _COMMON_HIGH_RISK_WORDS:
+        norm_kw = _normalize_ar_token(raw_kw)
+        if re.search(rf'(?<![\w\u0600-\u06FF])(?:ال)?{re.escape(norm_kw)}(?![\w\u0600-\u06FF])', norm_combined):
+            _add_kw(raw_kw)
+
+    return discovered
+
+
+def _build_flexible_arabic_pattern(keyword):
+    """بناء تعبير نمطي يطابق الكلمة رغم التشكيل أو التطويل أو تباين الهمزات/التاء المربوطة."""
+    norm = _normalize_ar_token(keyword)
+    if not norm:
+        return None
+    char_map = {
+        "ا": "[اأإآ]",
+        "ه": "[هة]",
+        "ي": "[يى]",
+        " ": r"\s+",
+    }
+    parts = []
+    for ch in norm:
+        if ch == " ":
+            parts.append(r"\s+")
+        else:
+            parts.append(char_map.get(ch, re.escape(ch)) + r"[\u064B-\u065F\u0670\u0640]*")
+    return "".join(parts)
+
+
+def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_common_ads=False, mode="auto"):
+    """
+    تطبيق آلية تحويل الكلمات المحظورة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
+    على كافة الكلمات المحظورة المكتشفة داخل نص الرسالة مع الحفاظ على الروابط والمعرفات دون تشويه.
+    """
+    if not text:
+        return text, []
+
+    working = str(text)
+    placeholders = {}
+
+    def _stash(match):
+        token = f"__HF_SAFE_TOK_{len(placeholders)}__"
+        placeholders[token] = match.group(0)
+        return token
+
+    working = re.sub(
+        r'(?:https?://[^\s<>]+|(?:t\.me|telegram\.me|wa\.me)/[^\s<>]+|www\.[^\s<>]+|@[A-Za-z0-9_]{3,})',
+        _stash,
+        working,
+        flags=re.IGNORECASE,
+    )
+
+    candidate_list = []
+    seen_norm = set()
+    for kw in (keywords_to_avoid or []):
+        clean_kw = str(kw or "").strip()
+        n = _normalize_ar_token(clean_kw)
+        if clean_kw and len(clean_kw) >= 2 and n not in seen_norm:
+            seen_norm.add(n)
+            candidate_list.append(clean_kw)
+
+    if include_common_ads:
+        for kw in _COMMON_HIGH_RISK_WORDS:
+            n = _normalize_ar_token(kw)
+            if n not in seen_norm:
+                seen_norm.add(n)
+                candidate_list.append(kw)
+
+    # ترتيب من الأطول للأقصر لتجنب الاستبدال الجزئي للعبارات المركبة
+    candidate_list.sort(key=lambda s: len(_normalize_ar_token(s)), reverse=True)
+    banned_set = list(keywords_to_avoid or [])
+    actions = []
+
+    for kw in candidate_list:
+        core_pat = _build_flexible_arabic_pattern(kw)
+        if not core_pat:
+            continue
+
+        # السماح بسابقة اختيارية (و/ف/ب/ك/ل أو ال/وال/...) مع الحفاظ على حرف العطف والجر
+        allow_prefix = len(_normalize_ar_token(kw)) >= 3
+        if allow_prefix:
+            full_pat = rf'(?<![\w\u0600-\u06FF])(?P<conj>[وفبكل])?(?P<def>ال)?(?P<stem>{core_pat})(?![\w\u0600-\u06FF])'
+        else:
+            full_pat = rf'(?<![\w\u0600-\u06FF])(?P<conj>)(?P<def>)(?P<stem>{core_pat})(?![\w\u0600-\u06FF])'
+
+        replacement_core = obfuscate_forbidden_word(kw, banned_set=banned_set, mode=mode)
+        if not replacement_core or _normalize_ar_token(replacement_core) == _normalize_ar_token(kw):
+            continue
+
+        replaced_any = False
+
+        def _replacer(m):
+            nonlocal replaced_any
+            replaced_any = True
+            conj = m.group("conj") or ""
+            def_art = m.group("def") or ""
+            # إذا كانت الكلمة ستُباعد أحرفها بالعربية، نحافظ على الـ التعريف؛ أما بالإنجليزية فنحتفظ بحرف العطف فقط
+            if re.search(r'[A-Za-z]', replacement_core):
+                prefix = f"{conj} " if conj else ""
+                return f"{prefix}{replacement_core}"
+            return f"{conj}{def_art}{replacement_core}"
+
+        new_working = re.sub(full_pat, _replacer, working, flags=re.IGNORECASE)
+        if replaced_any and new_working != working:
+            working = new_working
+            actions.append(f"🔤 تحويل الكلمة المحظورة '{kw}' ← '{replacement_core}'")
+
+    for token, original in placeholders.items():
+        working = working.replace(token, original)
+
+    return working, actions
+
 async def fetch_group_recent_messages(client, entity_obj, limit=50):
     """
     استخراج آخر 50 رسالة من المجموعة مع فحص القيود وبوتات الإشراف والتحقق المسبق من طبيعة المحادثة
@@ -178,7 +486,7 @@ async def fetch_group_recent_messages(client, entity_obj, limit=50):
     }
 
 
-def _heuristic_analysis(group_data):
+def _heuristic_analysis(group_data, sample_message=""):
     """تحليل بديل فوري ودقيق في حال عدم توفر أو تأخر واجهة الذكاء الاصطناعي"""
     perms = group_data.get("permissions", {})
 
@@ -204,24 +512,25 @@ def _heuristic_analysis(group_data):
     mistakes = []
     prohibited = set()
     keywords_avoid = []
+    sanction_texts = []
     risk = "low"
 
     bot_keywords = [
         "تم كتم", "تم طرد", "تم حظر", "حظر", "كتم", "طرد", "ممنوع نشر", "ممنوع الروابط",
-        "ممنوع الإعلانات", "ممنوع التوجيه", "warned", "muted", "banned", "kicked", "antispam"
+        "ممنوع الإعلانات", "ممنوع التوجيه", "ممنوع", "محظور", "محضور", "حذف الرسالة",
+        "warned", "muted", "banned", "kicked", "antispam", "forbidden", "blacklisted"
     ]
 
     for m in messages:
         text = m.get("text", "")
-        # service actions
         action = m.get("action")
         if action in ("MessageActionChatDeleteUser", "MessageActionChatJoinedByLink"):
             if action == "MessageActionChatDeleteUser":
                 punishments.append("طرد/مغادرة عضو من المجموعة (Service Action)")
                 risk = "medium"
 
-        # bot or admin warnings
-        if any(bw in text for bw in bot_keywords):
+        if any(bw in text.lower() for bw in bot_keywords):
+            sanction_texts.append(text)
             punishments.append(f"تنبيه/عقوبة رصدت: {text[:100]}")
             if any(k in text for k in ["رابط", "روابط", "link", "t.me", "http"]):
                 causes.append("نشر روابط خارجية أو دعوات")
@@ -239,10 +548,27 @@ def _heuristic_analysis(group_data):
                 causes.append("تحويل الرسائل من قنوات أخرى")
                 prohibited.add("no_forwards")
                 mistakes.append("إرسال رسائل محولة مسبقاً")
+            if any(k in text for k in ["اعلان", "إعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سكاليف", "سكليف", "عذر", "اعذار", "واجب", "اختبار", "كويز", "بحث", "صحتي"]):
+                causes.append("استخدام كلمات محظورة أو ترويجية ترصدها فلاتر البوتات")
+                prohibited.add("no_ads")
+                mistakes.append("استخدام كلمات محظورة أدى لحذف الرسالة أو كتم المرسل")
 
     if not perms.get("can_embed_links", True):
         prohibited.add("no_links")
         causes.append("المجموعة معطل بها ميزة تضمين الروابط")
+
+    # استخراج كافة الكلمات المحظورة من رسائل التحذير والبوتات أو من النص المزمع إرساله إذا كانت المجموعة مراقبة
+    keywords_avoid = extract_forbidden_keywords_from_texts(sanction_texts)
+    if (punishments or "no_ads" in prohibited or any(m.get("is_bot") for m in messages)) and sample_message:
+        msg_risk_kws = extract_forbidden_keywords_from_texts([sample_message])
+        seen_norm = {_normalize_ar_token(k) for k in keywords_avoid}
+        for mk in msg_risk_kws:
+            if _normalize_ar_token(mk) not in seen_norm:
+                seen_norm.add(_normalize_ar_token(mk))
+                keywords_avoid.append(mk)
+
+    if keywords_avoid:
+        prohibited.add("no_ads")
 
     if punishments:
         risk = "high" if len(punishments) >= 2 else "medium"
@@ -257,26 +583,26 @@ def _heuristic_analysis(group_data):
         "keywords_to_avoid": keywords_avoid,
         "risk_assessment": risk,
         "summary_ar": f"تم رصد {len(punishments)} حالة عقوبة أو تنبيه في آخر {len(messages)} رسالة." if punishments else "لم يُرصد نشاط حظر صارم حديث في آخر 50 رسالة.",
-        "recommended_action": "تطبيق الحماية التلقائية وتنقية الروابط والأرقام لتجنب أي عقوبة."
+        "recommended_action": "تطبيق الحماية التلقائية وتحويل الكلمات المحظورة وتنقية الروابط والأرقام لتجنب أي عقوبة."
     }
 
 
-def analyze_group_conversations_with_ai(group_data):
+def analyze_group_conversations_with_ai(group_data, sample_message=""):
     """
-    تحليل محادثات المجموعة بواسطة Gemini مع fallback للتحليل الذاتي
+    تحليل محادثات المجموعة بواسطة Gemini مع fallback للتحليل الذاتي واستخراج كل الكلمات المحظورة
     """
     if not group_data.get("accessible", True) or not group_data.get("permissions", {}).get("can_send_messages", True):
-        return _heuristic_analysis(group_data)
+        return _heuristic_analysis(group_data, sample_message=sample_message)
 
     messages = group_data.get("messages", [])
     if not messages:
-        return _heuristic_analysis(group_data)
+        return _heuristic_analysis(group_data, sample_message=sample_message)
 
+    heuristic_res = _heuristic_analysis(group_data, sample_message=sample_message)
     api_key = get_gemini_api_key()
     if not api_key:
-        return _heuristic_analysis(group_data)
+        return heuristic_res
 
-    # تجهيز ملخص المحادثات للذكاء
     msgs_summary = []
     for idx, m in enumerate(messages[:50], 1):
         sender = f"[{'بوت' if m['is_bot'] else 'عضو'}: {m['sender_name']}]"
@@ -298,14 +624,17 @@ def analyze_group_conversations_with_ai(group_data):
 صلاحيات النشر العامة: {group_data.get('permissions')}
 
 المطلوب استخراجه وتحليله بدقة:
-1. هل تعرض أي عضو مؤخراً للحظر أو الطرد أو الكتم أو تقييد الكتابة من الإدارة أو بوتات الحماية (مثل Rose, GroupHelp, Shield...)؟
-2. ما هي الأسباب التفصيلية للعقوبات؟ (مثل: نشر روابط تليجرام/واتساب، إعلانات، تكرار، توجيه، سبام، كلمات محددة).
-3. ما هي الأخطاء التي ارتكبها الآخرون وتسببت لهم بالعقوبة؟
+1. هل تعرض أي عضو مؤخراً للحظر أو الطرد أو الكتم أو تقييد الكتابة من الإدارة أو بوتات الحماية (مثل Rose, GroupHelp, Shield, جبل...)؟
+2. ما هي الأسباب التفصيلية للعقوبات؟ (مثل: نشر روابط تليجرام/واتساب، إعلانات، تكرار، توجيه، سبام، أو كلمات محددة محظورة مثل سكاليف/أعذار/واجبات/كويزات/إعلان/ترويج).
+3. استخرج كل الكلمات أو العبارات المحظورة أو الحساسة التي تمنعها الإدارة أو البوتات في هذه المجموعة داخل مصفوفة `keywords_to_avoid`.
 4. ما هي الإجراءات الوقائية الفورية التي يجب أن نطبقها آلياً على رسالتنا لتجنب مصيرهم وتلافي الحظر تماماً؟
 5. قيّم مستوى الخطورة (low, medium, high, critical).
 
 المحادثات الأخيرة (50 رسالة):
 {chat_corpus}
+
+الرسالة المزمع إرسالها (إن وجدت لفحص الكلمات التي قد تستفز البوتات):
+{sample_message or 'غير محددة'}
 
 أجب بصيغة JSON حصراً بهذا الهيكل الدقيق:
 {{
@@ -314,8 +643,8 @@ def analyze_group_conversations_with_ai(group_data):
   "details_of_punishments": ["تفاصيل حالات الكتم أو الحظر المرصودة"],
   "causes": ["الأسباب التي أدت للعقوبات"],
   "mistakes_by_others": ["الأخطاء المحددة التي ارتكبها الآخرون"],
-  "prohibited_actions": ["no_links", "no_phones", "no_forwards", "no_media", "slow_down", "skip_group"],
-  "keywords_to_avoid": ["كلمات ممنوعة إن وُجدت"],
+  "prohibited_actions": ["no_links", "no_phones", "no_forwards", "no_media", "no_ads", "slow_down", "skip_group"],
+  "keywords_to_avoid": ["كل كلمة محظورة أو حساسة تم اكتشافها في المجموعة"],
   "risk_assessment": "low" أو "medium" أو "high" أو "critical",
   "summary_ar": "ملخص شامل باللغة العربية",
   "recommended_action": "توصية الإرسال والوقاية الذكية"
@@ -340,12 +669,19 @@ def analyze_group_conversations_with_ai(group_data):
                 cand = res_data.get('candidates', [])
                 if cand and cand[0].get('content', {}).get('parts'):
                     txt = cand[0]['content']['parts'][0].get('text', '').strip()
-                    # تنظيف markdown if present
                     if txt.startswith("```json"):
                         txt = txt[7:]
                     if txt.endswith("```"):
                         txt = txt[:-3]
                     parsed = json.loads(txt.strip())
+                    # دمج الكلمات المحظورة المستخرجة محلياً مع مخرجات Gemini لضمان عدم ضياع أي كلمة
+                    merged_kws = extract_forbidden_keywords_from_texts(
+                        (parsed.get("causes") or []) + (parsed.get("mistakes_by_others") or []) + (parsed.get("details_of_punishments") or []),
+                        extra_keywords=(parsed.get("keywords_to_avoid") or []) + (heuristic_res.get("keywords_to_avoid") or []),
+                    )
+                    parsed["keywords_to_avoid"] = merged_kws
+                    if merged_kws and "no_ads" not in (parsed.get("prohibited_actions") or []):
+                        parsed.setdefault("prohibited_actions", []).append("no_ads")
                     logger.info(f"✅ AI Analysis succeeded using {model} for group: {group_data.get('group_title')}")
                     return parsed
             else:
@@ -353,9 +689,8 @@ def analyze_group_conversations_with_ai(group_data):
         except Exception as ex:
             logger.warning(f"Error calling model {model}: {ex}")
 
-    # Fallback to heuristic
     logger.info("Using heuristic analysis fallback for group")
-    return _heuristic_analysis(group_data)
+    return heuristic_res
 
 
 def adapt_message_safely(original_message, analysis, has_media=False):
@@ -422,13 +757,30 @@ def adapt_message_safely(original_message, analysis, has_media=False):
         can_send_media = False
         actions_taken.append("🖼️ تحويل الإرسال إلى نصي فقط لأن المجموعة تحظر إرسال الصور/الوسائط")
 
-    # 5. تنقية الكلمات المحظورة المحددة
-    keywords_avoid = analysis.get("keywords_to_avoid", [])
-    for kw in keywords_avoid:
-        if kw and kw in adapted_message:
-            # استبدال الكلمة بنقاط أو مرادف لطيف
-            adapted_message = adapted_message.replace(kw, f"[{kw[0]}..{kw[-1]}]")
-            actions_taken.append(f"🔤 استبدال الكلمة الحساسة '{kw}' التي سببت كتم أعضاء آخرين")
+    # 5. تحويل الكلمات المحظورة المكتشفة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
+    all_reason_texts = (
+        list(analysis.get("causes", []))
+        + list(analysis.get("mistakes_by_others", []))
+        + list(analysis.get("details_of_punishments", []))
+        + ([analysis.get("summary_ar", "")] if analysis.get("summary_ar") else [])
+    )
+    keywords_avoid = extract_forbidden_keywords_from_texts(
+        all_reason_texts,
+        extra_keywords=analysis.get("keywords_to_avoid", []),
+    )
+    has_keyword_or_ad_ban = (
+        "no_ads" in prohibited
+        or risk in ("high", "medium")
+        or bool(keywords_avoid)
+        or any(t in " ".join(all_reason_texts).lower() for t in ["إعلان", "اعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سبام"])
+    )
+    adapted_message, kw_actions = obfuscate_forbidden_words_in_text(
+        adapted_message,
+        keywords_to_avoid=keywords_avoid,
+        include_common_ads=has_keyword_or_ad_ban,
+        mode="auto",
+    )
+    actions_taken.extend(kw_actions)
 
     # 6. فرض فاصل أمان زمني لتجنب Flood / Spam Detection
     if "slow_down" in prohibited or risk in ("high", "medium"):

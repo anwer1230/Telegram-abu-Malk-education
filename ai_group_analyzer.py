@@ -250,6 +250,19 @@ def _analyze_heuristically(group_data, user_message=""):
         adapted_text = re.sub(r'https?://[^\s]+', '', adapted_text)
     if mentions_forbidden and adapted_text:
         adapted_text = re.sub(r'@[a-zA-Z0-9_]+', '', adapted_text)
+    if (keywords_forbidden or group_strictness in ("high", "critical")) and adapted_text:
+        try:
+            from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_in_text
+            ev_texts = [ev.get('text', '') for ev in moderation_events] + ban_reasons
+            disc_kws = extract_forbidden_keywords_from_texts(ev_texts)
+            adapted_text, _ = obfuscate_forbidden_words_in_text(
+                adapted_text,
+                keywords_to_avoid=disc_kws,
+                include_common_ads=True,
+                mode="auto",
+            )
+        except Exception:
+            pass
 
     return {
         "has_recent_bans_or_mutes": has_bans,

@@ -1709,9 +1709,11 @@ class MessageSanitizer:
         'telegram_handles': r'@[a-zA-Z0-9_]{4,}',
         'phone_numbers': r'(?:\+?\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}',
         'ad_keywords': (
-            r'\b(?:للتواصل|للاستفسار|واتساب|واتس|تليجرام|تليقرام|قناة|قناتي|انضم|انضموا|'
+            r'(?<![\w\u0600-\u06FF])(?:ال)?(?:'
+            r'سكاليف|سكليف|اعذار|أعذار|صحتي|واجبات|كويزات|كويز|اختبارات|بحوث|تقارير|'
+            r'للتواصل|للاستفسار|واتساب|واتس|تليجرام|تليقرام|قناة|قناتي|انضم|انضموا|'
             r'خدمات|خدماتنا|إعلان|اعلان|عرض|عروض|خصم|تخفيض|تخفيضات|طلب\s*شراء|'
-            r'بيع|تسويق|دورات|كورسات|اشتراك|راسلني|اطلب|عمولة|كاش|سحب|إيداع)\b'
+            r'بيع|تسويق|دورات|كورسات|اشتراك|راسلني|اطلب|عمولة|كاش|سحب|إيداع)(?![\w\u0600-\u06FF])'
         ),
     }
 
@@ -1720,6 +1722,20 @@ class MessageSanitizer:
         (r'https?://chat\.whatsapp\.com/([^\s<>]+)', r'https://chat.whatsapp.com/\1'),
         (r'https?://whatsapp\.com/channel/([^\s<>]+)', r'https://whatsapp.com/channel/\1'),
     ]
+
+    @classmethod
+    def _obfuscate_ad_keywords(cls, text):
+        """تحويل الكلمات الحساسة/المحظورة إلى الإنجليزية أو مباعدة أحرفها بدلاً من حذفها."""
+        if not text:
+            return text
+        try:
+            from group_ai_analyzer import obfuscate_forbidden_words_in_text
+            transformed, _ = obfuscate_forbidden_words_in_text(
+                text, keywords_to_avoid=[], include_common_ads=True, mode="auto"
+            )
+            return transformed
+        except Exception:
+            return text
 
     @classmethod
     def sanitize(cls, text, mode='smart'):
@@ -1741,7 +1757,7 @@ class MessageSanitizer:
                 cleaned = re.sub(cls.PATTERNS[key], '', cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(cls.PATTERNS['telegram_handles'], '', cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(cls.PATTERNS['phone_numbers'], '', cleaned)
-            cleaned = re.sub(cls.PATTERNS['ad_keywords'], '', cleaned, flags=re.IGNORECASE)
+            cleaned = cls._obfuscate_ad_keywords(cleaned)
             cleaned = re.sub(r'[ \t]+', ' ', cleaned)
             lines = []
             seen = set()
@@ -1758,12 +1774,12 @@ class MessageSanitizer:
             result = '\n'.join(lines).strip()
             return result if result else None
 
-        # وضع smart: تحويل روابط واتساب + تنقية خفيفة
+        # وضع smart: تحويل روابط واتساب + تنقية ذكية
         for pattern, replacement in cls.WHATSAPP_TRANSFORMATIONS:
             cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
         for key in ('telegram_links', 'general_links'):
             cleaned = re.sub(cls.PATTERNS[key], '', cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(cls.PATTERNS['ad_keywords'], '', cleaned, flags=re.IGNORECASE)
+        cleaned = cls._obfuscate_ad_keywords(cleaned)
         cleaned = re.sub(r'[ \t]+', ' ', cleaned).strip()
         return cleaned if cleaned else None
 
@@ -5822,6 +5838,24 @@ class TelegramManager:
 
         if saved_report and not saved_report.get('error'):
             logger.info(f"📋 Found existing group report in external DB for {entity_label}")
+            try:
+                from group_ai_analyzer import extract_forbidden_keywords_from_texts
+                src_texts = (
+                    list(saved_report.get('causes', []))
+                    + list(saved_report.get('mistakes_by_others', []))
+                    + list(saved_report.get('details_of_punishments', []))
+                    + ([saved_report.get('summary_ar', '')] if saved_report.get('summary_ar') else [])
+                )
+                if (saved_report.get('is_protected') or saved_report.get('blocks_ads') or saved_report.get('punished_count', 0) > 0) and sample_message:
+                    src_texts.append(sample_message)
+                enriched_kws = extract_forbidden_keywords_from_texts(
+                    src_texts, extra_keywords=saved_report.get('keywords_to_avoid', [])
+                )
+                if enriched_kws:
+                    saved_report = dict(saved_report)
+                    saved_report['keywords_to_avoid'] = enriched_kws
+            except Exception:
+                pass
             socketio.emit('log_update', {
                 "message": f"📋 [قاعدة البيانات] تم استرجاع نتائج فحص {entity_label} المحفوظة مسبقاً (مستوى الأمان: {saved_report.get('risk_assessment', 'عادي')})"
             }, to=user_id)
@@ -5917,28 +5951,41 @@ class TelegramManager:
         mistakes = report.get('mistakes_by_others', [])
         all_reasons = " ".join(causes + mistakes).lower()
 
-        # 1. تغيير أو حذف الكلمات والعبارات التي تستدعي الحظر
-        for kw in keywords_avoid:
-            if kw and kw in adapted:
-                safe_kw = f"{kw[0]}..{kw[-1]}" if len(kw) > 2 else f"[{kw}]"
-                adapted = adapted.replace(kw, safe_kw)
-                actions.append(f"🔤 تمويه الكلمة الحساسة '{kw}'")
+        # 1. تحويل الكلمات المحظورة المكتشفة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
+        try:
+            from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_in_text
+            extra_texts = (
+                list(causes)
+                + list(mistakes)
+                + list(report.get('details_of_punishments', []))
+                + ([report.get('summary_ar', '')] if report.get('summary_ar') else [])
+            )
+            discovered_keywords = extract_forbidden_keywords_from_texts(
+                extra_texts, extra_keywords=keywords_avoid
+            )
+        except Exception:
+            discovered_keywords = list(keywords_avoid or [])
 
-        if "إعلان" in all_reasons or "ترويج" in all_reasons or "spam" in all_reasons or "no_ads" in prohibited:
-            replacements = [
-                ("إعلان", "تنويه"),
-                ("اعلان", "تنويه"),
-                ("للتواصل", "للاستفسار"),
-                ("خصم", "ميزة"),
-                ("سارع", "متاح"),
-                ("ربح", "فائدة"),
-                ("استثمار", "مشروع"),
-                ("تداول", "أعمال")
-            ]
-            for bad_w, good_w in replacements:
-                if bad_w in adapted:
-                    adapted = adapted.replace(bad_w, good_w)
-                    actions.append(f"استبدال عبارة '{bad_w}' بـ '{good_w}'")
+        has_ad_or_kw_restriction = (
+            bool(discovered_keywords)
+            or bool(report.get('is_protected'))
+            or bool(report.get('blocks_ads'))
+            or "no_ads" in prohibited
+            or any(t in all_reasons for t in ["إعلان", "اعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سبام", "spam", "ads"])
+        )
+
+        if discovered_keywords or has_ad_or_kw_restriction:
+            try:
+                from group_ai_analyzer import obfuscate_forbidden_words_in_text
+                adapted, kw_actions = obfuscate_forbidden_words_in_text(
+                    adapted,
+                    keywords_to_avoid=discovered_keywords,
+                    include_common_ads=has_ad_or_kw_restriction,
+                    mode="auto",
+                )
+                actions.extend(kw_actions)
+            except Exception as _kw_err:
+                logger.warning(f"Keyword obfuscation fallback error: {_kw_err}")
 
         # 2. تنقية أو تعديل الروابط
         if 'no_links' in prohibited or 'رابط' in all_reasons or 'link' in all_reasons:
@@ -6056,7 +6103,9 @@ class TelegramManager:
             group_data = client_manager.run_coroutine(
                 group_ai_analyzer.fetch_group_recent_messages(client_manager.client, entity_obj, limit=50)
             )
-            analysis = group_ai_analyzer.analyze_group_conversations_with_ai(group_data)
+            analysis = group_ai_analyzer.analyze_group_conversations_with_ai(
+                group_data, sample_message=sample_message or ""
+            )
             adaptation = group_ai_analyzer.adapt_message_safely(
                 sample_message or "", analysis, has_media=False
             )
@@ -6083,6 +6132,8 @@ class TelegramManager:
                 "details_of_punishments": analysis.get("details_of_punishments", []),
                 "causes": analysis.get("causes", []),
                 "mistakes_by_others": analysis.get("mistakes_by_others", []),
+                "prohibited_actions": analysis.get("prohibited_actions", []),
+                "keywords_to_avoid": analysis.get("keywords_to_avoid", []),
                 "actions_taken": adaptation.get("actions_taken", []),
                 "should_skip": adaptation.get("should_skip", False),
                 "skip_reason": adaptation.get("skip_reason", ""),
@@ -6453,6 +6504,14 @@ class TelegramManager:
             entity_obj = self._resolve_entity(client_manager, entity)
 
             if message:
+                try:
+                    _rep, _ = self.get_or_create_group_safety_report(
+                        user_id, client_manager, entity_obj, entity, sample_message=message
+                    )
+                    _adapted_msg, _, _ = self.adapt_message_to_group_report(message, _rep, has_media=True)
+                    message = _adapted_msg
+                except Exception:
+                    pass
                 _cleaned = self._maybe_sanitize(user_id, client_manager, entity_obj, entity, message)
                 if _cleaned is None:
                     return {"success": False, "skipped": True,
@@ -9454,13 +9513,19 @@ def _execute_batch_send(user_id, state, is_resume=False):
                     report.get('requires_smart_send') or 
                     (report.get('is_protected') and report.get('blocks_ads'))
                 )
+                settings_mode = (load_settings(user_id).get('sanitize_mode') or 'salam').lower()
                 if is_batch and not force_salam:
-                    action_to_use = 'sanitize'
-                    if needs_smart or pre_scan_action == 'salam':
-                        logger.info(f"ℹ️ Batch mode: تخطي salam للمجموعة {group}، استخدام sanitize لتسريع الإرسال ومنع التعليق.")
-                        socketio.emit('log_update', {
-                            "message": f"ℹ️ [{i}/{total}] وضع الإرسال الجماعي: استخدام نمط التنقية المباشرة (sanitize) لتفادي تعليق المجموعات في {group}"
-                        }, to=user_id)
+                    if settings_mode == 'off':
+                        action_to_use = 'send'
+                    elif needs_smart or pre_scan_action == 'salam' or report.get('is_protected') or report.get('blocks_ads') or settings_mode == 'always':
+                        action_to_use = 'sanitize'
+                        if needs_smart or pre_scan_action == 'salam':
+                            logger.info(f"ℹ️ Batch mode: تخطي salam للمجموعة {group}، استخدام sanitize لتسريع الإرسال ومنع التعليق.")
+                            socketio.emit('log_update', {
+                                "message": f"ℹ️ [{i}/{total}] وضع الإرسال الجماعي: استخدام نمط التنقية المباشرة (sanitize) لتفادي تعليق المجموعات في {group}"
+                            }, to=user_id)
+                    else:
+                        action_to_use = 'send'
                 else:
                     if needs_smart or pre_scan_action == 'salam' or force_salam:
                         action_to_use = 'salam'

@@ -19,6 +19,11 @@ const format = readArg("--format", "mp4");
 const videoFrameFormat = readArg("--frame-format", "png");
 const deviceScaleFactor = Number(readArg("--dpr", "1"));
 const removeMargins = readArg("--remove-margins", "true") !== "false";
+const audioPath = readArg("--audio", "");
+const ttsText = readArg("--tts-text", "");
+const voiceName = readArg("--voice", "Kore");
+const audioFitMode = readArg("--audio-fit", "fit_pad_trim");
+const audioVolume = Number(readArg("--audio-volume", "1.0"));
 
 try {
   const result = await renderHtmlToVideo({
@@ -34,6 +39,11 @@ try {
     videoFrameFormat,
     deviceScaleFactor,
     removeMargins,
+    ...(audioPath ? { audioPath } : {}),
+    ...(ttsText ? { ttsText } : {}),
+    voiceName,
+    audioFitMode,
+    audioVolume,
     onProgress: (percent, stage) => {
       if (process.stdout.isTTY) {
         process.stdout.write(`\r⏳ التقدم: ${percent}% (${stage || ""})`);
@@ -48,6 +58,7 @@ try {
   } else {
     console.log(`\n✅ تم إنشاء الفيديو: ${result.outputPath}`);
     console.log(`🎬 مدة الفيديو الناتج: ${result.compositionDurationSeconds} ثانية`);
+    console.log(`🔊 الصوت المدمج: ${result.hasAudio ? `${result.audioCodec} (${result.audioSource})` : "بدون صوت"}`);
     console.log(`⏱️ زمن التصيير: ${result.duration} مللي ثانية`);
     console.log(`🎞️ عدد الإطارات: ${result.frameCount ?? "غير متاح"}`);
   }

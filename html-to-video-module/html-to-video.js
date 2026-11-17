@@ -1,13 +1,15 @@
 // html-to-video.js
-import { readFile, writeFile, mkdir, rm, stat } from "node:fs/promises";
-import { existsSync, readdirSync } from "node:fs";
+import { readFile, writeFile, mkdir, rm, stat, rename } from "node:fs/promises";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createRenderJob, executeRenderJob } from "@hyperframes/producer";
 
 const execFileAsync = promisify(execFile);
+const VALID_TTS_VOICES = new Set(["Kore", "Charon", "Puck", "Fenrir", "Zephyr"]);
 
 const PRESET_RESOLUTIONS = new Map([
   ["1920x1080", "landscape"],
@@ -112,7 +114,6 @@ export function detectHtmlDurationSeconds(rawHtml) {
     if (Number.isFinite(val) && val > 0) candidates.push(val);
   }
 
-  // استخراج مدة + تأخير حركات CSS مثل animation: fade 4s 2s
   for (const m of html.matchAll(
     /animation(?:-duration|-delay)?\s*:[^;{}]*?([0-9]+(?:\.[0-9]+)?)\s*(ms|s)\b/gi
   )) {
@@ -123,7 +124,6 @@ export function detectHtmlDurationSeconds(rawHtml) {
     }
   }
 
-  // استخراج أطول setTimeout بالمللي ثانية داخل السكربتات (غالباً لتبديل الشرائح)
   for (const m of html.matchAll(/setTimeout\s*\([^,]+,\s*([0-9]{3,6})\s*\)/gi)) {
     const ms = Number.parseFloat(m[1]);
     if (Number.isFinite(ms) && ms >= 500 && ms <= 300000) {
@@ -136,9 +136,6 @@ export function detectHtmlDurationSeconds(rawHtml) {
   return Math.round(maxDetected * 10) / 10;
 }
 
-/**
- * يستبدل أو يضيف سمة على وسم الفتح الأول لعنصر يحتوي data-composition-id أو body.
- */
 function upsertAttrOnTag(tagText, attrName, attrValue) {
   const re = new RegExp(`\\s${attrName}\\s*=\\s*(?:"[^"]*"|'[^']*'|[^\\s>]+)`, "gi");
   const cleaned = tagText.replace(re, "");
@@ -200,7 +197,6 @@ export function prepareHtmlComposition(
     html = `${resetCss}${fontReadyScript}${html}`;
   }
 
-  // إذا كان HTML يحتوي مسبقاً على data-composition-id نفرض الأبعاد والمدة المطلوبة على كل جذر تكوين لمنع التقصير
   if (/data-composition-id\s*=/i.test(html)) {
     html = html.replace(/<([a-zA-Z0-9-]+)\b([^>]*\bdata-composition-id\s*=[^>]*)>/gi, (fullTag) => {
       let updated = fullTag;
@@ -208,14 +204,12 @@ export function prepareHtmlComposition(
       updated = upsertAttrOnTag(updated, "data-height", String(evenHeight));
       updated = upsertAttrOnTag(updated, "data-duration", String(safeDuration));
       updated = upsertAttrOnTag(updated, "data-composition-duration", String(safeDuration));
-      // إزالة data-end إذا كانت أقصر من المدة المطلوبة
       updated = updated.replace(/\sdata-end\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
       return updated;
     });
     return { html, resolvedDuration: safeDuration, detectedDuration: detectedDur };
   }
 
-  // حقن سمات التكوين مباشرة على body أو تغليف المحتوى عند عدم وجود body
   if (/<body([^>]*)>/i.test(html)) {
     html = html.replace(/<body([^>]*)>/i, (fullTag) => {
       let updated = fullTag;
@@ -236,36 +230,312 @@ export function prepareHtmlComposition(
   return { html, resolvedDuration: safeDuration, detectedDuration: detectedDur };
 }
 
-async function probeOutputVideo(outputPath) {
+async function probeOutputMedia(mediaPath) {
   try {
     const { stdout } = await execFileAsync("ffprobe", [
       "-v",
       "error",
       "-show_entries",
-      "format=duration",
-      "-show_entries",
-      "stream=nb_frames,r_frame_rate,duration,width,height",
+      "format=duration:stream=codec_type,codec_name,nb_frames,r_frame_rate,duration,width,height",
       "-of",
       "json",
-      outputPath,
+      mediaPath,
     ]);
     const parsed = JSON.parse(stdout || "{}");
-    const stream = Array.isArray(parsed.streams) ? parsed.streams[0] || {} : {};
-    const fmtDur = Number.parseFloat(parsed.format?.duration || stream.duration || "");
-    const nbFrames = Number.parseInt(stream.nb_frames || "", 10);
+    const streams = Array.isArray(parsed.streams) ? parsed.streams : [];
+    const videoStream = streams.find((s) => s.codec_type === "video") || {};
+    const audioStream = streams.find((s) => s.codec_type === "audio") || null;
+    const fmtDur = Number.parseFloat(parsed.format?.duration || videoStream.duration || audioStream?.duration || "");
+    const nbFrames = Number.parseInt(videoStream.nb_frames || "", 10);
     return {
       actualDurationSeconds: Number.isFinite(fmtDur) ? Math.round(fmtDur * 100) / 100 : null,
       actualFrames: Number.isFinite(nbFrames) ? nbFrames : null,
-      actualWidth: stream.width || null,
-      actualHeight: stream.height || null,
+      actualWidth: videoStream.width || null,
+      actualHeight: videoStream.height || null,
+      hasAudio: Boolean(audioStream),
+      audioCodec: audioStream?.codec_name || null,
     };
   } catch {
     return null;
   }
 }
 
+function collectGeminiApiKeys() {
+  const keys = [];
+  const pushKey = (k) => {
+    if (k && typeof k === "object") {
+      if (typeof k.key === "string" && k.key.trim()) {
+        pushKey(k.key);
+        return;
+      }
+      if (typeof k.encoded_key === "string" && k.encoded_key.trim()) {
+        try {
+          const decoded = Buffer.from(k.encoded_key.trim(), "base64").toString("utf-8").trim();
+          if (decoded) {
+            pushKey(decoded);
+            return;
+          }
+        } catch {
+          // ignore malformed base64
+        }
+      }
+      return;
+    }
+    const trimmed = String(k || "").trim();
+    if (trimmed && trimmed !== "[object Object]" && !keys.includes(trimmed)) {
+      keys.push(trimmed);
+    }
+  };
+
+  pushKey(process.env.GEMINI_API_KEY);
+  pushKey(process.env.GOOGLE_API_KEY);
+  if (process.env.GEMINI_API_KEYS) {
+    process.env.GEMINI_API_KEYS.replace(/;/g, ",")
+      .split(",")
+      .forEach(pushKey);
+  }
+
+  // قراءة اختيارية من ملفات التهيئة المحلية داخل مساحة العمل إذا لم يُمرر المتغير البيئي
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidateConfigPaths = [
+    join(moduleDir, "..", "gemini_keys_config.json"),
+    join(process.cwd(), "gemini_keys_config.json"),
+  ];
+  for (const cfgPath of candidateConfigPaths) {
+    if (!existsSync(cfgPath)) continue;
+    try {
+      const parsed = JSON.parse(readFileSync(cfgPath, "utf-8"));
+      if (Array.isArray(parsed)) parsed.forEach(pushKey);
+      else if (Array.isArray(parsed?.keys)) parsed.keys.forEach(pushKey);
+      else if (typeof parsed?.api_key === "string") pushKey(parsed.api_key);
+    } catch {
+      // ignore unreadable config
+    }
+  }
+  return keys;
+}
+
+function wrapPcmAsWav(pcmBuffer, sampleRate = 24000, channels = 1, bitsPerSample = 16) {
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(36 + pcmBuffer.length, 4);
+  header.write("WAVE", 8, "ascii");
+  header.write("fmt ", 12, "ascii");
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(pcmBuffer.length, 40);
+  return Buffer.concat([header, pcmBuffer]);
+}
+
 /**
- * يحوّل ملف HTML إلى فيديو MP4 (أو WebM / MOV / GIF / PNG Sequence) مع الالتزام الصارم بالمدة المحددة.
+ * يولّد ملف WAV ناطق من نص `ttsText` عبر Gemini TTS (`gemini-3.8-flash-lite-tts` ثم `gemini-3.8-flash-tts`).
+ */
+export async function synthesizeTtsAudioToWav({
+  ttsText,
+  outputWavPath,
+  voiceName = "Kore",
+  styleInstruction = "",
+}) {
+  const text = String(ttsText || "").trim();
+  if (!text) {
+    throw new Error("نص التعليق الصوتي (ttsText) فارغ.");
+  }
+  const keys = collectGeminiApiKeys();
+  if (!keys.length) {
+    throw new Error("لا يتوفر مفتاح GEMINI_API_KEY لتوليد الصوت من النص (ttsText).");
+  }
+
+  const safeVoice = VALID_TTS_VOICES.has(voiceName) ? voiceName : "Kore";
+  const models = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"];
+  let lastError = "";
+
+  for (const key of keys.slice(0, 5)) {
+    for (const model of models) {
+      try {
+        const part = { text };
+        if (styleInstruction) {
+          part.speechMetadata = { style: styleInstruction };
+        }
+        const payload = {
+          contents: [{ role: "user", parts: [part] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: safeVoice },
+              },
+            },
+          },
+        };
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-goog-api-key": key,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+          lastError = `HTTP ${resp.status}`;
+          if (resp.status === 403 || resp.status === 429) break;
+          continue;
+        }
+
+        const data = await resp.json();
+        const inline = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        const b64 = inline?.data || "";
+        const mime = String(inline?.mimeType || "").toLowerCase();
+        if (!b64) continue;
+
+        const rawBuf = Buffer.from(b64, "base64");
+        let wavBuf = rawBuf;
+        if (!(rawBuf.subarray(0, 4).toString("ascii") === "RIFF" && (!mime || mime.includes("wav")))) {
+          const rateMatch = mime.match(/rate=(\d+)/i);
+          const sampleRate = rateMatch ? Number.parseInt(rateMatch[1], 10) : 24000;
+          wavBuf = wrapPcmAsWav(rawBuf, sampleRate, 1, 16);
+        }
+
+        await mkdir(dirname(outputWavPath), { recursive: true });
+        await writeFile(outputWavPath, wavBuf);
+        return outputWavPath;
+      } catch (err) {
+        lastError = err?.message || String(err);
+      }
+    }
+  }
+
+  throw new Error(`تعذر توليد الصوت النصي عبر Gemini TTS: ${lastError || "فشل الاتصال"}`);
+}
+
+function buildAtempoFilters(ratio) {
+  const filters = [];
+  let r = ratio;
+  while (r > 2.0) {
+    filters.push("atempo=2.0");
+    r /= 2.0;
+  }
+  while (r < 0.5) {
+    filters.push("atempo=0.5");
+    r /= 0.5;
+  }
+  filters.push(`atempo=${r.toFixed(3)}`);
+  return filters;
+}
+
+/**
+ * يزامن ملف الصوت (سواء مرفوع `audioPath` أو مولّد من `ttsText`) مع المدة الدقيقة للفيديو ويدمجه عبر FFmpeg.
+ */
+async function mergeAudioWithVideo({
+  videoPath,
+  sourceAudioPath,
+  format,
+  targetDurationSeconds,
+  audioFitMode = "fit_pad_trim",
+  audioVolume = 1.0,
+}) {
+  const dur = Math.max(0.5, Number(targetDurationSeconds) || 5);
+  const vol = Math.max(0.05, Math.min(2.0, Number(audioVolume) || 1.0));
+  const mode = ["fit_pad_trim", "loop", "fit_tempo"].includes(audioFitMode) ? audioFitMode : "fit_pad_trim";
+
+  const srcProbe = await probeOutputMedia(sourceAudioPath);
+  const srcDur = Number(srcProbe?.actualDurationSeconds) || dur;
+
+  const workDir = dirname(videoPath);
+  const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const fittedWavPath = join(workDir, `.hf-audio-${uid}.wav`);
+  const tmpMuxedPath = join(workDir, `.hf-mux-${uid}-${basename(videoPath)}`);
+
+  try {
+    const filters = [`volume=${vol.toFixed(2)}`];
+    const fitArgs = ["-y"];
+
+    if (mode === "loop" && srcDur < dur - 0.15) {
+      fitArgs.push("-stream_loop", "-1", "-i", sourceAudioPath);
+    } else if (mode === "fit_tempo" && srcDur > 0.4) {
+      const ratio = srcDur / dur;
+      if (ratio >= 0.75 && ratio <= 1.5 && Math.abs(ratio - 1.0) > 0.04) {
+        filters.push(...buildAtempoFilters(ratio));
+      }
+      fitArgs.push("-i", sourceAudioPath);
+    } else {
+      fitArgs.push("-i", sourceAudioPath);
+    }
+
+    const fadeOutStart = Math.max(0, dur - 0.45);
+    filters.push(`apad=whole_dur=${dur.toFixed(3)}`);
+    filters.push(`atrim=0:${dur.toFixed(3)}`);
+    filters.push("asetpts=PTS-STARTPTS");
+    filters.push("afade=t=in:st=0:d=0.12");
+    filters.push(`afade=t=out:st=${fadeOutStart.toFixed(3)}:d=0.45`);
+
+    fitArgs.push("-vn", "-af", filters.join(","), "-ac", "2", "-ar", "44100", fittedWavPath);
+    await execFileAsync("ffmpeg", fitArgs);
+
+    const audioCodec = format === "webm" ? "libopus" : "aac";
+    const muxArgs = [
+      "-y",
+      "-i",
+      videoPath,
+      "-i",
+      fittedWavPath,
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "copy",
+      "-c:a",
+      audioCodec,
+      "-b:a",
+      "192k",
+      "-t",
+      dur.toFixed(3),
+    ];
+    if (format === "mp4") {
+      muxArgs.push("-movflags", "+faststart");
+    }
+    muxArgs.push(tmpMuxedPath);
+
+    await execFileAsync("ffmpeg", muxArgs);
+    await rename(tmpMuxedPath, videoPath);
+  } finally {
+    await rm(fittedWavPath, { force: true }).catch(() => {});
+    await rm(tmpMuxedPath, { force: true }).catch(() => {});
+  }
+}
+
+/**
+ * يحوّل ملف HTML إلى فيديو MP4 (أو WebM / MOV / GIF / PNG Sequence) مع الالتزام بالمدة ومزامنة الصوت عبر FFmpeg.
+ *
+ * @param {Object} options
+ * @param {string} options.inputPath - مسار ملف HTML المراد تحويله
+ * @param {string} options.outputPath - مسار ملف الفيديو الناتج
+ * @param {number} [options.width=1920] - عرض الفيديو بالبكسل
+ * @param {number} [options.height=1080] - ارتفاع الفيديو بالبكسل
+ * @param {number} [options.fps=30] - معدل الإطارات في الثانية
+ * @param {number} [options.duration=5] - مدة الفيديو بالثواني
+ * @param {string} [options.durationMode="exact"] - وضع الالتزام بالوقت ("exact", "auto_min", "from_html")
+ * @param {number} [options.deviceScaleFactor=1] - معامل التكبير (1x أو 2x لـ 4K)
+ * @param {string} [options.quality="standard"] - جودة الترميز ("draft", "standard", "high")
+ * @param {string} [options.format="mp4"] - صيغة الإخراج ("mp4", "webm", "mov", "gif", "png-sequence")
+ * @param {string} [options.videoFrameFormat="auto"] - صيغة التقاط الإطارات ("auto", "jpg", "png")
+ * @param {boolean} [options.removeMargins=true] - إزالة الهوامش الافتراضية تلقائياً
+ * @param {string} [options.audioPath] - مسار ملف صوتي مرفوع لدمجه ومزامنته مع الفيديو عبر FFmpeg
+ * @param {string} [options.ttsText] - نص يتم تحويله إلى تعليق صوتي عبر Gemini TTS ودمجه مع الفيديو
+ * @param {string} [options.voiceName="Kore"] - نبرة الصوت النصي ("Kore", "Charon", "Puck", "Fenrir", "Zephyr")
+ * @param {string} [options.audioFitMode="fit_pad_trim"] - طريقة مواءمة طول الصوت ("fit_pad_trim", "loop", "fit_tempo")
+ * @param {number} [options.audioVolume=1.0] - مستوى الصوت (0.05 - 2.0)
+ * @param {Function} [options.onProgress] - دالة تتبع التقدم
  */
 export async function renderHtmlToVideo({
   inputPath,
@@ -280,11 +550,22 @@ export async function renderHtmlToVideo({
   format = "mp4",
   videoFrameFormat = "auto",
   removeMargins = true,
+  audioPath,
+  ttsText,
+  voiceName = "Kore",
+  audioFitMode = "fit_pad_trim",
+  audioVolume = 1.0,
   onProgress,
 }) {
   if (!inputPath || !outputPath) {
     throw new Error("يجب تحديد مسار الإدخال (inputPath) ومسار الإخراج (outputPath).");
   }
+
+  const resolvedAudioInput = audioPath ? resolve(String(audioPath)) : null;
+  if (resolvedAudioInput && !existsSync(resolvedAudioInput)) {
+    throw new Error(`الملف الصوتي المحدد غير موجود: ${resolvedAudioInput}`);
+  }
+  const cleanTtsText = ttsText ? String(ttsText).trim() : "";
 
   const absInputPath = resolve(inputPath);
   const absOutputPath = resolve(outputPath);
@@ -317,6 +598,7 @@ export async function renderHtmlToVideo({
   const validFormat = ["mp4", "webm", "mov", "gif", "png-sequence"].includes(format) ? format : "mp4";
   const validFrameFmt = ["auto", "jpg", "png"].includes(videoFrameFormat) ? videoFrameFormat : "auto";
   const safeFps = Math.max(1, Math.min(60, Math.round(Number(fps) || 30)));
+  const hasAudioInput = Boolean(resolvedAudioInput || cleanTtsText) && ["mp4", "webm", "mov"].includes(validFormat);
 
   const targetPresetKey = `${targetWidth}x${targetHeight}`;
   const outputResolution = dpr > 1 ? PRESET_RESOLUTIONS.get(targetPresetKey) : undefined;
@@ -338,6 +620,7 @@ export async function renderHtmlToVideo({
     ...(outputResolution ? { outputResolution } : {}),
   };
 
+  const tempTtsWavPath = join(projectDir, `.hf-tts-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.wav`);
   const startedAt = Date.now();
   try {
     const job = createRenderJob(jobConfig);
@@ -345,10 +628,44 @@ export async function renderHtmlToVideo({
     await executeRenderJob(job, projectDir, absOutputPath, (currentJob, message) => {
       if (onProgress) {
         const rawProgress = typeof currentJob?.progress === "number" ? currentJob.progress : 0;
-        const percent = rawProgress <= 1 ? Math.round(rawProgress * 100) : Math.min(100, Math.round(rawProgress));
+        const rawPct = rawProgress <= 1 ? Math.round(rawProgress * 100) : Math.min(100, Math.round(rawProgress));
+        const percent = hasAudioInput ? Math.min(88, Math.round(rawPct * 0.88)) : rawPct;
         onProgress(percent, message || currentJob?.currentStage || "");
       }
     });
+
+    const baseProbe = validFormat !== "png-sequence" ? await probeOutputMedia(absOutputPath) : null;
+    const videoTargetDuration =
+      baseProbe?.actualDurationSeconds || job.duration || job.perfSummary?.compositionDurationSeconds || resolvedDuration;
+
+    let audioSourceType = null;
+    if (hasAudioInput) {
+      let sourceAudioPath = resolvedAudioInput;
+      if (!sourceAudioPath && cleanTtsText) {
+        if (onProgress) onProgress(90, "توليد التعليق الصوتي من النص (Gemini TTS)...");
+        sourceAudioPath = await synthesizeTtsAudioToWav({
+          ttsText: cleanTtsText,
+          outputWavPath: tempTtsWavPath,
+          voiceName,
+        });
+        audioSourceType = "tts";
+      } else {
+        audioSourceType = "file";
+      }
+
+      if (sourceAudioPath) {
+        if (onProgress) onProgress(95, "مزامنة ودمج الصوت مع الفيديو عبر FFmpeg...");
+        await mergeAudioWithVideo({
+          videoPath: absOutputPath,
+          sourceAudioPath,
+          format: validFormat,
+          targetDurationSeconds: videoTargetDuration,
+          audioFitMode,
+          audioVolume,
+        });
+      }
+      if (onProgress) onProgress(100, "اكتمل تصيير الفيديو ودمج الصوت");
+    }
 
     let fileSize = 0;
     try {
@@ -358,27 +675,30 @@ export async function renderHtmlToVideo({
       fileSize = 0;
     }
 
-    const probed = validFormat !== "png-sequence" ? await probeOutputVideo(absOutputPath) : null;
+    const finalProbe = validFormat !== "png-sequence" ? await probeOutputMedia(absOutputPath) : null;
     const elapsedMs = Date.now() - startedAt;
 
     return {
       success: true,
       outputPath: absOutputPath,
-      width: probed?.actualWidth || job.perfSummary?.resolution?.width || targetWidth,
-      height: probed?.actualHeight || job.perfSummary?.resolution?.height || targetHeight,
+      width: finalProbe?.actualWidth || job.perfSummary?.resolution?.width || targetWidth,
+      height: finalProbe?.actualHeight || job.perfSummary?.resolution?.height || targetHeight,
       fps: safeFps,
       format: validFormat,
       quality: validQuality,
       duration: elapsedMs,
       requestedDurationSeconds: resolvedDuration,
       detectedHtmlDurationSeconds: detectedDuration,
-      compositionDurationSeconds:
-        probed?.actualDurationSeconds || job.duration || job.perfSummary?.compositionDurationSeconds || resolvedDuration,
-      frameCount: probed?.actualFrames || job.totalFrames || job.framesRendered || job.perfSummary?.totalFrames || null,
+      compositionDurationSeconds: finalProbe?.actualDurationSeconds || videoTargetDuration,
+      frameCount: finalProbe?.actualFrames || job.totalFrames || job.framesRendered || job.perfSummary?.totalFrames || null,
+      hasAudio: Boolean(finalProbe?.hasAudio),
+      audioCodec: finalProbe?.audioCodec || null,
+      audioSource: audioSourceType,
       fileSize,
       stages: job.perfSummary?.stages || {},
     };
   } finally {
     await rm(workEntryPath, { force: true }).catch(() => {});
+    await rm(tempTtsWavPath, { force: true }).catch(() => {});
   }
 }

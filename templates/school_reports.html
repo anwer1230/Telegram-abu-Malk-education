@@ -324,7 +324,10 @@
     .eval-table input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; accent-color: var(--success); }
 
     /* ==================== صناديق الشواهد ==================== */
-    .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 20px 0; page-break-inside: avoid; }
+    .evidence-grid {
+        display: grid; grid-template-columns: repeat(var(--ev-cols, 3), minmax(0, 1fr));
+        gap: 18px; margin: 20px 0; page-break-inside: avoid;
+    }
     .evidence-box {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         border: 2px dashed #cbd5e1; border-radius: 10px; padding: 10px;
@@ -333,14 +336,25 @@
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 8px; overflow: hidden; position: relative;
     }
-    .evidence-box.photo-box { padding: 0; border-style: solid; border-color: #93c5fd; }
+    .evidence-box.photo-box {
+        padding: 6px; border-style: solid; border-color: #93c5fd;
+        background: #ffffff; min-height: 0;
+    }
     .evidence-box:hover { border-color: var(--primary-light); transform: scale(1.01); }
     .evidence-box .icon { font-size: 3em; }
     .evidence-box .label { font-size: 1em; padding: 10px; }
     .evidence-box > img.witness-photo {
-        width: 100%; height: 100%; object-fit: cover; border-radius: 8px;
-        position: absolute; top: 0; left: 0; cursor: pointer;
+        width: 100%;
+        height: var(--ev-img-h, 220px);
+        object-fit: var(--ev-img-fit, contain);
+        border-radius: 8px;
+        position: static;
+        display: block;
+        cursor: pointer;
     }
+    .evidence-box.fit-cover { padding: 0; }
+    .evidence-box.fit-cover > img.witness-photo { border-radius: 8px; }
+    .evidence-box.auto-height > img.witness-photo { height: auto; max-height: 640px; }
     .evidence-box .qr-container {
         padding: 8px; background: #ffffff; border-radius: 8px;
         border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;
@@ -422,13 +436,29 @@
     .remove-img { position: absolute; top: 3px; right: 3px; background: #ef4444; color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; font-weight: 900; }
 
     /* ==================== أزرار إضافة الشواهد ==================== */
-    .witness-actions { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+    .witness-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center; margin-top: 10px; }
     .witness-actions button {
-        background: var(--primary); color: white; border: none; padding: 8px 18px;
-        border-radius: 8px; cursor: pointer; font-size: 14px; font-family: inherit; font-weight: 700;
-        display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(30,58,138,0.2);
+        background: var(--primary); color: white; border: none; padding: 7px 14px;
+        border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit; font-weight: 700;
+        display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(30,58,138,0.2);
     }
     .witness-actions button:hover { background: var(--primary-light); transform: translateY(-1px); }
+    .witness-actions .wa-mini-btn {
+        background: #475569; padding: 6px 10px; font-size: 12px;
+    }
+    .witness-actions .wa-mini-btn:hover { background: #1e293b; }
+    .witness-actions .wa-size-badge {
+        background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe;
+        padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 900;
+    }
+    .witness-ctrl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .witness-ctrl-btn {
+        background: #fff; color: #334155; border: 1.5px solid #cbd5e1;
+        padding: 6px 10px; border-radius: 6px; cursor: pointer;
+        font-family: inherit; font-size: 12px; font-weight: 700;
+    }
+    .witness-ctrl-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+    .witness-ctrl-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
     /* ==================== شاشة تقدم PDF والعارض ==================== */
     .pdf-overlay {
@@ -624,6 +654,53 @@
             <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
             <div style="font-size:12px;color:#64748b;margin-top:6px;">يمكنك اختيار صورة أو عدة صور معاً وسيتم ضغطها تلقائياً لسرعة الحفظ والطباعة.</div>
             <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        </div>
+        <div class="modal-section">
+            <h4>📐 التحكم بحجم ومكان صور الشواهد</h4>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                    <div style="font-size:13px;color:#334155;margin-bottom:5px;display:flex;justify-content:space-between;">
+                        <span>📏 ارتفاع الصورة:</span>
+                        <strong id="srSizeLabel" style="color:var(--primary);">240 بكسل</strong>
+                    </div>
+                    <input type="range" id="srSizeRange" min="140" max="560" step="10" value="240" style="width:100%;accent-color:var(--primary);" oninput="setReportModalSize(parseInt(this.value,10))">
+                    <div class="witness-ctrl-row" style="margin-top:6px;">
+                        <button type="button" class="witness-ctrl-btn" data-sr-preset="small" onclick="applyReportPreset(180, 3)">صغير (3 بالصف)</button>
+                        <button type="button" class="witness-ctrl-btn" data-sr-preset="medium" onclick="applyReportPreset(260, 2)">متوسط (2 بالصف)</button>
+                        <button type="button" class="witness-ctrl-btn" data-sr-preset="large" onclick="applyReportPreset(360, 1)">كبير (1 بعرض الصفحة)</button>
+                        <button type="button" class="witness-ctrl-btn" data-sr-preset="xlarge" onclick="applyReportPreset(480, 1)">ضخم (480px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-sr-preset="auto" onclick="applyReportPreset('auto', 1)">طبيعي كامل العرض</button>
+                    </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🔢 عدد الصور في الصف:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-sr-cols="1" onclick="setReportModalCols(1)">1 (كاملة)</button>
+                            <button type="button" class="witness-ctrl-btn" data-sr-cols="2" onclick="setReportModalCols(2)">2</button>
+                            <button type="button" class="witness-ctrl-btn" data-sr-cols="3" onclick="setReportModalCols(3)">3</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🖼️ أسلوب عرض الصورة:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-sr-fit="contain" onclick="setReportModalFit('contain')">كاملة بدون قص</button>
+                            <button type="button" class="witness-ctrl-btn" data-sr-fit="cover" onclick="setReportModalFit('cover')">ملء الإطار</button>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:12px;color:#475569;margin-bottom:4px;">📍 موضع الشواهد داخل التقرير:</div>
+                    <div class="witness-ctrl-row">
+                        <button type="button" class="witness-ctrl-btn" onclick="moveWitnessBlockTo('top')">⬆️ تحت العنوان تماماً</button>
+                        <button type="button" class="witness-ctrl-btn" onclick="moveWitnessBlockTo('after-table')">📋 بعد جدول البيانات</button>
+                        <button type="button" class="witness-ctrl-btn" onclick="moveWitnessBlockTo('bottom')">⬇️ أسفل التقرير</button>
+                    </div>
+                </div>
+                <div style="padding-top:6px;border-top:1px dashed #cbd5e1;">
+                    <button type="button" onclick="applyReportWitnessStyleToAll()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">📌 تطبيق نفس الحجم على جميع التقارير</button>
+                </div>
+            </div>
         </div>
         <div class="modal-section">
             <h4>🔗 إضافة رابط (يتحول إلى باركود QR تلقائياً)</h4>
@@ -2027,6 +2104,227 @@ function resolveEvidenceGrid(triggerEl) {
     return null;
 }
 
+let currentReportWitnessCfg = {
+    imgHeight: 240,
+    cols: 2,
+    fit: 'contain'
+};
+
+function getReportWitnessCfg(grid) {
+    if (!grid) return { imgHeight: 240, cols: 2, fit: 'contain' };
+    const hRaw = grid.dataset.imgHeight;
+    const imgHeight = hRaw === 'auto' ? 'auto' : Math.max(140, Math.min(560, parseInt(hRaw || '240', 10) || 240));
+    const cols = [1, 2, 3].includes(Number(grid.dataset.cols)) ? Number(grid.dataset.cols) : 2;
+    const fit = grid.dataset.imgFit === 'cover' ? 'cover' : 'contain';
+    return { imgHeight, cols, fit };
+}
+
+function syncReportModalUI() {
+    const { imgHeight, cols, fit } = currentReportWitnessCfg;
+    const range = document.getElementById('srSizeRange');
+    const label = document.getElementById('srSizeLabel');
+    if (range) range.value = imgHeight === 'auto' ? 480 : imgHeight;
+    if (label) label.textContent = imgHeight === 'auto' ? 'طبيعي (بدون قص)' : `${imgHeight} بكسل`;
+
+    document.querySelectorAll('[data-sr-cols]').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.srCols) === cols);
+    });
+    document.querySelectorAll('[data-sr-fit]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.srFit === fit);
+    });
+    document.querySelectorAll('[data-sr-preset]').forEach(btn => {
+        const p = btn.dataset.srPreset;
+        const active = (p === 'small' && imgHeight === 180 && cols === 3)
+            || (p === 'medium' && imgHeight === 260 && cols === 2)
+            || (p === 'large' && imgHeight === 360 && cols === 1)
+            || (p === 'xlarge' && imgHeight === 480 && cols === 1)
+            || (p === 'auto' && imgHeight === 'auto' && cols === 1);
+        btn.classList.toggle('active', active);
+    });
+}
+
+function setReportModalSize(val) {
+    currentReportWitnessCfg.imgHeight = Math.max(140, Math.min(560, Number(val) || 240));
+    syncReportModalUI();
+}
+
+function applyReportPreset(height, cols) {
+    currentReportWitnessCfg.imgHeight = height === 'auto' ? 'auto' : Math.max(140, Math.min(560, Number(height) || 240));
+    currentReportWitnessCfg.cols = [1, 2, 3].includes(Number(cols)) ? Number(cols) : 2;
+    syncReportModalUI();
+}
+
+function setReportModalCols(cols) {
+    currentReportWitnessCfg.cols = [1, 2, 3].includes(Number(cols)) ? Number(cols) : 2;
+    syncReportModalUI();
+}
+
+function setReportModalFit(fit) {
+    currentReportWitnessCfg.fit = fit === 'cover' ? 'cover' : 'contain';
+    syncReportModalUI();
+}
+
+function applyReportWitnessStyleToAll() {
+    let count = 0;
+    document.querySelectorAll('#mainContainer .evidence-grid').forEach(grid => {
+        grid.dataset.imgHeight = String(currentReportWitnessCfg.imgHeight);
+        grid.dataset.cols = String(currentReportWitnessCfg.cols);
+        grid.dataset.imgFit = currentReportWitnessCfg.fit;
+        renderWitnesses(grid);
+        count++;
+    });
+    setStatus(`✅ تم تطبيق حجم عرض الصور على ${count} تقرير`);
+}
+
+function getWitnessSectionNodes(grid) {
+    if (!grid) return null;
+    const parent = grid.closest('.report, .single-page-report');
+    if (!parent) return null;
+    let heading = grid.previousElementSibling;
+    if (!heading || !heading.classList.contains('sub-heading')) heading = null;
+    let actions = grid.nextElementSibling;
+    if (!actions || !actions.classList.contains('witness-actions')) actions = null;
+    return { parent, heading, grid, actions };
+}
+
+function moveWitnessBlockTo(targetPos, gridOverride) {
+    const grid = gridOverride || currentWitnessContainer;
+    const nodes = getWitnessSectionNodes(grid);
+    if (!nodes) return;
+    const { parent, heading, actions } = nodes;
+    const items = [heading, grid, actions].filter(Boolean);
+
+    let anchor = null;
+    if (targetPos === 'top') {
+        const titleEl = parent.querySelector('.report-title');
+        anchor = titleEl ? titleEl.nextSibling : parent.firstChild;
+        items.forEach(n => parent.insertBefore(n, anchor));
+        setStatus('⬆️ تم نقل الشواهد تحت عنوان التقرير مباشرة');
+    } else if (targetPos === 'after-table') {
+        const tbl = parent.querySelector('.info-table, table');
+        anchor = tbl ? tbl.nextSibling : (parent.querySelector('.report-title')?.nextSibling || null);
+        items.forEach(n => parent.insertBefore(n, anchor));
+        setStatus('📋 تم نقل الشواهد بعد جدول البيانات مباشرة');
+    } else if (targetPos === 'bottom') {
+        const sigs = parent.querySelector('.signatures');
+        items.forEach(n => parent.insertBefore(n, sigs || null));
+        setStatus('⬇️ تم نقل الشواهد لأسفل التقرير');
+    }
+    refreshWitnessInlineBars(grid);
+}
+
+function nudgeWitnessBlock(btn, dir) {
+    const grid = resolveEvidenceGrid(btn);
+    const nodes = getWitnessSectionNodes(grid);
+    if (!nodes) return;
+    const { parent, heading, actions } = nodes;
+    const firstNode = heading || grid;
+    const lastNode = actions || grid;
+    const items = [heading, grid, actions].filter(Boolean);
+
+    if (dir < 0) {
+        let prev = firstNode.previousElementSibling;
+        while (prev && (prev.classList.contains('page-ctrl-bar') || prev.classList.contains('report-title'))) {
+            if (prev.classList.contains('report-title')) { prev = null; break; }
+            prev = prev.previousElementSibling;
+        }
+        if (!prev) { setStatus('وصل قسم الشواهد إلى أعلى التقرير'); return; }
+        items.forEach(n => parent.insertBefore(n, prev));
+        setStatus('⬆️ تم تقديم الشواهد خطوة للأعلى');
+    } else {
+        let next = lastNode.nextElementSibling;
+        if (!next || next.classList.contains('signatures')) {
+            setStatus('وصل قسم الشواهد إلى أسفل التقرير');
+            return;
+        }
+        const afterNext = next.nextSibling;
+        items.forEach(n => parent.insertBefore(n, afterNext));
+        setStatus('⬇️ تم تأخير الشواهد خطوة للأسفل');
+    }
+}
+
+function quickResizeReportWitness(btn, delta) {
+    const grid = resolveEvidenceGrid(btn);
+    if (!grid) return;
+    const cfg = getReportWitnessCfg(grid);
+    const baseH = cfg.imgHeight === 'auto' ? 380 : cfg.imgHeight;
+    const nextH = Math.max(140, Math.min(560, baseH + delta));
+    grid.dataset.imgHeight = String(nextH);
+    if (nextH >= 320 && cfg.cols === 3) grid.dataset.cols = '1';
+    renderWitnesses(grid);
+}
+
+function quickCycleReportCols(btn) {
+    const grid = resolveEvidenceGrid(btn);
+    if (!grid) return;
+    const cfg = getReportWitnessCfg(grid);
+    const nextCols = cfg.cols === 3 ? 2 : (cfg.cols === 2 ? 1 : 3);
+    grid.dataset.cols = String(nextCols);
+    if (nextCols === 1 && cfg.imgHeight !== 'auto' && cfg.imgHeight < 300) {
+        grid.dataset.imgHeight = '340';
+    }
+    renderWitnesses(grid);
+}
+
+function refreshWitnessInlineBars(grid) {
+    if (!grid) return;
+    const actionsDiv = grid.nextElementSibling;
+    if (!actionsDiv || !actionsDiv.classList.contains('witness-actions')) return;
+    const cfg = getReportWitnessCfg(grid);
+    const hasPhotos = (() => {
+        try { return JSON.parse(grid.dataset.images || '[]').length > 0; } catch (e) { return false; }
+    })();
+
+    actionsDiv.querySelectorAll('.wa-dyn').forEach(el => el.remove());
+    if (!hasPhotos) return;
+
+    const sizeBadge = document.createElement('span');
+    sizeBadge.className = 'wa-size-badge wa-dyn';
+    sizeBadge.textContent = `${cfg.imgHeight === 'auto' ? 'كامل' : cfg.imgHeight + 'px'} · ${cfg.cols} بالصف`;
+
+    const btnMinus = document.createElement('button');
+    btnMinus.type = 'button';
+    btnMinus.className = 'wa-mini-btn wa-dyn';
+    btnMinus.title = 'تصغير الصور';
+    btnMinus.textContent = '➖ تصغير';
+    btnMinus.onclick = function() { quickResizeReportWitness(this, -40); };
+
+    const btnPlus = document.createElement('button');
+    btnPlus.type = 'button';
+    btnPlus.className = 'wa-mini-btn wa-dyn';
+    btnPlus.title = 'تكبير الصور';
+    btnPlus.textContent = '➕ تكبير';
+    btnPlus.onclick = function() { quickResizeReportWitness(this, 40); };
+
+    const btnCols = document.createElement('button');
+    btnCols.type = 'button';
+    btnCols.className = 'wa-mini-btn wa-dyn';
+    btnCols.title = 'تغيير عدد الصور في الصف';
+    btnCols.textContent = `⊞ ${cfg.cols} بالصف`;
+    btnCols.onclick = function() { quickCycleReportCols(this); };
+
+    const btnUp = document.createElement('button');
+    btnUp.type = 'button';
+    btnUp.className = 'wa-mini-btn wa-dyn';
+    btnUp.title = 'نقل موضع الشواهد للأعلى تحت العنصر السابق';
+    btnUp.textContent = '⬆️ لأعلى';
+    btnUp.onclick = function() { nudgeWitnessBlock(this, -1); };
+
+    const btnDown = document.createElement('button');
+    btnDown.type = 'button';
+    btnDown.className = 'wa-mini-btn wa-dyn';
+    btnDown.title = 'نقل موضع الشواهد للأسفل';
+    btnDown.textContent = '⬇️ لأسفل';
+    btnDown.onclick = function() { nudgeWitnessBlock(this, 1); };
+
+    actionsDiv.appendChild(btnPlus);
+    actionsDiv.appendChild(btnMinus);
+    actionsDiv.appendChild(sizeBadge);
+    actionsDiv.appendChild(btnCols);
+    actionsDiv.appendChild(btnUp);
+    actionsDiv.appendChild(btnDown);
+}
+
 function openWitnessModal(btn) {
     currentWitnessContainer = resolveEvidenceGrid(btn);
     if (!currentWitnessContainer) {
@@ -2047,6 +2345,8 @@ function openWitnessModal(btn) {
         }
     } catch (e) { currentLinks = []; }
 
+    currentReportWitnessCfg = getReportWitnessCfg(currentWitnessContainer);
+
     document.getElementById('imagePreviewGrid').innerHTML = '';
     document.getElementById('linkList').innerHTML = '';
     document.getElementById('imageInput').value = '';
@@ -2055,6 +2355,7 @@ function openWitnessModal(btn) {
 
     renderPreviews();
     renderLinkList();
+    syncReportModalUI();
 
     document.getElementById('witnessModal').classList.add('show');
 }
@@ -2221,9 +2522,12 @@ function saveWitness() {
     }
     currentWitnessContainer.dataset.images = JSON.stringify(currentImages);
     currentWitnessContainer.dataset.links = JSON.stringify(currentLinks);
+    currentWitnessContainer.dataset.imgHeight = String(currentReportWitnessCfg.imgHeight);
+    currentWitnessContainer.dataset.cols = String(currentReportWitnessCfg.cols);
+    currentWitnessContainer.dataset.imgFit = currentReportWitnessCfg.fit;
     renderWitnesses(currentWitnessContainer);
     closeWitnessModal();
-    setStatus('✅ تم حفظ الشواهد وتحويل الروابط إلى باركود QR');
+    setStatus('✅ تم حفظ الشواهد وإعدادات الحجم والموضع');
 }
 
 function deleteSingleWitness(grid, type, idx) {
@@ -2245,11 +2549,17 @@ function renderWitnesses(container) {
     let links = [];
     try { images = JSON.parse(container.dataset.images || '[]'); } catch (e) { images = []; }
     try { links = JSON.parse(container.dataset.links || '[]'); } catch (e) { links = []; }
+    const cfg = getReportWitnessCfg(container);
+    container.style.setProperty('--ev-cols', String(cfg.cols));
+    container.style.setProperty('--ev-img-h', cfg.imgHeight === 'auto' ? 'auto' : `${cfg.imgHeight}px`);
+    container.style.setProperty('--ev-img-fit', cfg.fit);
     container.innerHTML = '';
 
     images.forEach((imgSrc, idx) => {
         const box = document.createElement('div');
-        box.className = 'evidence-box photo-box';
+        box.className = 'evidence-box photo-box'
+            + (cfg.fit === 'cover' ? ' fit-cover' : '')
+            + (cfg.imgHeight === 'auto' ? ' auto-height' : '');
 
         const img = document.createElement('img');
         img.className = 'witness-photo';
@@ -2272,6 +2582,8 @@ function renderWitnesses(container) {
         box.appendChild(delBtn);
         container.appendChild(box);
     });
+
+    refreshWitnessInlineBars(container);
 
     links.forEach((link, idx) => {
         const box = document.createElement('div');

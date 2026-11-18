@@ -88,10 +88,14 @@
         .add-page-bar { display: none !important; }
         .fmt-bar { display: none !important; }
         .witness-actions { display: none !important; }
+        .witness-quick-bar { display: none !important; }
         .witness-modal { display: none !important; }
-        .witness-thumbnails { display: none !important; }
+        .witness-below-hint { display: none !important; }
+        .witness-thumbnails { display: flex !important; }
+        .witness-thumb .remove-thumb { display: none !important; }
         .witness-qr { display: block !important; }
         .witness-info .link-count { display: none !important; }
+        .page.has-overflow-witness { height: auto !important; min-height: 297mm !important; overflow: visible !important; }
     }
 
     /* ===== وضع معاينة قبل الطباعة ===== */
@@ -121,9 +125,13 @@
     body.print-preview-mode .add-page-bar,
     body.print-preview-mode .fmt-bar,
     body.print-preview-mode .witness-actions,
+    body.print-preview-mode .witness-quick-bar,
     body.print-preview-mode .witness-modal,
-    body.print-preview-mode .witness-thumbnails,
+    body.print-preview-mode .witness-below-hint,
+    body.print-preview-mode .witness-thumb .remove-thumb,
     body.print-preview-mode .witness-info .link-count { display: none !important; }
+    body.print-preview-mode .witness-thumbnails { display: flex !important; }
+    body.print-preview-mode .page.has-overflow-witness { height: auto !important; min-height: 1123px !important; overflow: visible !important; }
     body.print-preview-mode .witness-qr { display: block !important; }
     body.print-preview-mode .editable-area,
     body.print-preview-mode .cell-content {
@@ -175,10 +183,13 @@
     body.pdf-exporting .add-page-bar,
     body.pdf-exporting .fmt-bar,
     body.pdf-exporting .witness-actions,
+    body.pdf-exporting .witness-quick-bar,
     body.pdf-exporting .witness-modal,
-    body.pdf-exporting .witness-thumbnails,
+    body.pdf-exporting .witness-below-hint,
+    body.pdf-exporting .witness-thumb .remove-thumb,
     body.pdf-exporting .witness-info .link-count,
     body.pdf-exporting .preview-page-badge { display: none !important; }
+    body.pdf-exporting .witness-thumbnails { display: flex !important; }
     body.pdf-exporting .witness-qr { display: block !important; }
     body.pdf-exporting .editable-area,
     body.pdf-exporting .cell-content { background: transparent !important; box-shadow: none !important; outline: none !important; }
@@ -613,25 +624,132 @@
         margin-top: 3px;
     }
     .witness-thumbnails {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
         width: 100%;
-        justify-items: center;
+        justify-content: center;
+        align-items: flex-start;
     }
+    .witness-thumbnails.cols-1 .witness-thumb { flex: 0 0 auto; }
     .witness-thumb {
-        position: relative; width: 100%; aspect-ratio: 1;
-        border-radius: 5px; overflow: hidden;
-        border: 1.5px solid var(--purple); cursor: pointer;
-        max-width: 70px;
+        position: relative;
+        width: var(--thumb-w, 150px);
+        max-width: 100%;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1.5px solid var(--purple);
+        cursor: pointer;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
-    .witness-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .witness-thumb img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
+    }
+    .witness-thumb.crop-square {
+        aspect-ratio: 1;
+    }
+    .witness-thumb.crop-square img {
+        height: 100%;
+        object-fit: cover;
+    }
     .witness-thumb .remove-thumb {
-        position: absolute; top: 1px; right: 1px;
-        background: #c0392b; color: white; border: none;
-        width: 16px; height: 16px; border-radius: 50%;
-        font-size: 10px; cursor: pointer; line-height: 1;
+        position: absolute; top: 4px; right: 4px;
+        background: rgba(192, 57, 43, 0.92); color: white; border: none;
+        width: 20px; height: 20px; border-radius: 50%;
+        font-size: 11px; cursor: pointer; line-height: 1;
         display: flex; align-items: center; justify-content: center;
+        z-index: 3;
+    }
+    .witness-below-container {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(139, 124, 181, 0.5);
+        width: 100%;
+    }
+    .witness-below-container .witness-thumbnails {
+        justify-content: flex-start;
+    }
+    .witness-subrow td.witness-subrow-cell {
+        background: #fcfbff;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        text-align: right;
+    }
+    .witness-subrow .witness-thumbnails {
+        justify-content: center;
+    }
+    .witness-below-hint {
+        font-size: 11px;
+        color: #6b21a8;
+        background: #f3e8ff;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 700;
+    }
+    .witness-quick-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        margin-top: 6px;
+        padding: 4px 6px;
+        background: #f3f0fa;
+        border: 1px solid #d8ccf0;
+        border-radius: 6px;
+    }
+    .witness-quick-bar button {
+        background: #6d5ca0;
+        color: #fff;
+        border: none;
+        padding: 2px 7px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+    .witness-quick-bar button:hover { background: var(--dark); }
+    .witness-quick-bar .size-tag {
+        font-size: 11px;
+        color: #4c3b7a;
+        font-weight: 900;
+        min-width: 42px;
+        text-align: center;
+    }
+    .witness-ctrl-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .witness-ctrl-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    .witness-ctrl-btn {
+        background: #fff;
+        color: #334155;
+        border: 1.5px solid #cbd5e1;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        transition: 0.15s;
+    }
+    .witness-ctrl-btn:hover { border-color: var(--purple); color: var(--purple); }
+    .witness-ctrl-btn.active {
+        background: var(--purple);
+        color: #fff;
+        border-color: var(--purple);
     }
     .link-count {
         background: #3498db; color: white; padding: 2px 8px;
@@ -853,6 +971,58 @@
             <h4>📷 إضافة صور كشواهد</h4>
             <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
             <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>📐 التحكم بحجم ومكان صور الشواهد</h4>
+            <div class="witness-ctrl-group">
+                <div>
+                    <div style="font-size:13px;color:#334155;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+                        <span>📏 حجم عرض الصورة:</span>
+                        <strong id="witnessSizeLabel" style="color:var(--purple);">160 بكسل</strong>
+                    </div>
+                    <input type="range" id="witnessSizeRange" min="70" max="620" step="10" value="160" style="width:100%;accent-color:var(--purple);" oninput="setModalImageSize(parseInt(this.value,10), 'px')">
+                    <div class="witness-ctrl-row" style="margin-top:6px;">
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="90" onclick="setModalImageSize(90, 'px')">صغير (90px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="160" onclick="setModalImageSize(160, 'px')">متوسط (160px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="260" onclick="setModalImageSize(260, 'px')">كبير (260px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="380" onclick="setModalImageSize(380, 'px')">كبير جداً (380px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="full" onclick="setModalImageSize(100, 'full')">عرض كامل (100%)</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size:13px;color:#334155;margin-bottom:6px;">📍 موضع عرض الصور:</div>
+                    <div class="witness-ctrl-row">
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="opposite" onclick="setModalPlacement('opposite')">↔ مقابل اسم العنصر</button>
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="below" onclick="setModalPlacement('below')">⬇ تحت اسم العنصر تماماً</button>
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="full-row" onclick="setModalPlacement('full-row')">⬛ أسفل العنصر بعرض الجدول</button>
+                    </div>
+                </div>
+
+                <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🖼️ شكل الصورة:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-fit-btn="contain" onclick="setModalImageFit('contain')">كاملة بدون قص</button>
+                            <button type="button" class="witness-ctrl-btn" data-fit-btn="cover" onclick="setModalImageFit('cover')">مربع متناسق</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🔢 الترتيب في الصف:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="auto" onclick="setModalColumns('auto')">تلقائي</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="1" onclick="setModalColumns(1)">1</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="2" onclick="setModalColumns(2)">2</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="3" onclick="setModalColumns(3)">3</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:4px;padding-top:8px;border-top:1px dashed #cbd5e1;display:flex;justify-content:flex-start;">
+                    <button type="button" onclick="applyModalStyleToAll()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">📌 تطبيق نفس الحجم والموضع على جميع الشواهد</button>
+                </div>
+            </div>
         </div>
 
         <div class="witness-modal-section">
@@ -1663,6 +1833,101 @@ function addRow(btn) {
 }
 
 /* ============ نظام الشواهد ============ */
+let currentWitnessSettings = {
+    imageSize: 160,
+    imageSizeMode: 'px',
+    imageFit: 'contain',
+    placement: 'opposite',
+    columns: 'auto'
+};
+
+function normalizeWitnessData(rawData) {
+    const d = rawData && typeof rawData === 'object' ? rawData : {};
+    const sizeNum = parseInt(d.imageSize, 10);
+    return {
+        images: Array.isArray(d.images) ? d.images : [],
+        links: Array.isArray(d.links) ? d.links : [],
+        imageSize: Number.isFinite(sizeNum) && sizeNum >= 70 ? Math.min(620, sizeNum) : 160,
+        imageSizeMode: d.imageSizeMode === 'full' ? 'full' : 'px',
+        imageFit: d.imageFit === 'cover' ? 'cover' : 'contain',
+        placement: ['opposite', 'below', 'full-row'].includes(d.placement) ? d.placement : 'opposite',
+        columns: [1, 2, 3].includes(Number(d.columns)) ? Number(d.columns) : 'auto'
+    };
+}
+
+function getWitnessData(cell) {
+    if (!cell || !cell.dataset.witness) return normalizeWitnessData({});
+    try {
+        return normalizeWitnessData(JSON.parse(cell.dataset.witness));
+    } catch (e) {
+        return normalizeWitnessData({});
+    }
+}
+
+function syncModalSettingsUI() {
+    const { imageSize, imageSizeMode, imageFit, placement, columns } = currentWitnessSettings;
+    const range = document.getElementById('witnessSizeRange');
+    const label = document.getElementById('witnessSizeLabel');
+    if (range) range.value = imageSizeMode === 'full' ? 620 : imageSize;
+    if (label) label.textContent = imageSizeMode === 'full' ? 'عرض كامل (100%)' : `${imageSize} بكسل`;
+
+    document.querySelectorAll('[data-size-preset]').forEach(btn => {
+        const val = btn.dataset.sizePreset;
+        const active = (val === 'full' && imageSizeMode === 'full') || (imageSizeMode === 'px' && Number(val) === imageSize);
+        btn.classList.toggle('active', active);
+    });
+    document.querySelectorAll('[data-placement-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.placementBtn === placement);
+    });
+    document.querySelectorAll('[data-fit-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.fitBtn === imageFit);
+    });
+    document.querySelectorAll('[data-cols-btn]').forEach(btn => {
+        btn.classList.toggle('active', String(btn.dataset.colsBtn) === String(columns));
+    });
+}
+
+function setModalImageSize(size, mode) {
+    currentWitnessSettings.imageSizeMode = mode === 'full' ? 'full' : 'px';
+    if (currentWitnessSettings.imageSizeMode === 'px') {
+        currentWitnessSettings.imageSize = Math.max(70, Math.min(620, Number(size) || 160));
+    }
+    syncModalSettingsUI();
+}
+
+function setModalPlacement(placement) {
+    if (['opposite', 'below', 'full-row'].includes(placement)) {
+        currentWitnessSettings.placement = placement;
+        syncModalSettingsUI();
+    }
+}
+
+function setModalImageFit(fit) {
+    currentWitnessSettings.imageFit = fit === 'cover' ? 'cover' : 'contain';
+    syncModalSettingsUI();
+}
+
+function setModalColumns(cols) {
+    currentWitnessSettings.columns = [1, 2, 3].includes(Number(cols)) ? Number(cols) : 'auto';
+    syncModalSettingsUI();
+}
+
+function applyModalStyleToAll() {
+    let count = 0;
+    document.querySelectorAll('#pagesWrap td.col-evidence').forEach(td => {
+        const data = getWitnessData(td);
+        data.imageSize = currentWitnessSettings.imageSize;
+        data.imageSizeMode = currentWitnessSettings.imageSizeMode;
+        data.imageFit = currentWitnessSettings.imageFit;
+        data.placement = currentWitnessSettings.placement;
+        data.columns = currentWitnessSettings.columns;
+        td.dataset.witness = JSON.stringify(data);
+        renderWitnessCell(td);
+        count++;
+    });
+    setStatus(`✅ تم تطبيق الحجم والموضع على ${count} صف`);
+}
+
 function openWitnessModal(evidenceCell) {
     currentWitnessCell = evidenceCell;
     currentImages = [];
@@ -1673,18 +1938,21 @@ function openWitnessModal(evidenceCell) {
     document.getElementById('linkInput').value = '';
     document.getElementById('linkTitleInput').value = '';
 
-    const existing = evidenceCell.dataset.witness;
-    if (existing) {
-        try {
-            const data = JSON.parse(existing);
-            currentImages = data.images || [];
-            currentLinks = data.links || [];
-            renderImagePreviews();
-            renderLinkList();
-        } catch(e) {}
-    }
+    const data = getWitnessData(evidenceCell);
+    currentImages = data.images.slice();
+    currentLinks = data.links.slice();
+    currentWitnessSettings = {
+        imageSize: data.imageSize,
+        imageSizeMode: data.imageSizeMode,
+        imageFit: data.imageFit,
+        placement: data.placement,
+        columns: data.columns
+    };
+    renderImagePreviews();
+    renderLinkList();
+    syncModalSettingsUI();
 
-    document.getElementById('witnessModalTitle').textContent = 'إضافة شواهد';
+    document.getElementById('witnessModalTitle').textContent = 'إضافة وتخصيص الشواهد';
     document.getElementById('witnessModal').classList.add('show');
 }
 
@@ -1730,8 +1998,8 @@ function removeImage(idx) {
 function addLink() {
     const url = document.getElementById('linkInput').value.trim();
     const title = document.getElementById('linkTitleInput').value.trim();
-    if (!url) { alert('أدخل رابطاً صحيحاً'); return; }
-    if (!/^https?:\/\//.test(url)) { alert('الرابط يجب أن يبدأ بـ http:// أو https://'); return; }
+    if (!url) { setStatus('⚠️ أدخل رابطاً صحيحاً'); return; }
+    if (!/^https?:\/\//.test(url)) { setStatus('⚠️ الرابط يجب أن يبدأ بـ http:// أو https://'); return; }
     currentLinks.push({ url, title: title || url });
     document.getElementById('linkInput').value = '';
     document.getElementById('linkTitleInput').value = '';
@@ -1759,43 +2027,170 @@ function removeLink(idx) {
 
 function saveWitness() {
     if (!currentWitnessCell) return;
-    const data = { images: currentImages, links: currentLinks };
+    const data = normalizeWitnessData({
+        images: currentImages,
+        links: currentLinks,
+        ...currentWitnessSettings
+    });
     currentWitnessCell.dataset.witness = JSON.stringify(data);
     renderWitnessCell(currentWitnessCell);
     closeWitnessModal();
-    setStatus('✅ تم حفظ الشواهد');
+    setStatus('✅ تم حفظ الشواهد وإعدادات العرض');
+}
+
+function buildThumbnailsMarkup(cell, data) {
+    if (!data.images || !data.images.length) return '';
+    const isFull = data.imageSizeMode === 'full';
+    const thumbWidth = isFull ? '100%' : `${data.imageSize}px`;
+    const fitClass = data.imageFit === 'cover' ? ' crop-square' : '';
+
+    let gridStyle = '';
+    if (data.columns === 1 || isFull) {
+        gridStyle = 'display:grid;grid-template-columns:1fr;justify-items:center;';
+    } else if (data.columns === 2) {
+        gridStyle = 'display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));justify-items:center;';
+    } else if (data.columns === 3) {
+        gridStyle = 'display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));justify-items:center;';
+    }
+
+    let html = `<div class="witness-thumbnails" style="${gridStyle}">`;
+    data.images.forEach((img, idx) => {
+        const finalWidth = (data.columns === 2 || data.columns === 3) && !isFull
+            ? `min(${data.imageSize}px, 100%)`
+            : thumbWidth;
+        html += `<div class="witness-thumb${fitClass}" style="width:${finalWidth};" onclick="viewImage(this.querySelector('img').src)">
+            <img src="${img}" alt="شاهد">
+            <button type="button" class="remove-thumb edit-only" onclick="event.stopPropagation();removeImageFromWitness(this, ${idx})" title="حذف الصورة">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function buildQuickControlsMarkup(data) {
+    const sizeText = data.imageSizeMode === 'full' ? '100%' : `${data.imageSize}px`;
+    const placeLabels = {
+        'opposite': '↔ مقابل العنصر',
+        'below': '⬇ تحت العنصر',
+        'full-row': '⬛ عرض الجدول'
+    };
+    return `<div class="witness-quick-bar edit-only">
+        <button type="button" onclick="adjustWitnessSize(this, -30)" title="تصغير الصورة">➖</button>
+        <span class="size-tag">${sizeText}</span>
+        <button type="button" onclick="adjustWitnessSize(this, 30)" title="تكبير الصورة">➕</button>
+        <button type="button" onclick="cycleWitnessPlacement(this)" title="تغيير موضع الصورة (مقابل / تحت العنصر / عرض كامل)">${placeLabels[data.placement] || '↔ مقابل العنصر'}</button>
+        <button type="button" onclick="openWitnessModal(findEvidenceCellFromEl(this))" title="خيارات متقدمة">⚙️</button>
+    </div>`;
+}
+
+function findEvidenceCellFromEl(el) {
+    const directTd = el.closest('td.col-evidence');
+    if (directTd) return directTd;
+    const row = el.closest('tr');
+    if (!row) return null;
+    if (row.classList.contains('witness-subrow')) {
+        const prevRow = row.previousElementSibling;
+        return prevRow ? prevRow.querySelector('td.col-evidence') : null;
+    }
+    return row.querySelector('td.col-evidence');
+}
+
+function adjustWitnessSize(btn, delta) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    if (data.imageSizeMode === 'full') {
+        if (delta < 0) {
+            data.imageSizeMode = 'px';
+            data.imageSize = 360;
+        }
+    } else {
+        const nextSize = data.imageSize + delta;
+        if (nextSize >= 480 && delta > 0) {
+            data.imageSizeMode = 'full';
+        } else {
+            data.imageSize = Math.max(70, Math.min(620, nextSize));
+        }
+    }
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnessCell(cell);
+}
+
+function cycleWitnessPlacement(btn) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    const order = ['opposite', 'below', 'full-row'];
+    const idx = order.indexOf(data.placement);
+    data.placement = order[(idx + 1) % order.length];
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnessCell(cell);
+}
+
+function removeImageFromWitness(btn, idx) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    data.images.splice(idx, 1);
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnessCell(cell);
+}
+
+function updatePageOverflowFlag(el) {
+    const page = el ? el.closest('.page') : null;
+    if (!page) return;
+    page.classList.toggle('has-overflow-witness', page.scrollHeight > 1130);
 }
 
 function renderWitnessCell(cell) {
-    const data = JSON.parse(cell.dataset.witness || '{"images":[],"links":[]}');
+    if (!cell) return;
+    const data = getWitnessData(cell);
     const hasImages = data.images && data.images.length > 0;
     const hasLinks = data.links && data.links.length > 0;
+    const tr = cell.closest('tr');
+    const witnessTd = tr ? tr.querySelector('td.col-witness') : null;
+
+    if (witnessTd) {
+        witnessTd.querySelectorAll('.witness-below-container').forEach(el => el.remove());
+    }
+    if (tr && tr.nextElementSibling && tr.nextElementSibling.classList.contains('witness-subrow')) {
+        tr.nextElementSibling.remove();
+    }
 
     let html = '<div class="witness-evidence-cell">';
-
     html += `<div class="witness-actions edit-only">
-        <button onclick="openWitnessModal(this.closest('td'))" title="إضافة/تعديل الشواهد">📎</button>
+        <button type="button" onclick="openWitnessModal(this.closest('td'))" title="إضافة/تعديل الشواهد">📎</button>
     </div>`;
 
-    if (hasImages) {
-        html += '<div class="witness-thumbnails">';
-        data.images.slice(0, 3).forEach((img, idx) => {
-            html += `<div class="witness-thumb" onclick="viewImage('${img}')">
-                <img src="${img}" alt="شاهد">
-                <button class="remove-thumb edit-only" onclick="event.stopPropagation();removeImageFromCell(this, ${idx})">✕</button>
-            </div>`;
-        });
-        if (data.images.length > 3) {
-            html += `<div class="witness-thumb" style="background:#eee;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;">+${data.images.length - 3}</div>`;
+    if (hasImages && data.placement === 'opposite') {
+        html += buildThumbnailsMarkup(cell, data);
+        html += buildQuickControlsMarkup(data);
+    } else if (hasImages && data.placement === 'below') {
+        html += `<span class="witness-below-hint edit-only">⬇️ معروض تحت اسم العنصر</span>`;
+        html += buildQuickControlsMarkup(data);
+        if (witnessTd) {
+            const belowDiv = document.createElement('div');
+            belowDiv.className = 'witness-below-container';
+            belowDiv.innerHTML = buildThumbnailsMarkup(cell, data) + buildQuickControlsMarkup(data);
+            witnessTd.appendChild(belowDiv);
         }
-        html += '</div>';
+    } else if (hasImages && data.placement === 'full-row') {
+        html += `<span class="witness-below-hint edit-only">⬛ معروض أسفل الصف بعرض الجدول</span>`;
+        html += buildQuickControlsMarkup(data);
+        if (tr && tr.parentNode) {
+            const subTr = document.createElement('tr');
+            subTr.className = 'witness-subrow';
+            const subTd = document.createElement('td');
+            subTd.colSpan = 2;
+            subTd.className = 'witness-subrow-cell';
+            subTd.innerHTML = buildThumbnailsMarkup(cell, data) + buildQuickControlsMarkup(data);
+            subTr.appendChild(subTd);
+            tr.parentNode.insertBefore(subTr, tr.nextSibling);
+        }
     }
 
     if (hasLinks) {
         html += `<div class="witness-info"><span class="link-count">🔗 ${data.links.length} رابط</span></div>`;
-    }
-
-    if (hasLinks) {
         html += '<div class="witness-qr">';
         data.links.forEach((link) => {
             html += `<div class="qr-container" data-url="${link.url}" style="margin:3px auto;"></div>`;
@@ -1827,6 +2222,8 @@ function renderWitnessCell(cell) {
             }
         });
     }
+
+    updatePageOverflowFlag(cell);
 }
 
 function viewImage(src) {
@@ -1844,11 +2241,7 @@ function closeImageLightbox() {
 }
 
 function removeImageFromCell(btn, idx) {
-    const cell = btn.closest('td');
-    const data = JSON.parse(cell.dataset.witness || '{"images":[],"links":[]}');
-    data.images.splice(idx, 1);
-    cell.dataset.witness = JSON.stringify(data);
-    renderWitnessCell(cell);
+    removeImageFromWitness(btn, idx);
 }
 
 function initWitnessCells() {

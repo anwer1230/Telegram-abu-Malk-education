@@ -59,6 +59,7 @@ FORBIDDEN_KEYWORD_ENGLISH_MAP = {
     "مشروع تخرج": "graduation project",
     "مشاريع": "projects",
     "مشروع": "project",
+    "تكليفات": "tasks",
     "تكاليف": "tasks",
     "تكليف": "task",
     "اسايمنت": "assignment",
@@ -252,13 +253,13 @@ def _build_flexible_arabic_pattern(keyword):
     return "".join(parts)
 
 
-def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_common_ads=False, mode="auto"):
+def obfuscate_forbidden_words_detailed(text, keywords_to_avoid=None, include_common_ads=False, mode="auto"):
     """
-    تطبيق آلية تحويل الكلمات المحظورة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
-    على كافة الكلمات المحظورة المكتشفة داخل نص الرسالة مع الحفاظ على الروابط والمعرفات دون تشويه.
+    نسخة مفصلة تُرجع (النص_المعدل, الإجراءات, قائمة_الاستبدالات_المهيكلة)
+    حيث يحتوي كل عنصر في قائمة الاستبدالات على: original و matched_text و replacement و method ('english' | 'spaced').
     """
     if not text:
-        return text, []
+        return text, [], []
 
     working = str(text)
     placeholders = {}
@@ -291,17 +292,16 @@ def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_comm
                 seen_norm.add(n)
                 candidate_list.append(kw)
 
-    # ترتيب من الأطول للأقصر لتجنب الاستبدال الجزئي للعبارات المركبة
     candidate_list.sort(key=lambda s: len(_normalize_ar_token(s)), reverse=True)
     banned_set = list(keywords_to_avoid or [])
     actions = []
+    replacements = []
 
     for kw in candidate_list:
         core_pat = _build_flexible_arabic_pattern(kw)
         if not core_pat:
             continue
 
-        # السماح بسابقة اختيارية (و/ف/ب/ك/ل أو ال/وال/...) مع الحفاظ على حرف العطف والجر
         allow_prefix = len(_normalize_ar_token(kw)) >= 3
         if allow_prefix:
             full_pat = rf'(?<![\w\u0600-\u06FF])(?P<conj>[وفبكل])?(?P<def>ال)?(?P<stem>{core_pat})(?![\w\u0600-\u06FF])'
@@ -312,27 +312,47 @@ def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_comm
         if not replacement_core or _normalize_ar_token(replacement_core) == _normalize_ar_token(kw):
             continue
 
-        replaced_any = False
+        is_english = bool(re.search(r'[A-Za-z]', replacement_core) and "..." not in replacement_core)
+        matched_samples = []
 
         def _replacer(m):
-            nonlocal replaced_any
-            replaced_any = True
+            matched_samples.append(m.group(0))
             conj = m.group("conj") or ""
             def_art = m.group("def") or ""
-            # إذا كانت الكلمة ستُباعد أحرفها بالعربية، نحافظ على الـ التعريف؛ أما بالإنجليزية فنحتفظ بحرف العطف فقط
             if re.search(r'[A-Za-z]', replacement_core):
                 prefix = f"{conj} " if conj else ""
                 return f"{prefix}{replacement_core}"
             return f"{conj}{def_art}{replacement_core}"
 
         new_working = re.sub(full_pat, _replacer, working, flags=re.IGNORECASE)
-        if replaced_any and new_working != working:
+        if matched_samples and new_working != working:
             working = new_working
             actions.append(f"🔤 تحويل الكلمة المحظورة '{kw}' ← '{replacement_core}'")
+            replacements.append({
+                "original": kw,
+                "matched_text": matched_samples[0],
+                "replacement": replacement_core,
+                "method": "english" if is_english else "spaced",
+                "count": len(matched_samples),
+            })
 
     for token, original in placeholders.items():
         working = working.replace(token, original)
 
+    return working, actions, replacements
+
+
+def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_common_ads=False, mode="auto"):
+    """
+    تطبيق آلية تحويل الكلمات المحظورة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
+    على كافة الكلمات المحظورة المكتشفة داخل نص الرسالة مع الحفاظ على الروابط والمعرفات دون تشويه.
+    """
+    working, actions, _ = obfuscate_forbidden_words_detailed(
+        text,
+        keywords_to_avoid=keywords_to_avoid,
+        include_common_ads=include_common_ads,
+        mode=mode,
+    )
     return working, actions
 
 async def fetch_group_recent_messages(client, entity_obj, limit=50):

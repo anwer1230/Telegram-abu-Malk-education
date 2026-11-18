@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف الأداء الوظيفي - تطبيق تفاعلي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-teal: #62929e;
+        --dark-teal: #3b6978;
+        --light-teal: #8bb5be;
+        --text-color: #111;
+        --border-color: #3b6978;
+        --font-main: 'Cairo', sans-serif;
+        --font-academic: 'Amiri', serif;
+        --check-color: #e57373;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { font-family: var(--font-main); background-color: #dcdcdc; color: var(--text-color); font-weight: 700; padding-bottom: 80px; }
+
+    /* ===== شريط الأدوات ===== */
+    .toolbar {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: #2c3e50; color: #fff; padding: 10px 15px;
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-size: 14px;
+    }
+    .toolbar .brand { font-weight: 900; color: #ffd166; margin-left: 10px; }
+    .toolbar button {
+        background: #62929e; color: #fff; border: none; padding: 7px 14px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 13px;
+        transition: 0.2s;
+    }
+    .toolbar button:hover { background: #8bb5be; }
+    .toolbar button.danger { background: #c0392b; }
+    .toolbar button.danger:hover { background: #e74c3c; }
+    .toolbar button.success { background: #27ae60; }
+    .toolbar button.success:hover { background: #2ecc71; }
+    .toolbar .status { margin-right: auto; font-size: 12px; color: #bdc3c7; }
+
+    .pages-wrap { margin-top: 70px; }
+
+    /* ===== الصفحات ===== */
+    .page {
+        background-color: white; width: 210mm; height: 297mm; position: relative;
+        overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        page-break-after: always; display: flex; flex-direction: column;
+        margin: 0 auto 20px auto;
+    }
+    @media print {
+        .toolbar { display: none !important; }
+        body { background-color: white; padding: 0; margin: 0; }
+        .pages-wrap { margin: 0; }
+        .page { box-shadow: none; margin: 0 !important; width: 210mm; height: 297mm; page-break-after: always; }
+        @page { size: A4; margin: 0; }
+        .edit-only { display: none !important; }
+        .editable-area { background: transparent !important; outline: none !important; }
+        .table-controls { display: none !important; }
+        .row-del-btn { display: none !important; }
+        td.action-cell { display: none !important; }
+        .add-page-bar { display: none !important; }
+    }
+
+    /* ===== العناصر القابلة للتعديل ===== */
+    .editable-area {
+        outline: none; border-radius: 4px; transition: 0.2s;
+        min-width: 20px; display: inline-block;
+    }
+    .editable-area:hover { background: rgba(255,235,150,0.35); }
+    .editable-area:focus { background: rgba(255,235,150,0.6); box-shadow: 0 0 0 2px #f39c12; }
+    .editable-block { display: block; width: 100%; }
+
+    /* ===== شريط التنسيق العائم ===== */
+    .fmt-bar {
+        display: none; position: fixed; z-index: 10000; background: #34495e; color: #fff;
+        border-radius: 8px; padding: 6px 8px; gap: 6px; align-items: center;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.35); font-size: 13px;
+    }
+    .fmt-bar.show { display: flex; }
+    .fmt-bar button {
+        background: #4a6274; color: #fff; border: none; width: 30px; height: 30px;
+        border-radius: 5px; cursor: pointer; font-weight: 900; font-size: 15px;
+    }
+    .fmt-bar button:hover { background: #62929e; }
+    .fmt-bar input[type=color] { width: 34px; height: 30px; border: none; border-radius: 5px; cursor: pointer; background: #4a6274; padding: 2px; }
+
+    /* ===== الغلاف ===== */
+    .cover-page { border: 2px solid var(--border-color); border-radius: 20px; margin: 20px; height: calc(100% - 40px); display: flex; flex-direction: column; position: relative; }
+    .cover-header { display: flex; justify-content: space-between; padding: 30px; position: relative; z-index: 10; }
+    .cover-header-text { text-align: center; font-weight: 900; line-height: 1.6; font-size: 24px; }
+    .logo-moe { text-align: center; color: #009688; }
+    .logo-moe .dots { font-size: 40px; letter-spacing: 5px; font-weight: bold; line-height: 1; }
+    .logo-moe h3 { color: #009688; margin: 0; font-size: 26px; font-weight: 900; }
+    .logo-moe p { font-size: 12px; color: #666; letter-spacing: 1px; margin: 0; font-weight: 700; }
+    .banner { background-color: var(--primary-teal); color: black; text-align: center; padding: 40px 20px; margin-top: 80px; font-size: 54px; font-weight: 900; position: relative; z-index: 10; }
+    .papers-graphic { position: absolute; top: 120px; left: 40px; width: 180px; height: 220px; z-index: 1; }
+    .paper { position: absolute; background: white; border: 1px solid #ccc; width: 150px; height: 200px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
+    .paper-1 { transform: rotate(-15deg); top: 10px; left: 10px; }
+    .paper-2 { transform: rotate(5deg); top: 20px; left: 30px; }
+    .line { width: 80%; height: 3px; background: var(--primary-teal); margin-bottom: 10px; opacity: 0.5; }
+    .box { width: 20px; height: 20px; border: 2px solid var(--primary-teal); margin-bottom: 10px; margin-right: 20px; align-self: flex-end; opacity: 0.5; }
+    .cover-footer { margin-top: auto; text-align: center; padding-bottom: 50px; position: relative; z-index: 10; }
+    .cover-footer h2 { margin-bottom: 10px; font-size: 30px; font-weight: 900; }
+    .data-text { color: var(--primary-teal); font-size: 26px; font-weight: 900; margin-bottom: 20px; display: inline-block; border-bottom: 2px dashed #ccc; padding: 0 10px 5px 10px; }
+
+    /* ===== الأدعية ===== */
+    .prayer-page { background-color: white; padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
+    .prayer-card { background: #ffffff; border: 3px solid var(--border-color); border-radius: 30px; padding: 50px; width: 90%; box-shadow: 0 6px 15px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 450px; }
+    .prayer-title { font-family: var(--font-academic); font-size: 44px; margin-bottom: 35px; color: var(--dark-teal); font-weight: 900; line-height: 1.4; }
+    .prayer-content { font-size: 38px; line-height: 1.9; font-weight: 900; font-family: var(--font-academic); }
+
+    /* ===== المحتويات ===== */
+    .toc { padding: 40px 50px; height: 100%; border-left: 15px solid var(--primary-teal); border-right: 15px solid var(--primary-teal); border-radius: 30px; margin: 20px; border-top: 15px solid var(--light-teal); border-bottom: 15px solid var(--dark-teal); background: white; display: flex; flex-direction: column; justify-content: center; }
+    .toc h2 { text-align: center; color: var(--primary-teal); margin-bottom: 25px; font-size: 36px; font-family: var(--font-academic); font-weight: 900; }
+    .toc ul { list-style-type: none; padding-right: 20px; }
+    .toc li { margin-bottom: 12px; font-size: 21px; font-weight: 900; font-family: var(--font-academic); color: #111; border-bottom: 1px dashed #ddd; padding-bottom: 4px; display: flex; align-items: center; }
+    .toc li::before { content: '❖'; color: var(--primary-teal); margin-left: 15px; font-size: 18px; }
+
+    /* ===== الاقتباسات ===== */
+    .quote-page { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px; text-align: center; height: 100%; }
+    .portrait-img { width: 320px; height: 320px; border-radius: 50%; border: 6px solid var(--primary-teal); margin-bottom: 50px; object-fit: cover; object-position: top; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .speech-bubble { border: 2px solid var(--primary-teal); border-radius: 30px; padding: 40px; position: relative; background: white; max-width: 80%; }
+    .speech-bubble::after { content: ''; position: absolute; bottom: -20px; right: 50px; border-width: 20px 20px 0; border-style: solid; border-color: var(--primary-teal) transparent transparent; }
+    .speech-bubble p { font-size: 28px; font-weight: 900; margin: 0; line-height: 1.8; text-align: center; font-family: var(--font-academic); }
+
+    /* ===== عناوين الأقسام ===== */
+    .section-title-page { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
+    .icon-placeholder { width: 150px; height: 150px; margin-bottom: 30px; }
+    .section-title { font-size: 50px; font-weight: 900; color: black; text-align: center; margin-bottom: 30px; position: relative; display: inline-block; font-family: var(--font-academic); }
+    .section-title::before, .section-title::after { content: ''; position: absolute; width: 100px; height: 3px; background-color: var(--border-color); top: 50%; transform: translateY(-50%); }
+    .section-title::before { left: -120px; }
+    .section-title::after { right: -120px; }
+    .section-title span.sub { display: block; font-size: 36px; color: var(--primary-teal); font-weight: 700; margin-top: 10px; }
+
+    /* ===== النصوص ===== */
+    .text-page-box { border: 2px solid var(--border-color); border-radius: 15px; padding: 35px; margin: 25px; position: relative; background: white; height: calc(100% - 50px); display: flex; flex-direction: column; overflow-y: auto; }
+    .text-page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .text-page-header h2 { color: var(--primary-teal); font-size: 26px; margin: 0; font-family: var(--font-academic); font-weight: 900; }
+    .text-page-box p, .text-page-box li { font-size: 19px; font-weight: 700; line-height: 1.65; margin-bottom: 10px; text-align: justify; }
+    .text-page-box ul { padding-right: 25px; margin-bottom: 5px; }
+
+    /* ===== الجداول ===== */
+    .table-page { padding: 30px 40px; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
+    .table-title { font-size: 26px; font-weight: 900; margin-bottom: 15px; color: var(--primary-teal); text-align: right; border-bottom: 2px solid #eee; padding-bottom: 10px; font-family: var(--font-academic); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid var(--border-color); padding: 8px; text-align: center; font-size: 16px; font-weight: 700; }
+    th { background-color: #f0f4f5; font-weight: 900; color: var(--dark-teal); font-family: var(--font-academic); font-size: 17px; }
+    td.col-empty { width: 12%; }
+    td.col-type { width: 18%; }
+    td.col-item { width: 58%; text-align: right; font-weight: 900; }
+    .check-mark { color: var(--check-color); font-size: 24px; font-weight: 900; }
+    .check-cell { cursor: pointer; user-select: none; transition: 0.15s; }
+    .check-cell:hover { background: #fff3cd; }
+    .check-cell.checked { color: var(--check-color); font-size: 24px; font-weight: 900; }
+    .cell-content { outline: none; min-height: 18px; font-size: 14px; color: #333; }
+
+    /* ===== أزرار التحكم في الجداول ===== */
+    .table-controls { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .table-controls button { background: var(--primary-teal); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700; }
+    .table-controls button:hover { background: var(--dark-teal); }
+    .table-controls button.del { background: #c0392b; }
+    .table-controls button.del:hover { background: #e74c3c; }
+    .row-del-btn { background: #c0392b; color: white; border: none; border-radius: 3px; width: 22px; height: 22px; cursor: pointer; font-size: 13px; font-weight: 900; line-height: 1; }
+    .row-del-btn:hover { background: #e74c3c; }
+    td.action-cell { width: 35px; padding: 2px; }
+
+    /* ===== البيانات العامة ===== */
+    .data-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 30px; }
+    .data-cell { border: 2px solid var(--border-color); padding: 15px; display: flex; align-items: center; font-weight: 900; font-size: 20px; }
+    .data-cell.label { background-color: #f0f4f5; justify-content: flex-start; }
+
+    /* ===== الرؤية والرسالة ===== */
+    .vision-box { background-color: #8bb5be; padding: 25px; margin-bottom: 30px; position: relative; border-radius: 5px; font-weight: 900; line-height: 1.8; color: #000; font-size: 22px; }
+    .vision-title { border: 2px solid var(--border-color); border-radius: 20px; padding: 5px 30px; display: inline-block; margin-bottom: -10px; position: relative; z-index: 2; background: white; font-weight: 900; font-size: 24px; }
+    .tape { position: absolute; width: 80px; height: 25px; background-color: rgba(100, 150, 160, 0.5); }
+    .tape-top-left { top: -10px; left: -20px; transform: rotate(-45deg); }
+    .tape-bottom-right { bottom: -10px; right: -20px; transform: rotate(-45deg); }
+
+    /* ===== الخاتمة ===== */
+    .conclusion-page { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px; height: 100%; font-family: var(--font-academic); }
+    .conclusion-page p { font-size: 28px; font-weight: 900; line-height: 2; margin-bottom: 30px; }
+    .conclusion-title { font-size: 50px; font-weight: 900; color: black; text-align: center; margin-bottom: 40px; position: relative; display: inline-block; font-family: var(--font-academic); }
+    .conclusion-title::before, .conclusion-title::after { content: ''; position: absolute; width: 100px; height: 3px; background-color: var(--border-color); top: 50%; transform: translateY(-50%); }
+    .conclusion-title::before { left: -120px; }
+    .conclusion-title::after { right: -120px; }
+
+    /* ===== صفحة جديدة مضافة ===== */
+    .new-page-content { padding: 40px; height: 100%; display: flex; flex-direction: column; }
+    .new-page-content h2 { color: var(--primary-teal); font-family: var(--font-academic); margin-bottom: 20px; font-size: 30px; }
+    .new-page-content .editable-block { min-height: 30px; font-size: 20px; line-height: 1.8; }
+
+    /* ===== شريط إضافة صفحة ===== */
+    .add-page-bar { text-align: center; margin: 20px auto; }
+    .add-page-bar button { background: #27ae60; color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; }
+    .add-page-bar button:hover { background: #2ecc71; }
+</style>
+</head>
+<body>
+
+<!-- شريط الأدوات الرئيسي -->
+<div class="toolbar">
+    <span class="brand">📋 محرر الأداء الوظيفي</span>
+    <button onclick="saveData()" class="success">💾 حفظ</button>
+    <button onclick="exportPDF()">📄 تصدير PDF</button>
+    <button onclick="loadData()">🔄 استرجاع</button>
+    <button onclick="addNewPage()">➕ صفحة جديدة</button>
+    <button onclick="window.print()">🖨️ طباعة</button>
+    <button onclick="resetAll()" class="danger">🗑️ إعادة تعيين</button>
+    <span class="status" id="statusMsg">جاهز للتعديل</span>
+</div>
+
+<!-- شريط التنسيق العائم -->
+<div class="fmt-bar" id="fmtBar">
+    <button onclick="execCmd('bold')" title="عريض"><b>B</b></button>
+    <button onclick="execCmd('italic')" title="مائل"><i>I</i></button>
+    <button onclick="execCmd('underline')" title="تحته خط"><u>U</u></button>
+    <button onclick="changeSize(2)" title="تكبير">A+</button>
+    <button onclick="changeSize(-2)" title="تصغير">A−</button>
+    <input type="color" onchange="execCmd('foreColor', this.value)" title="لون النص" value="#111111">
+    <input type="color" onchange="execCmd('hiliteColor', this.value)" title="لون الخلفية" value="#ffff00">
+    <button onclick="execCmd('removeFormat')" title="إزالة التنسيق">✕</button>
+</div>
+
+<div class="pages-wrap" id="pagesWrap">
+
+<!-- ================= صفحة 1: الغلاف ================= -->
+<div class="page">
+    <div class="cover-page">
+        <div class="cover-header">
+            <div class="logo-moe">
+                <div class="dots">••• •••<br>••• •••</div>
+                <h3>وزارة التعليم</h3>
+                <p>Ministry of Education</p>
+            </div>
+            <div class="cover-header-text">
+                <h2>المملكة العربية السعودية</h2>
+                <h3 style="margin-top: 10px;">وزارة التعليم</h3>
+                <p style="margin-top: 15px;">إدارة التعليم بمنطقة <span class="editable-area" contenteditable="true" style="color: var(--primary-teal); font-size: 24px;">نجران</span></p>
+                <p>مدرسة <span class="editable-area" contenteditable="true" style="color: var(--primary-teal); font-size: 24px;">أمنة بنت عفان</span></p>
+            </div>
+        </div>
+        <div class="banner">ملف الأداء الوظيفي</div>
+        <div class="papers-graphic">
+            <div class="paper paper-1">
+                <div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div>
+                <div class="box"></div><div class="box"></div><div class="box"></div>
+            </div>
+            <div class="paper paper-2">
+                <div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div>
+                <div class="box"></div><div class="box"></div><div class="box"></div>
+            </div>
+        </div>
+        <div class="cover-footer">
+            <h2>إعداد المعلمة:</h2>
+            <div class="data-text editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div>
+            <h2 style="margin-top: 20px;">مدير المدرسة:</h2>
+            <div class="data-text editable-area" contenteditable="true">أ. البتول ال دويس</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة الأدعية 1 ================= -->
+<div class="page">
+    <div class="prayer-page">
+        <div class="prayer-card">
+            <div class="prayer-title editable-area" contenteditable="true">قال رسول الله صلى الله عليه وسلم</div>
+            <div class="prayer-content editable-area" contenteditable="true">«مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا سَهَّلَ اللَّهُ لَهُ طَرِيقًا إِلَى الجَنَّةِ»</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة الأدعية 2 ================= -->
+<div class="page">
+    <div class="prayer-page">
+        <div class="prayer-card">
+            <div class="prayer-title editable-area" contenteditable="true">دعاء التوفيق واليسر</div>
+            <div class="prayer-content editable-area" contenteditable="true">«اللَّهُمَّ لا سَهْلَ إِلاَّ مَا جَعَلْتَه سَهْلاً، وَأَنْتَ تَجْعَلُ الحَزْنَ إِذَا شِئْتَ سَهْلاً»</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة الأدعية 3 ================= -->
+<div class="page">
+    <div class="prayer-page">
+        <div class="prayer-card">
+            <div class="prayer-title editable-area" contenteditable="true">من أدعية القرآن الكريم</div>
+            <div class="prayer-content editable-area" contenteditable="true" style="color: var(--dark-teal);">«رَبِّ زِدْنِي عِلْماً»</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة الأدعية 4 ================= -->
+<div class="page">
+    <div class="prayer-page">
+        <div class="prayer-card">
+            <div class="prayer-title editable-area" contenteditable="true">التوجيه النبوي الشريف</div>
+            <div class="prayer-content editable-area" contenteditable="true">«إِنَّ اللهَ تَعَالَى يُحِبُّ إِذَا عَمِلَ أَحَدُكُمْ عَمَلاً أَنْ يُتْقِنَهُ»</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة الأدعية 5 ================= -->
+<div class="page">
+    <div class="prayer-page">
+        <div class="prayer-card" style="background-color: #e6f7f2; border-color: #6fb5a1;">
+            <div class="prayer-title editable-area" contenteditable="true" style="color: #4a8b7a;">دعاء التوفيق والنجاح</div>
+            <div class="prayer-content editable-area" contenteditable="true" style="color: #4a8b7a; font-size: 34px;">
+                اللهم إني أسألك توفيقاً يرافقه نجاح، وعملاً صالحاً متقبلاً، ورزقاً واسعاً، وعلماً نافعاً.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة المحتويات ================= -->
+<div class="page">
+    <div class="toc">
+        <h2>محتويات السجل:</h2>
+        <ul id="tocList">
+            <li>السيرة الذاتية</li>
+            <li>المقدمة</li>
+            <li>الرؤية - الرسالة</li>
+            <li>ميثاق أخلاقيات المهنة</li>
+            <li>رؤية المملكة في التعليم</li>
+            <li>سياسة التعليم في المملكة العربية السعودية</li>
+            <li>أداء الواجبات الوظيفية</li>
+            <li>ملف الأنشطة الصفية واللاصفية</li>
+            <li>التفاعل مع المجتمع المهني</li>
+            <li>التفاعل مع أولياء الأمور</li>
+            <li>التنويع في استراتيجيات التدريس</li>
+            <li>تحسين نتائج المتعلمين</li>
+            <li>إعداد وتنفيذ خطة التعليم</li>
+            <li>توظيف تقنيات ووسائل التعليم المناسبة</li>
+            <li>تهيئة البيئة التعليمية</li>
+            <li>الإدارة الصفية</li>
+            <li>تحليل نتائج المتعلمين وتشخيص مستوياتهم</li>
+            <li>تنويع أساليب التقويم</li>
+            <li>الخاتمة</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= اقتباس 1 ================= -->
+<div class="page quote-page">
+    <img class="portrait-img" src="https://raw.githubusercontent.com/anwer1230/Anwer-Examination-editor/main/Screenshot_20261101-202614-572.png" alt="خادم الحرمين الشريفين">
+    <div class="speech-bubble">
+        <p class="editable-area" contenteditable="true">المملكة اليوم اقوى من أي وقت مضى ،ورؤيتنا الطموحة تمضي قدماً لتحقق تطلعات المواطنين نحو مستقبل أكثر ازدهاراً</p>
+    </div>
+</div>
+
+<!-- ================= اقتباس 2 ================= -->
+<div class="page quote-page">
+    <img class="portrait-img" src="https://raw.githubusercontent.com/anwer1230/Anwer-Examination-editor/main/Screenshot_20261101-202542-432.png" alt="ولي العهد">
+    <div class="speech-bubble">
+        <p class="editable-area" contenteditable="true">نؤمن بأن المستقبل سيكون للمملكة العربية السعودية إذا استطعنا أن نستغل قدراتنا وإمكاناتنا بأفضل طريقة ممكنة</p>
+    </div>
+</div>
+
+<!-- ================= عنوان المقدمة ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M50 20 a20 20 0 0 1 20 20 c0 10 -5 15 -10 20 v10 h-20 v-10 c-5 -5 -10 -10 -10 -20 a20 20 0 0 1 20 -20 z"/>
+        <line x1="40" y1="75" x2="60" y2="75"/>
+        <line x1="45" y1="85" x2="55" y2="85"/>
+        <line x1="50" y1="5" x2="50" y2="10"/>
+        <line x1="25" y1="20" x2="30" y2="25"/>
+        <line x1="75" y1="20" x2="70" y2="25"/>
+    </svg>
+    <div class="section-title">مقدمة</div>
+</div>
+
+<!-- ================= نص المقدمة ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>مقدمة</h2>
+            <div class="logo-moe">
+                <div class="dots" style="font-size: 20px;">••• •••<br>••• •••</div>
+                <h3 style="font-size: 16px;">وزارة التعليم</h3>
+                <p style="font-size: 8px;">Ministry of Education</p>
+            </div>
+        </div>
+        <p class="editable-area editable-block" contenteditable="true">تعد مهنة التعليم رسالة رفيعة الشأن عالية المنزلة تحظى باهتمام الجميع ، لما لها من تأثير عظيم في حاضر الأمة ومستقبلها ، يتجلى سمو هذه المهنة ورفعتها في مضمونها الأخلاقي الذي يحدد مسارها المسلكي ، ونتائجها التربوية والتعليمية وعائدها على الفرد والمجتمع والإنسانية جمعاء.</p>
+        <p class="editable-area editable-block" contenteditable="true">وبديهي أن تستمد الأمم والمجتمعات أخلاقيات المهنة من قيمها ومقوماتها ، وندين بفضل الله تعالى نستمد أخلاقيات هذه المهنة من عقيدتنا الإسلامية المقررة في القرآن الكريم والسنة المطهرة ، ورسول الله - صلى الله عليه وسلم - قدوتنا ومعلمنا في هذا الشأن :</p>
+    </div>
+</div>
+
+<!-- ================= عنوان أهداف سياسة التعليم ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4">
+        <circle cx="50" cy="50" r="40"/>
+        <circle cx="50" cy="50" r="25"/>
+        <circle cx="50" cy="50" r="10"/>
+        <line x1="80" y1="20" x2="100" y2="0" stroke-width="6"/>
+        <polygon points="100,0 85,5 95,15" fill="var(--primary-teal)"/>
+    </svg>
+    <div class="section-title">أهداف سياسة<br><span class="sub">التعليم</span></div>
+</div>
+
+<!-- ================= سياسة التعليم ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>سياسة التعليم في المملكة</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <p class="editable-area editable-block" contenteditable="true">سياسة التعليم في أي دولة من الدول هي الإطار العام الذي يحدد الغايات والأهداف العريقة للتعليم والمصادر التي تعتمد عليها لتشق منها تلك الأهداف، والوسائل التي ينبغي إتباعها لتحقيقها سواء أكانت خططاً أو إجراءات عامة تهدف لتنفيذ تلك الخطط.</p>
+        <p class="editable-area editable-block" contenteditable="true">والسياسة التعليمية في المملكة العربية السعودية تنبثق من الشريعة الإسلامية التي تدين بها الدولة وتعدها مصدراً لكل النظم المعمول بها في المملكة، والمدرسة هي مؤسسة تربوية اجتماعية ذات رسالة نبيلة.</p>
+        <p class="editable-area editable-block" contenteditable="true">وهي أساس بناء الفرد والمجتمع وتكوين شخصيته وتربيته وتزويده بالقيم الإسلامية والمثل العليا وفق ما جاء بسياسة التعليم بالمملكة.</p>
+        <p class="editable-area editable-block" contenteditable="true">ويشمل هذا الموضوع الأهداف المحددة لكل من مراحل التعليم الابتدائي والمتوسط والثانوي.</p>
+    </div>
+</div>
+
+<!-- ================= عنوان الميثاق ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linejoin="round">
+        <rect x="20" y="10" width="60" height="80" rx="5"/>
+        <line x1="30" y1="30" x2="70" y2="30"/>
+        <line x1="30" y1="45" x2="50" y2="45"/>
+        <line x1="30" y1="55" x2="50" y2="55"/>
+        <path d="M60 70 l10 10 l15 -20" stroke-width="6" stroke-linecap="round"/>
+    </svg>
+    <div class="section-title">الميثاق الأخلاقي<br><span class="sub">لمهنة التعليم</span></div>
+</div>
+
+<!-- ================= الميثاق (1) ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>المادة الأولى:</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <p style="font-weight: 900;">يقصد بالمصطلحات الآتية المعاني الموضحة قرين كل منها</p>
+        <ul style="padding-right: 20px; margin-top: 10px; font-size: 18px;">
+            <li class="editable-area editable-block" contenteditable="true"><strong>أخلاقيات مهنة التعليم :</strong> السجايا الحميدة والسلوكيات الفاضلة التي يتعيّن أن يتحلى بها العاملون في حقل التعليم فكرا وسلوكا أمام الله ثم أمام ولاة الأمر وأمام أنفسهم والآخرين وترتب عليها واجبات أخلاقية.</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>المعلم :</strong> المعلم والمعلمة والقائمون على العملية التربوية من مشرفين ومشرفات ومديرين ومديرات ومرشدين ومرشدات ونحوهم.</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>الطالب :</strong> الطالب والطالبة في مدارس التعليم العام وما في مستواها.</li>
+        </ul>
+        <h2 style="color: var(--primary-teal); margin-top: 15px; border-bottom: 1px solid #eee; font-size: 20px;">المادة الثانية: أهداف الميثاق.</h2>
+        <p class="editable-area editable-block" contenteditable="true" style="font-size: 17px; margin-bottom: 5px;">يهدف الميثاق إلى تعزيز انتماء المعلم لرسالته ومهنته والارتقاء بها والإسهام في تطوير المجتمع الذي يعيش فيه وتقدمه.</p>
+    </div>
+</div>
+
+<!-- ================= الميثاق (2) ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>المادة الرابعة: المعلم وأداؤه المهني.</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <ul style="padding-right: 20px; font-size: 18px;">
+            <li class="editable-area editable-block" contenteditable="true">المعلم مثال للمسلم المعتز بدينه المتأسي برسول الله في جميع أقواله وأفعاله وسلوكه في تعاملاته وأحكامه.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم يدرك أن النمو المهني واجب أساس، والثقافة الذاتية المستمرة منهج في حياته، يطور نفسه وينمي معارفه منفتحا بكل جديد في مجال تخصصه وفنون التدريس ومهاراته.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم يدرك أن الاستقامة والصدق، والأمانة، والحلم، والحزم، والانضباط، والتسامح، وحسن المظهر، وبشاشة الوجه سمات رئيسة في تكوين شخصيته.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم يدرك أن الرقيب الحقيقي على سلوكه، بعد الله - سبحانه وتعالى - هو ضمير يقظ وحدس ناقد، وأن الرقابة الخارجية مهما تنوعت الأساليب لا ترقى إلى الرقابة الذاتية.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= الميثاق (3) ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>المادة الخامسة: المعلم وطلابه.</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <ul style="padding-right: 20px; font-size: 18px;">
+            <li class="editable-area editable-block" contenteditable="true">العلاقة بين المعلم وطلابه، والمعلمة وطالباتها سمتها الرغبة في تفهمهم، وسداها الشفقة عليهم والبر بهم وأساسها المودة الحانية، وحارسها الحزم الضروري.</li>
+            <li class="editable-area editable-block" contenteditable="true">يحسن المعلم الظن بطلابه ويعلمهم أن يكونوا كذلك في حياتهم العامة والخاصة، ليلتمسوا العذر لغيرهم قبل التماس الخطأ.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم قدوة لطلابه خاصة، ولمجتمع عامة وهو حريص على أن يكون أثره في الناس حميدا باقيا.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم أحرص الناس على نفع طلابه، يبذل جهده كله في تعليمهم، وتربيتهم، وتوجيههم، يدلهم على طريق الخير ويرغبهم فيه.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= الميثاق (4) ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>المادة السادسة: المعلم والمجتمع.</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <ul style="padding-right: 20px; font-size: 18px;">
+            <li class="editable-area editable-block" contenteditable="true">يعزز المعلم لدى الطلاب الإحساس بالانتماء لدينهم ووطنهم كما ينمي لديهم أهمية التفاعل الإيجابي مع الثقافات الأخرى.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم أمين على كيان الوطن ووحدته وتعاون أبنائه، يعمل جاهدا لتسود المحبة المثمرة والاحترام المتبادل بين المواطنين جميعا.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم موضع تقدير المجتمع، واحترامه، وهو لذلك حريص على أن يكون في مستوى هذه الثقة.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم عضو مؤثر في مجتمعه، تعلق عليه الآمال في التقدم المعرفي والارتقاء العلمي والإبداع الفكري.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= الميثاق (5) ================= -->
+<div class="page">
+    <div class="text-page-box">
+        <div class="text-page-header">
+            <h2>المادة السابعة والثامنة.</h2>
+            <div class="logo-moe"><h3 style="font-size: 14px; color: var(--primary-teal);">وزارة التعليم</h3></div>
+        </div>
+        <ul style="padding-right: 20px; font-size: 18px;">
+            <li class="editable-area editable-block" contenteditable="true">الثقة المتبادلة والعمل بروح الفريق الواحد هما أساس العلاقة بين المعلم وزملائه وبين المعلمين والإدارة التربوية.</li>
+            <li class="editable-area editable-block" contenteditable="true">يدرك المعلم أن احترام قواعد السلوك الوظيفي والالتزام بالأنظمة والتعليمات وتنفيذها أركان أساسية.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم شريك الوالدين في التربية والتنشئة، فهو حريص على توطيد أواصر الثقة بين البيت والمدرسة.</li>
+            <li class="editable-area editable-block" contenteditable="true">المعلم يعي أن التشاور مع الأسرة بشأن كل أمر يهم مستقبل الطالب أمر بالغ النفع والأهمية.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= عنوان الرؤية والرسالة ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round">
+        <circle cx="45" cy="45" r="30"/>
+        <line x1="65" y1="65" x2="90" y2="90" stroke-width="10"/>
+        <circle cx="45" cy="45" r="15" fill="var(--light-teal)" fill-opacity="0.3"/>
+        <path d="M35 45 Q45 35 55 45 Q45 55 35 45" stroke-width="2"/>
+        <circle cx="45" cy="45" r="5" fill="var(--primary-teal)"/>
+    </svg>
+    <div class="section-title">الرؤية والرسالة</div>
+</div>
+
+<!-- ================= الرؤية والرسالة ================= -->
+<div class="page">
+    <div style="display: flex; flex-direction: column; justify-content: center; height: 100%; padding: 30px;">
+        <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
+            <div class="vision-title">👁️ الرؤية</div>
+        </div>
+        <div class="vision-box">
+            <div class="tape tape-top-left"></div><div class="tape tape-bottom-right"></div>
+            <span class="editable-area editable-block" contenteditable="true">السعي إلى تحقيق التميز والريادة في مجال التعليم وخدمة المتعلمين بما يعود عليهم بالنفع وتنمية قدراتهم اللغوية والفكرية، وبناء المجتمع المعرفي في إطار من القيم الإسلامية والثقافية والاجتماعية للمجتمع وبما يسهم في تحقيق التنمية المستدامة.</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-start; margin-bottom: 10px; margin-top: 30px;">
+            <div class="vision-title">💬 الرسالة</div>
+        </div>
+        <div class="vision-box" style="background-color: #a2c2c9;">
+            <div class="tape tape-top-left"></div><div class="tape tape-bottom-right"></div>
+            <span class="editable-area editable-block" contenteditable="true">الترسيخ لأسس المهارات والاستراتيجيات التي تعين المتعلم وتساعده على اتقان مهارة الاستماع والتحدث والقراءة والكتابة وتنمية شخصية الطالب وتزويده بالمهارات التي تجعله قادرا على الابتكار والقيادة والتعلم الذاتي والعمل الجماعي والمنافسة محليا وإقليميا وعالميا.</span>
+        </div>
+    </div>
+</div>
+
+<!-- ================= عنوان البيانات العامة ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="25" y="15" width="50" height="70" rx="4"/>
+        <circle cx="50" cy="35" r="10"/>
+        <path d="M35 60 Q50 50 65 60"/>
+        <line x1="35" y1="70" x2="65" y2="70"/>
+        <line x1="40" y1="78" x2="60" y2="78"/>
+        <rect x="35" y="10" width="30" height="10" fill="var(--primary-teal)" rx="2"/>
+    </svg>
+    <div class="section-title">بيانات عامة</div>
+</div>
+
+<!-- ================= نموذج البيانات ================= -->
+<div class="page">
+    <div style="padding: 40px; padding-top: 60px;">
+        <h2 style="text-align: center; font-size: 34px; margin-bottom: 40px; font-weight: 900;">بيانات عامة</h2>
+        <div class="data-grid">
+            <div class="data-cell label">الاسم</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">أسماء ياسين الخيري</div>
+            <div class="data-cell label">المؤهل</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">بكالوريوس لغة عربية</div>
+            <div class="data-cell label">المسمى الوظيفي</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">معلمة اجتماعيات ومنسق تطوع</div>
+            <div class="data-cell label">التخصص</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">لغة عربية ودراسات اجتماعية</div>
+            <div class="data-cell label">سنوات الخبرة</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">سنة واحدة</div>
+            <div class="data-cell label">رقم الهاتف</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">0506712213</div>
+            <div class="data-cell label">الإيميل</div>
+            <div class="data-cell editable-area" contenteditable="true" style="color: var(--primary-teal);">ertwaa66654@gmail.com</div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= عنوان أداء الواجبات ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round">
+        <rect x="20" y="15" width="60" height="75" rx="5"/>
+        <rect x="30" y="10" width="40" height="15" rx="3" fill="white"/>
+        <line x1="30" y1="40" x2="70" y2="40"/>
+        <line x1="30" y1="55" x2="70" y2="55"/>
+        <line x1="30" y1="70" x2="70" y2="70"/>
+        <path d="M25 40 l3 3 l5 -5" stroke-width="2"/>
+        <path d="M25 55 l3 3 l5 -5" stroke-width="2"/>
+    </svg>
+    <div class="section-title">أداء الواجبات الوظيفية</div>
+</div>
+
+<!-- ================= جدول الواجبات ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد الواجبات الوظيفية</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">المشاركة في المناسبات الوطنية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">سجل الدوام الرسمي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">جدول المناوبة الشهري</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">جدول الإشراف اليومي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">خطة توزيع المنهج</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">سجل الانتظار</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان المجتمع المهني ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="30" cy="50" r="10"/>
+        <circle cx="70" cy="50" r="10"/>
+        <path d="M40 50 L60 50"/>
+        <polygon points="55,45 60,50 55,55" fill="var(--primary-teal)"/>
+    </svg>
+    <div class="section-title">التفاعل مع المجتمع<br><span class="sub">المهني</span></div>
+</div>
+
+<!-- ================= جدول المجتمع المهني ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد التفاعل مع المجتمع المهني</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تبادل الزيارات</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">المشاركة في المجتمعات المهنية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">التفاعل المهني</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">إطلاق مبادرات تعليمية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان أولياء الأمور ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 20 h40 v20 h-20 l-10 10 v-10 h-10 z"/>
+        <path d="M80 40 h-40 v20 h20 l10 10 v-10 h10 z" fill="white"/>
+    </svg>
+    <div class="section-title">التفاعل مع أولياء<br><span class="sub">الأمور</span></div>
+</div>
+
+<!-- ================= جدول أولياء الأمور ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد التفاعل مع أولياء الأمور</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">خطابات إحالة الطالب إلى وكيل المدرسة</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تقرير اجتماع مع ولي أمر</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">سجل زيارات أولياء الأمور</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">الخطة الأسبوعية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">الجمعية العمومية واجتماع أولياء الأمور</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان استراتيجيات التدريس ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="20" y="30" width="60" height="40" rx="5"/>
+        <path d="M50 30 V70"/>
+        <path d="M30 40 L50 50 L70 40"/>
+    </svg>
+    <div class="section-title">التنوع في استراتيجيات<br><span class="sub">التدريس</span></div>
+</div>
+
+<!-- ================= جدول الاستراتيجيات ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من التنوع في تفعيل الاستراتيجيات التعليمية</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تقرير تنفيذ استراتيجية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">شهادة شكر وتقدير حول تفعيل الاستراتيجية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان تحسين النتائج ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 80 L40 60 L60 70 L80 30" />
+        <polygon points="80,30 70,35 75,45" fill="var(--primary-teal)"/>
+        <rect x="30" y="50" width="10" height="30" fill="none" stroke="var(--primary-teal)" stroke-width="2"/>
+        <rect x="50" y="40" width="10" height="40" fill="none" stroke="var(--primary-teal)" stroke-width="2"/>
+        <rect x="70" y="20" width="10" height="60" fill="none" stroke="var(--primary-teal)" stroke-width="2"/>
+    </svg>
+    <div class="section-title">تحسين نتائج<br><span class="sub">المتعلمين</span></div>
+</div>
+
+<!-- ================= جدول تحسين النتائج ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من تحسين نتائج المتعلمين</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">خطط علاجية للطلاب الضعاف</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">خطط إثرائية للطلاب المتميزين</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تكريم الطلاب</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">اختبار قبلي واختبار بعدي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان خطة التعليم ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="20" y="20" width="60" height="70" rx="5"/>
+        <line x1="30" y1="35" x2="70" y2="35"/>
+        <line x1="30" y1="50" x2="70" y2="50"/>
+        <line x1="30" y1="65" x2="50" y2="65"/>
+        <path d="M60 60 L70 70 L85 50" stroke-width="5"/>
+    </svg>
+    <div class="section-title">إعداد وتنفيذ خطة<br><span class="sub">التعليم</span></div>
+</div>
+
+<!-- ================= جدول الخطة ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من إعداد وتنفيذ خطة التعلم</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">خطة توزيع المنهج</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">إعداد الدروس اليومية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">نماذج من الواجبات والاختبارات</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان التقنيات ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="15" y="25" width="70" height="45" rx="3"/>
+        <line x1="50" y1="70" x2="50" y2="85"/>
+        <line x1="35" y1="85" x2="65" y2="85"/>
+        <polygon points="45,45 60,55 45,65" fill="var(--primary-teal)"/>
+    </svg>
+    <div class="section-title">توظيف تقنيات ووسائل<br><span class="sub">التعليم المناسبة</span></div>
+</div>
+
+<!-- ================= جدول التقنيات ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من توظيف التقنية ووسائل التعليم المناسبة</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">صور من التقنية في التعليم</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">نماذج من عروض الدروس</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">صور من الوسائل التعليمية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تقرير عن برنامج تقنين</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">نماذج من الاختبارات الالكترونية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان البيئة التعليمية ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="15" y="20" width="70" height="50"/>
+        <line x1="25" y1="70" x2="25" y2="85"/>
+        <line x1="75" y1="70" x2="75" y2="85"/>
+        <line x1="40" y1="85" x2="60" y2="85"/>
+        <path d="M35 60 L50 40 L65 60"/>
+    </svg>
+    <div class="section-title">تهيئة البيئة<br><span class="sub">التعليمية</span></div>
+</div>
+
+<!-- ================= جدول البيئة ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من تهيئة البيئة التعليمية</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تعريف الطالب حسب الأنماط التعليمية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">توفر متطلبات الدرس</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">التفريق المادي والمعنوي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان الإدارة الصفية ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="50" cy="20" r="10"/>
+        <path d="M40 35 Q50 30 60 35 L65 60 H55 V85 H45 V60 H35 Z"/>
+        <rect x="75" y="30" width="15" height="20"/>
+        <rect x="10" y="50" width="15" height="15"/>
+        <rect x="70" y="60" width="15" height="15"/>
+    </svg>
+    <div class="section-title">الإدارة الصفية</div>
+</div>
+
+<!-- ================= جدول الإدارة الصفية ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من الإدارة الصفية</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">القوانين الصفية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">كشف المتابعة اليومي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان تحليل النتائج ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="20" y="20" width="10" height="60"/>
+        <rect x="40" y="40" width="10" height="40"/>
+        <rect x="60" y="30" width="10" height="50"/>
+        <line x1="15" y1="80" x2="85" y2="80"/>
+        <path d="M20 15 L30 30 L40 10 L50 25 L60 15 L70 20 L85 5" stroke-width="3"/>
+    </svg>
+    <div class="section-title">تحليل نتائج المتعلمين<br><span class="sub">وتشخيص مستوياتهم</span></div>
+</div>
+
+<!-- ================= جدول تحليل النتائج ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من تحليل نتائج المتعلمين</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">تحليل نتائج الاختبارات</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">معالجة الفقد التعليمي</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= عنوان التقويم ================= -->
+<div class="page section-title-page">
+    <svg class="icon-placeholder" viewBox="0 0 100 100" fill="none" stroke="var(--primary-teal)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="25" y="15" width="50" height="70" rx="2"/>
+        <text x="50" y="35" font-size="12" text-anchor="middle" fill="var(--primary-teal)" stroke="none" font-family="sans-serif" font-weight="bold">TEST</text>
+        <rect x="35" y="45" width="10" height="10"/>
+        <line x1="50" y1="50" x2="65" y2="50"/>
+        <rect x="35" y="60" width="10" height="10"/>
+        <line x1="50" y1="65" x2="65" y2="65"/>
+    </svg>
+    <div class="section-title">تنوع أساليب<br><span class="sub">التقويم</span></div>
+</div>
+
+<!-- ================= جدول التقويم ================= -->
+<div class="page table-page">
+    <h2 class="table-title editable-area" contenteditable="true"># شواهد من تنوع أساليب التقويم</h2>
+    <div class="table-controls edit-only">
+        <button onclick="addRow(this)">➕ إضافة صف</button>
+    </div>
+    <table>
+        <thead>
+            <tr><th>نوع الشاهد</th><th>غير متوفر</th><th>متوفر</th><th>الشاهد</th><th class="edit-only">حذف</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">نماذج من الاختبارات الورقية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)">✔</td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">نماذج من الاختبارات الالكترونية</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">ملفات إنجاز الطالب</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+            <tr>
+                <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">المهام الأدائية والمشاريع</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= الخاتمة ================= -->
+<div class="page conclusion-page">
+    <div class="conclusion-title">— الخاتمة —</div>
+    <p class="editable-area editable-block" contenteditable="true">هكذا فإن لكل بداية نهاية، وخير العمل ما حسن آخره</p>
+    <p class="editable-area editable-block" contenteditable="true">وخير الكلام ما قل ودل، وبعد هذا الجهد المتواضع أتمنى أن أكون موفقاً فيما قدمت فما هذا إلا جهد مقل ولا ندعي فيه الكمال، ولكن عذرنا أننا بذلنا فيه قصارى جهدنا فإن أصبنا فذاك مرادنا وإن أخطأنا فلنا شرف المحاولة والتعلم.</p>
+    <p class="editable-area editable-block" contenteditable="true">وصل اللهم وسلم على سيدنا وحبيبنا محمد وعلى آله وصحبه أجمعين</p>
+</div>
+
+</div><!-- /pages-wrap -->
+
+<!-- شريط إضافة صفحة -->
+<div class="add-page-bar edit-only">
+    <button onclick="addNewPage()">➕ إضافة صفحة جديدة</button>
+</div>
+
+<script>
+/* ============ أدوات التنسيق ============ */
+const fmtBar = document.getElementById('fmtBar');
+let activeEditable = null;
+
+document.addEventListener('focusin', function(e) {
+    if (e.target.isContentEditable) {
+        activeEditable = e.target;
+        const rect = e.target.getBoundingClientRect();
+        fmtBar.classList.add('show');
+        let top = rect.top - 50;
+        if (top < 70) top = rect.bottom + 10;
+        fmtBar.style.top = top + 'px';
+        fmtBar.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+    }
+});
+
+document.addEventListener('focusout', function(e) {
+    setTimeout(() => {
+        if (!fmtBar.contains(document.activeElement) && !document.activeElement.isContentEditable) {
+            fmtBar.classList.remove('show');
+        }
+    }, 150);
+});
+
+function execCmd(cmd, val) {
+    document.execCommand(cmd, false, val || null);
+    if (activeEditable) activeEditable.focus();
+}
+
+function changeSize(delta) {
+    if (!activeEditable) return;
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) {
+        const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+        activeEditable.style.fontSize = (current + delta) + 'px';
+    } else {
+        document.execCommand('fontSize', false, '7');
+        const fonts = activeEditable.querySelectorAll('font[size="7"]');
+        const last = fonts[fonts.length - 1];
+        if (last) {
+            const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+            const span = document.createElement('span');
+            span.style.fontSize = (current + delta) + 'px';
+            span.innerHTML = last.innerHTML;
+            last.replaceWith(span);
+        }
+    }
+}
+
+/* ============ علامات الصح ============ */
+function toggleCheck(cell) {
+    if (cell.classList.contains('checked') || cell.textContent.trim() === '✔') {
+        cell.textContent = '';
+        cell.classList.remove('checked');
+    } else {
+        cell.textContent = '✔';
+        cell.classList.add('checked');
+    }
+}
+
+function toggleRowCell(cell) {
+    // خلية نوع الشاهد (نص قابل للتعديل)
+    const content = cell.querySelector('.cell-content');
+    if (content) content.focus();
+}
+
+/* ============ إدارة الصفوف ============ */
+function addRow(btn) {
+    const table = btn.closest('.table-page').querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+        <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+        <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+        <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;"></div></td>
+        <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+    const firstInput = tr.querySelector('.col-item .cell-content');
+    if (firstInput) firstInput.focus();
+}
+
+function delRow(btn) {
+    const tr = btn.closest('tr');
+    if (confirm('حذف هذا الصف؟')) tr.remove();
+}
+
+/* ============ إضافة صفحة جديدة ============ */
+function addNewPage() {
+    const wrap = document.getElementById('pagesWrap');
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.innerHTML = `
+        <div class="new-page-content">
+            <h2 class="editable-area" contenteditable="true">عنوان الصفحة الجديدة</h2>
+            <div class="editable-area editable-block" contenteditable="true" style="min-height:200px; border:1px dashed #ccc; padding:15px; font-size:18px; line-height:1.8;">
+                اكتب المحتوى هنا...
+            </div>
+        </div>
+    `;
+    // إدراج الصفحة قبل آخر صفحة (الخاتمة) أو في النهاية
+    const lastPage = wrap.lastElementChild;
+    wrap.insertBefore(page, lastPage);
+    page.scrollIntoView({behavior:'smooth', block:'start'});
+    setStatus('تمت إضافة صفحة جديدة');
+}
+
+/* ============ الحفظ والاسترجاع ============ */
+function getState() {
+    return {
+        pagesHTML: document.getElementById('pagesWrap').innerHTML,
+        timestamp: new Date().toISOString()
+    };
+}
+
+function saveData() {
+    try {
+        const state = getState();
+        localStorage.setItem('perf_form_data', JSON.stringify(state));
+        setStatus('✅ تم الحفظ بنجاح - ' + new Date().toLocaleTimeString('ar-SA'));
+    } catch(e) {
+        setStatus('❌ فشل الحفظ: ' + e.message);
+    }
+}
+
+function loadData() {
+    const raw = localStorage.getItem('perf_form_data');
+    if (!raw) { setStatus('لا توجد بيانات محفوظة'); return; }
+    try {
+        const state = JSON.parse(raw);
+        document.getElementById('pagesWrap').innerHTML = state.pagesHTML;
+        setStatus('✅ تم استرجاع البيانات المحفوظة');
+    } catch(e) {
+        setStatus('❌ خطأ في الاسترجاع: ' + e.message);
+    }
+}
+
+function resetAll() {
+    if (confirm('هل أنت متأكد من حذف كل التعديلات والعودة للنموذج الأصلي؟')) {
+        localStorage.removeItem('perf_form_data');
+        location.reload();
+    }
+}
+
+/* ============ التصدير PDF ============ */
+function exportPDF() {
+    setStatus('جارٍ تحضير الطباعة...');
+    // إخفاء أدوات التحرير مؤقتاً (يتم بالفعل عبر @media print)
+    setTimeout(() => {
+        window.print();
+        setStatus('اختر "حفظ كـ PDF" من نافذة الطباعة');
+    }, 300);
+}
+
+/* ============ حالة الشريط ============ */
+function setStatus(msg) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
+}
+
+/* ============ حفظ تلقائي كل 30 ثانية ============ */
+setInterval(() => {
+    try {
+        localStorage.setItem('perf_form_data', JSON.stringify(getState()));
+    } catch(e) {}
+}, 30000);
+
+/* ============ تحميل تلقائي عند الفتح ============ */
+window.addEventListener('load', () => {
+    const raw = localStorage.getItem('perf_form_data');
+    if (raw) {
+        if (confirm('يوجد حفظ سابق. هل تريد استرجاعه؟')) {
+            loadData();
+        }
+    }
+});
+</script>
+
+</body>
+</html>

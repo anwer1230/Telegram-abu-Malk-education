@@ -1403,7 +1403,7 @@
                             </span>
                             <div class="text-end" style="text-align: right;">
                                 <div class="fw-bold fs-6 mb-0 text-white">الأدوات والوظائف السريعة</div>
-                                <small class="text-white-50" style="font-size: 0.75rem;">انقر لإظهار أو إخفاء الأيقونات (12 وظيفة)</small>
+                                <small class="text-white-50" style="font-size: 0.75rem;">انقر لإظهار أو إخفاء الأيقونات (13 وظيفة)</small>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
@@ -1484,6 +1484,13 @@
                                         <span class="small fw-bold">استوديو العروض والمستندات الاحترافي</span>
                                         <span class="badge bg-warning text-dark mt-1" style="font-size:0.58rem;">النسخة الموحدة AI · Recharts</span>
                                         <span class="badge bg-danger mt-1" style="font-size:0.58rem;">PPTX · Word · Excel · Canva · MP4</span>
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnEduServicesTools" data-bs-toggle="modal" data-bs-target="#eduServicesModal" style="border:1px solid #0d9488;color:#0f766e;background:#fff;">
+                                        <i class="fas fa-chalkboard-teacher fa-2x mb-2" style="color:#0d9488;"></i>
+                                        <span class="small fw-bold">وظائف الخدمات التعليمية</span>
+                                        <span class="badge mt-1 text-white" style="font-size:0.58rem;background:#0d9488;">ملف الأداء الوظيفي</span>
                                     </button>
                                 </div>
                             </div>
@@ -1820,6 +1827,97 @@
                           <div id="scheduleProgressBarWrap" style="display:none;margin-top:8px;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden;">
                             <div id="scheduleProgressBar" style="height:100%;width:100%;background:#10b981;transition:width 1s linear;"></div>
                           </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== لوحة شفافية التنقية والكلمات المحظورة المستبدلة ===== -->
+        <div class="row mb-4" id="sanitizationTransparencySection">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <div class="card-header text-white py-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
+                         style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                                  style="width:38px;height:38px;background:rgba(255,255,255,0.18);flex-shrink:0;">
+                                <i class="fas fa-shield-virus text-white"></i>
+                            </span>
+                            <div>
+                                <h5 class="mb-0 fw-bold" style="font-size:1.05rem;">شفافية التنقية والكلمات المحظورة المستبدلة</h5>
+                                <small class="text-white-50 d-block" style="font-size:0.78rem;">
+                                    يعرض الكلمات المحظورة المكتشفة وكيف تم استبدالها (بالإنجليزية أو بمباعدة الأحرف) في الرسائل الأخيرة
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark rounded-pill px-3 py-2" id="sanitizationMsgCountBadge" style="font-size:0.78rem;">
+                                0 رسالة منقاة
+                            </span>
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-2" id="sanitizationWordCountBadge" style="font-size:0.78rem;">
+                                0 كلمة مستبدلة
+                            </span>
+                            <button type="button" class="btn btn-sm btn-light fw-bold text-dark" id="btnPreviewSanitization"
+                                    title="تحقق مما سيتم استبداله في نص الرسالة الحالية قبل الإرسال">
+                                <i class="fas fa-vial text-primary me-1"></i>فحص جودة التنقية الآن
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-light" id="btnRefreshSanitizationLogs" title="تحديث السجل">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-light" id="btnClearSanitizationLogs" title="مسح السجل">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- معاينة فورية لجودة التنقية على النص الحالي -->
+                        <div id="sanitizationPreviewBox" class="mb-3 p-3 rounded-3 border"
+                             style="display:none;background:#f0fdfa;border-color:#5eead4 !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                <div class="fw-bold text-dark" style="font-size:0.92rem;">
+                                    <i class="fas fa-microscope text-teal me-1" style="color:#0f766e;"></i>
+                                    نتيجة فحص جودة التنقية للرسالة الحالية
+                                    <span id="sanitizationPreviewGroupsBadge" class="badge bg-secondary ms-2" style="font-size:0.72rem;"></span>
+                                </div>
+                                <button type="button" class="btn-close btn-sm" id="btnCloseSanitizationPreview" aria-label="إغلاق"></button>
+                            </div>
+                            <div id="sanitizationPreviewReplacements" class="d-flex flex-wrap gap-2 mb-2"></div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="p-2 rounded border bg-white h-100">
+                                        <div class="small fw-bold text-danger mb-1">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>النص الأصلي (قبل التنقية)
+                                        </div>
+                                        <div id="sanitizationPreviewOriginal" class="small text-dark" style="white-space:pre-wrap;word-break:break-word;line-height:1.6;"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-2 rounded border bg-white h-100">
+                                        <div class="small fw-bold text-success mb-1">
+                                            <i class="fas fa-check-circle me-1"></i>النص الناتج (بعد التنقية والإرسال الآمن)
+                                        </div>
+                                        <div id="sanitizationPreviewSanitized" class="small text-dark" style="white-space:pre-wrap;word-break:break-word;line-height:1.6;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ملخص أكثر الكلمات استبدالاً -->
+                        <div id="sanitizationTopWordsWrap" class="mb-3" style="display:none;">
+                            <div class="small fw-bold text-secondary mb-2">
+                                <i class="fas fa-tags me-1 text-primary"></i>أكثر الكلمات المحظورة التي تم اكتشافها واستبدالها:
+                            </div>
+                            <div id="sanitizationTopWordsBar" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- سجل الرسائل الأخيرة المنقاة -->
+                        <div id="sanitizationLogsFeed" style="max-height:430px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
+                            <div class="text-center text-muted py-4 small">
+                                <i class="fas fa-shield-alt fa-2x mb-2 text-secondary opacity-50 d-block"></i>
+                                لا توجد عمليات استبدال كلمات مسجلة بعد في الرسائل الأخيرة.
+                                <div class="mt-1">عند إرسال رسالة تحتوي على كلمات محظورة، ستظهر هنا الكلمة الأصلية والبديل الآمن ومقارنة النص قبل وبعد التنقية، أو اضغط <strong>"فحص جودة التنقية الآن"</strong> للاختبار الفوري.</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4928,6 +5026,80 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== مودال وظائف الخدمات التعليمية ===== -->
+    <div class="modal fade" id="eduServicesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
+          <div class="modal-header text-white border-0" style="background:linear-gradient(135deg,#0f766e,#0d9488);">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fas fa-chalkboard-teacher fa-lg text-warning"></i>
+              <div>
+                <h5 class="modal-title mb-0 fw-bold">وظائف الخدمات التعليمية</h5>
+                <small class="text-white-50" style="font-size:0.75rem;">أدوات وملفات تعليمية جاهزة للتحرير والطباعة والتصدير</small>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <button type="button" id="btnOpenPerformancePortfolio"
+                        onclick="openPerformancePortfolio()"
+                        class="btn bg-white w-100 h-100 p-4 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center"
+                        style="border-color:#0d9488 !important;transition:transform 0.2s ease;">
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                        style="width:56px;height:56px;background:rgba(13,148,136,0.12);color:#0f766e;">
+                    <i class="fas fa-clipboard-list fa-2x"></i>
+                  </span>
+                  <span class="fw-bold fs-6 text-dark mb-1">ملف الأداء الوظيفي</span>
+                  <span class="text-muted small">تطبيق تفاعلي كامل قابل للتعديل والحفظ وتصدير PDF والطباعة</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== مودال ملف الأداء الوظيفي (الواجهة الكاملة) ===== -->
+    <div class="modal fade" id="performancePortfolioModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content" style="display:flex;flex-direction:column;">
+          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#3b6978,#62929e);">
+            <h5 class="modal-title"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+              <a href="/performance_portfolio" target="_blank" class="btn btn-sm btn-light opacity-90" title="فتح في تبويب مستقل">
+                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
+              </a>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+          </div>
+          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
+            <iframe id="performancePortfolioFrame" src="about:blank"
+              style="width:100%;height:100%;border:none;display:block;"
+              title="ملف الأداء الوظيفي"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      function openPerformancePortfolio() {
+        const eduEl = document.getElementById('eduServicesModal');
+        if (eduEl && window.bootstrap) {
+          const eduModal = bootstrap.Modal.getInstance(eduEl);
+          if (eduModal) eduModal.hide();
+        }
+        const frame = document.getElementById('performancePortfolioFrame');
+        if (frame && (!frame.getAttribute('src') || frame.getAttribute('src') === 'about:blank')) {
+          frame.src = '/performance_portfolio';
+        }
+        const perfEl = document.getElementById('performancePortfolioModal');
+        if (perfEl && window.bootstrap) {
+          bootstrap.Modal.getOrCreateInstance(perfEl).show();
+        }
+      }
+    </script>
 
 
     <!-- ===== مودال استوديو العروض والمستندات الموحد (PowerPoint + Word + Excel + Canva + AI) ===== -->
@@ -13992,6 +14164,15 @@ document.addEventListener('DOMContentLoaded', function() {
         socket._batchProgressBound = true;
         socket.on('monitoring_status', (data) => setButtonState(Boolean(data && (data.is_running || data.monitoring_active))));
         socket.on('update_monitoring_buttons', (data) => setButtonState(Boolean(data && data.is_running)));
+        socket.on('sanitization_log_update', (payload) => {
+            if (!payload || !payload.entry) return;
+            window._sanitizationState = window._sanitizationState || { logs: [], summary: {} };
+            const existing = window._sanitizationState.logs || [];
+            const filtered = existing.filter(item => item && item.id !== payload.entry.id);
+            window._sanitizationState.logs = [payload.entry, ...filtered].slice(0, 40);
+            if (payload.summary) window._sanitizationState.summary = payload.summary;
+            renderSanitizationTransparency();
+        });
 
         // ── متابعة تقدم الإرسال الفوري اللحظي (P3) ──
         socket.on('send_progress', (data) => {
@@ -14122,7 +14303,296 @@ document.addEventListener('DOMContentLoaded', function() {
         bindBatchControlsOnce();
         bindSocket();
         restoreBatchSenderState();
+        byId('btnPreviewSanitization')?.addEventListener('click', previewCurrentMessageSanitization);
+        byId('btnRefreshSanitizationLogs')?.addEventListener('click', loadSanitizationLogs);
+        byId('btnClearSanitizationLogs')?.addEventListener('click', clearSanitizationLogs);
+        byId('btnCloseSanitizationPreview')?.addEventListener('click', () => {
+            const box = byId('sanitizationPreviewBox');
+            if (box) box.style.display = 'none';
+        });
+        loadSanitizationLogs();
     });
+
+    function escSanHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c]));
+    }
+
+    function highlightTokensSafe(rawText, tokens, markStyle) {
+        const text = String(rawText || '');
+        const cleanTokens = Array.from(new Set((tokens || []).map(t => String(t || '').trim()).filter(Boolean)))
+            .sort((a, b) => b.length - a.length);
+        if (!text || !cleanTokens.length) return escSanHtml(text);
+
+        const lowerText = text.toLowerCase();
+        const ranges = [];
+        for (const tok of cleanTokens) {
+            const lowerTok = tok.toLowerCase();
+            let pos = 0;
+            while (pos < lowerText.length) {
+                const idx = lowerText.indexOf(lowerTok, pos);
+                if (idx === -1) break;
+                const end = idx + tok.length;
+                const overlaps = ranges.some(r => !(end <= r.start || idx >= r.end));
+                if (!overlaps) ranges.push({ start: idx, end });
+                pos = idx + Math.max(1, tok.length);
+            }
+        }
+        if (!ranges.length) return escSanHtml(text);
+        ranges.sort((a, b) => a.start - b.start);
+
+        let html = '';
+        let cursor = 0;
+        for (const r of ranges) {
+            if (r.start > cursor) html += escSanHtml(text.slice(cursor, r.start));
+            html += `<mark style="${markStyle}">${escSanHtml(text.slice(r.start, r.end))}</mark>`;
+            cursor = r.end;
+        }
+        if (cursor < text.length) html += escSanHtml(text.slice(cursor));
+        return html;
+    }
+
+    function buildReplacementPillHtml(rep) {
+        const orig = escSanHtml(rep.matched_text || rep.original || '');
+        const repl = escSanHtml(rep.replacement || '');
+        const isEn = rep.method === 'english';
+        const methodLabel = isEn ? 'إنجليزية' : 'مباعدة أحرف';
+        const methodBadge = isEn
+            ? 'background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;'
+            : 'background:#f3e8ff;color:#6d28d9;border:1px solid #d8b4fe;';
+        const countTag = (rep.count && rep.count > 1)
+            ? `<span class="badge bg-secondary rounded-pill" style="font-size:0.68rem;">×${Number(rep.count)}</span>`
+            : '';
+        return `
+            <div class="d-inline-flex align-items-center gap-1 px-2 py-1 rounded-3 border bg-white shadow-sm" style="font-size:0.8rem;">
+                <span class="text-danger text-decoration-line-through fw-semibold">${orig}</span>
+                <i class="fas fa-long-arrow-alt-left text-muted mx-1"></i>
+                <span class="fw-bold text-success" dir="auto">${repl}</span>
+                <span class="px-2 py-0 rounded-pill fw-semibold" style="font-size:0.68rem;${methodBadge}">${methodLabel}</span>
+                ${countTag}
+            </div>
+        `;
+    }
+
+    function renderSanitizationTransparency() {
+        const state = window._sanitizationState || { logs: [], summary: {} };
+        const logs = Array.isArray(state.logs) ? state.logs : [];
+        const summary = state.summary || {};
+
+        const msgBadge = byId('sanitizationMsgCountBadge');
+        const wordBadge = byId('sanitizationWordCountBadge');
+        if (msgBadge) msgBadge.textContent = `${Number(summary.total_messages ?? logs.length)} رسالة منقاة`;
+        if (wordBadge) wordBadge.textContent = `${Number(summary.total_replacements ?? 0)} كلمة مستبدلة`;
+
+        const topWrap = byId('sanitizationTopWordsWrap');
+        const topBar = byId('sanitizationTopWordsBar');
+        const topWords = Array.isArray(summary.top_words) ? summary.top_words : [];
+        if (topWrap && topBar) {
+            if (topWords.length > 0) {
+                topWrap.style.display = 'block';
+                topBar.innerHTML = topWords.map(w => buildReplacementPillHtml(w)).join('');
+            } else {
+                topWrap.style.display = 'none';
+                topBar.innerHTML = '';
+            }
+        }
+
+        const feed = byId('sanitizationLogsFeed');
+        if (!feed) return;
+        if (!logs.length) {
+            feed.innerHTML = `
+                <div class="text-center text-muted py-4 small">
+                    <i class="fas fa-shield-alt fa-2x mb-2 text-secondary opacity-50 d-block"></i>
+                    لا توجد عمليات استبدال كلمات مسجلة بعد في الرسائل الأخيرة.
+                    <div class="mt-1">عند إرسال رسالة تحتوي على كلمات محظورة، ستظهر هنا الكلمة الأصلية والبديل الآمن ومقارنة النص قبل وبعد التنقية، أو اضغط <strong>"فحص جودة التنقية الآن"</strong> للاختبار الفوري.</div>
+                </div>
+            `;
+            return;
+        }
+
+        feed.innerHTML = logs.map((entry) => {
+            const reps = Array.isArray(entry.replacements) ? entry.replacements : [];
+            const extraActions = Array.isArray(entry.extra_actions) ? entry.extra_actions : [];
+            const risk = String(entry.risk || 'low');
+            const riskHtml = risk === 'critical'
+                ? '<span class="badge bg-dark">حظر فوري ⛔</span>'
+                : risk === 'high'
+                    ? '<span class="badge bg-danger">شديدة الرقابة 🔴</span>'
+                    : risk === 'medium'
+                        ? '<span class="badge bg-warning text-dark">متوسطة 🟡</span>'
+                        : '<span class="badge bg-success">آمنة 🟢</span>';
+            const srcLabel = entry.source === 'batch' ? 'إرسال مجدول/دفعة'
+                : entry.source === 'media' ? 'إرسال وسائط'
+                : 'إرسال فوري';
+
+            const origTokens = reps.flatMap(r => [r.matched_text, r.original]).filter(Boolean);
+            const newTokens = reps.map(r => r.replacement).filter(Boolean);
+
+            const origHighlighted = highlightTokensSafe(
+                entry.original_preview || '',
+                origTokens,
+                'background:#fee2e2;color:#991b1b;padding:0 4px;border-radius:4px;font-weight:700;'
+            );
+            const cleanHighlighted = highlightTokensSafe(
+                entry.sanitized_preview || '',
+                newTokens,
+                'background:#dcfce7;color:#166534;padding:0 4px;border-radius:4px;font-weight:700;'
+            );
+
+            const repPillsHtml = reps.length
+                ? reps.map(buildReplacementPillHtml).join('')
+                : '<span class="badge bg-light text-secondary border">تنقية وقائية بدون استبدال كلمات</span>';
+
+            const extraHtml = extraActions.length
+                ? `<div class="d-flex flex-wrap gap-1 mt-1">${extraActions.map(a => `<span class="badge bg-info text-dark" style="font-size:0.72rem;">${escSanHtml(a)}</span>`).join('')}</div>`
+                : '';
+
+            return `
+                <div class="border rounded-3 p-3" style="background:#f8fafc;border-color:#cbd5e1 !important;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-bold text-dark" style="font-size:0.9rem;">
+                                <i class="fas fa-users text-primary me-1"></i>${escSanHtml(entry.group || 'مجموعة')}
+                            </span>
+                            ${riskHtml}
+                            <span class="badge bg-light text-secondary border" style="font-size:0.72rem;">${srcLabel}</span>
+                        </div>
+                        <small class="text-muted" dir="ltr">
+                            <i class="far fa-clock me-1"></i>${escSanHtml(entry.timestamp || entry.time_short || '')}
+                        </small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-2">${repPillsHtml}</div>
+                    ${extraHtml}
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6">
+                            <div class="p-2 rounded border bg-white h-100">
+                                <div class="small fw-bold text-danger mb-1" style="font-size:0.76rem;">
+                                    <i class="fas fa-times-circle me-1"></i>قبل التنقية
+                                </div>
+                                <div class="small text-dark" style="white-space:pre-wrap;word-break:break-word;line-height:1.55;">${origHighlighted}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-2 rounded border bg-white h-100">
+                                <div class="small fw-bold text-success mb-1" style="font-size:0.76rem;">
+                                    <i class="fas fa-check-circle me-1"></i>بعد التنقية (المرسل فعلياً)
+                                </div>
+                                <div class="small text-dark" style="white-space:pre-wrap;word-break:break-word;line-height:1.55;">${cleanHighlighted}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadSanitizationLogs() {
+        try {
+            const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
+            const resp = await fetch(`/api/sanitization_logs?user_id=${encodeURIComponent(activeUser)}`, {
+                cache: 'no-store',
+                credentials: 'same-origin'
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data && data.success) {
+                window._sanitizationState = {
+                    logs: Array.isArray(data.logs) ? data.logs : [],
+                    summary: data.summary || {}
+                };
+                renderSanitizationTransparency();
+            }
+        } catch (err) {
+            console.warn('Sanitization logs load warning:', err);
+        }
+    }
+    window.loadSanitizationLogs = loadSanitizationLogs;
+
+    async function previewCurrentMessageSanitization() {
+        const msg = (byId('message')?.value || '').trim();
+        if (!msg) {
+            notify('warning', '✍️ اكتب نص الرسالة أولاً في حقل "نص الرسالة المراد إرسالها" لفحص جودة التنقية.');
+            byId('message')?.focus();
+            return;
+        }
+        const btn = byId('btnPreviewSanitization');
+        const origBtnHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>جاري الفحص...';
+        }
+        try {
+            const groups = (byId('groups')?.value || '').trim();
+            const res = await requestJson('/api/sanitization_preview', { message: msg, groups });
+            if (!res.success) {
+                notify('danger', res.message || 'تعذر فحص النص.');
+                return;
+            }
+            const box = byId('sanitizationPreviewBox');
+            const grpBadge = byId('sanitizationPreviewGroupsBadge');
+            const repBox = byId('sanitizationPreviewReplacements');
+            const origBox = byId('sanitizationPreviewOriginal');
+            const sanBox = byId('sanitizationPreviewSanitized');
+
+            if (grpBadge) {
+                const matched = Array.isArray(res.matched_groups) ? res.matched_groups : [];
+                grpBadge.textContent = matched.length
+                    ? `حسب قواعد: ${matched.slice(0, 2).join('، ')}`
+                    : 'فحص شامل للكلمات المحظورة والإعلانية';
+            }
+
+            const reps = Array.isArray(res.replacements) ? res.replacements : [];
+            if (repBox) {
+                repBox.innerHTML = reps.length
+                    ? reps.map(buildReplacementPillHtml).join('')
+                    : '<span class="badge bg-success">✅ لم يتم العثور على كلمات محظورة تستوجب الاستبدال</span>';
+            }
+            if (origBox) {
+                origBox.innerHTML = highlightTokensSafe(
+                    res.original || msg,
+                    reps.flatMap(r => [r.matched_text, r.original]).filter(Boolean),
+                    'background:#fee2e2;color:#991b1b;padding:0 4px;border-radius:4px;font-weight:700;'
+                );
+            }
+            if (sanBox) {
+                sanBox.innerHTML = highlightTokensSafe(
+                    res.sanitized || msg,
+                    reps.map(r => r.replacement).filter(Boolean),
+                    'background:#dcfce7;color:#166534;padding:0 4px;border-radius:4px;font-weight:700;'
+                );
+            }
+            if (box) box.style.display = 'block';
+        } catch (err) {
+            notify('danger', '❌ خطأ أثناء فحص جودة التنقية: ' + (err.message || err));
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origBtnHtml || '<i class="fas fa-vial text-primary me-1"></i>فحص جودة التنقية الآن';
+            }
+        }
+    }
+
+    async function clearSanitizationLogs() {
+        try {
+            const activeUser = window.currentActiveUserId || '{{ current_user.id }}' || localStorage.getItem('last_active_user_id') || 'user_1';
+            const res = await requestJson('/api/sanitization_logs/clear', { user_id: activeUser });
+            if (res && res.success) {
+                window._sanitizationState = {
+                    logs: [],
+                    summary: res.summary || { total_messages: 0, total_replacements: 0, unique_words: 0, top_words: [] }
+                };
+                renderSanitizationTransparency();
+                notify('info', '🗑️ تم مسح سجل الكلمات المستبدلة.');
+            }
+        } catch (err) {
+            notify('danger', '❌ تعذر مسح السجل: ' + (err.message || err));
+        }
+    }
 })();
 </script>
 <script>

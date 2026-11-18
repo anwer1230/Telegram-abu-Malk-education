@@ -1724,40 +1724,46 @@ class MessageSanitizer:
     ]
 
     @classmethod
-    def _obfuscate_ad_keywords(cls, text):
-        """تحويل الكلمات الحساسة/المحظورة إلى الإنجليزية أو مباعدة أحرفها بدلاً من حذفها."""
+    def _obfuscate_ad_keywords_detailed(cls, text):
+        """تحويل الكلمات الحساسة/المحظورة إلى الإنجليزية أو مباعدة أحرفها وإرجاع النص مع قائمة الاستبدالات."""
         if not text:
-            return text
+            return text, []
         try:
-            from group_ai_analyzer import obfuscate_forbidden_words_in_text
-            transformed, _ = obfuscate_forbidden_words_in_text(
+            from group_ai_analyzer import obfuscate_forbidden_words_detailed
+            transformed, _, replacements = obfuscate_forbidden_words_detailed(
                 text, keywords_to_avoid=[], include_common_ads=True, mode="auto"
             )
-            return transformed
+            return transformed, replacements
         except Exception:
-            return text
+            return text, []
 
     @classmethod
-    def sanitize(cls, text, mode='smart'):
+    def _obfuscate_ad_keywords(cls, text):
+        """تحويل الكلمات الحساسة/المحظورة إلى الإنجليزية أو مباعدة أحرفها بدلاً من حذفها."""
+        transformed, _ = cls._obfuscate_ad_keywords_detailed(text)
+        return transformed
+
+    @classmethod
+    def sanitize_detailed(cls, text, mode='smart'):
         """
-        تنقية النص حسب الوضع المحدد
-        mode: 'smart' (تنقية ذكية), 'clean' (تنقية كاملة), 'transform' (تحويل الروابط فقط)
+        تنقية النص وإرجاع (النص_المنقى, قائمة_الاستبدالات)
         """
         if not text:
-            return text
+            return text, []
         cleaned = str(text)
+        replacements = []
 
         if mode == 'transform':
             for pattern, replacement in cls.WHATSAPP_TRANSFORMATIONS:
                 cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
-            return cleaned
+            return cleaned, []
 
         if mode == 'clean':
             for key in ('telegram_links', 'whatsapp_links', 'general_links'):
                 cleaned = re.sub(cls.PATTERNS[key], '', cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(cls.PATTERNS['telegram_handles'], '', cleaned, flags=re.IGNORECASE)
             cleaned = re.sub(cls.PATTERNS['phone_numbers'], '', cleaned)
-            cleaned = cls._obfuscate_ad_keywords(cleaned)
+            cleaned, replacements = cls._obfuscate_ad_keywords_detailed(cleaned)
             cleaned = re.sub(r'[ \t]+', ' ', cleaned)
             lines = []
             seen = set()
@@ -1772,16 +1778,25 @@ class MessageSanitizer:
                 seen.add(line)
                 lines.append(line)
             result = '\n'.join(lines).strip()
-            return result if result else None
+            return (result if result else None), replacements
 
         # وضع smart: تحويل روابط واتساب + تنقية ذكية
         for pattern, replacement in cls.WHATSAPP_TRANSFORMATIONS:
             cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
         for key in ('telegram_links', 'general_links'):
             cleaned = re.sub(cls.PATTERNS[key], '', cleaned, flags=re.IGNORECASE)
-        cleaned = cls._obfuscate_ad_keywords(cleaned)
+        cleaned, replacements = cls._obfuscate_ad_keywords_detailed(cleaned)
         cleaned = re.sub(r'[ \t]+', ' ', cleaned).strip()
-        return cleaned if cleaned else None
+        return (cleaned if cleaned else None), replacements
+
+    @classmethod
+    def sanitize(cls, text, mode='smart'):
+        """
+        تنقية النص حسب الوضع المحدد
+        mode: 'smart' (تنقية ذكية), 'clean' (تنقية كاملة), 'transform' (تحويل الروابط فقط)
+        """
+        result, _ = cls.sanitize_detailed(text, mode=mode)
+        return result
 
     @classmethod
     def has_promo_content(cls, text):
@@ -1803,6 +1818,170 @@ class MessageSanitizer:
         for pattern, replacement in cls.WHATSAPP_TRANSFORMATIONS:
             cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
         return cleaned
+
+
+# ── سجل شفافية التنقية والكلمات المحظورة المستبدلة (لوحة المراقبة) ──────────────
+SANITIZATION_LOGS_FILE = os.path.join(DATA_DIR, "sanitization_logs.json")
+SANITIZATION_LOGS_LOCK = Lock()
+SANITIZATION_LOGS = {}
+
+
+def _load_sanitization_logs():
+    with SANITIZATION_LOGS_LOCK:
+        try:
+            if os.path.exists(SANITIZATION_LOGS_FILE):
+                with open(SANITIZATION_LOGS_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        return data
+        except Exception:
+            pass
+        return {}
+
+
+def _save_sanitization_logs_unlocked():
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(SANITIZATION_LOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(SANITIZATION_LOGS, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed saving sanitization logs: {e}")
+
+
+SANITIZATION_LOGS = _load_sanitization_logs()
+
+
+def _build_sanitization_summary(entries):
+    word_counts = {}
+    total_replacements = 0
+    for item in (entries or []):
+        for r in (item.get('replacements') or []):
+            orig = str(r.get('original') or '').strip()
+            repl = str(r.get('replacement') or '').strip()
+            method = r.get('method', 'spaced')
+            cnt = int(r.get('count', 1) or 1)
+            if not orig or not repl:
+                continue
+            total_replacements += cnt
+            key = f"{orig}||{repl}"
+            if key not in word_counts:
+                word_counts[key] = {
+                    "original": orig,
+                    "replacement": repl,
+                    "method": method,
+                    "count": 0,
+                }
+            word_counts[key]["count"] += cnt
+
+    top_words = sorted(word_counts.values(), key=lambda x: x["count"], reverse=True)[:16]
+    return {
+        "total_messages": len(entries or []),
+        "total_replacements": total_replacements,
+        "unique_words": len(word_counts),
+        "top_words": top_words,
+    }
+
+
+def get_sanitization_logs_payload(user_id):
+    uid = str(user_id or 'user_1')
+    with SANITIZATION_LOGS_LOCK:
+        entries = list(SANITIZATION_LOGS.get(uid, []))
+    return {
+        "logs": entries,
+        "summary": _build_sanitization_summary(entries),
+    }
+
+
+def _merge_replacements_unique(list_a, list_b):
+    merged = []
+    seen = {}
+    for item in list(list_a or []) + list(list_b or []):
+        if not isinstance(item, dict):
+            continue
+        orig = str(item.get('original') or '').strip()
+        repl = str(item.get('replacement') or '').strip()
+        if not orig or not repl:
+            continue
+        k = f"{orig}->{repl}"
+        if k in seen:
+            continue
+        seen[k] = True
+        merged.append({
+            "original": orig,
+            "matched_text": item.get("matched_text", orig),
+            "replacement": repl,
+            "method": item.get("method", "spaced"),
+            "count": int(item.get("count", 1) or 1),
+        })
+    return merged
+
+
+def record_sanitization_event(
+    user_id,
+    group_label,
+    original_message,
+    sanitized_message,
+    replacements=None,
+    extra_actions=None,
+    risk_assessment="low",
+    source="send",
+):
+    """تسجيل عملية تنقية واستبدال كلمات محظورة وبثها لحظياً للوحة المراقبة."""
+    uid = str(user_id or 'user_1')
+    orig_txt = str(original_message or '').strip()
+    clean_txt = str(sanitized_message or '').strip()
+    repl_list = _merge_replacements_unique(replacements, [])
+    non_kw_actions = [
+        str(a) for a in (extra_actions or [])
+        if a and not str(a).startswith("🔤")
+    ]
+
+    if not repl_list and orig_txt == clean_txt and not non_kw_actions:
+        return None
+
+    now_dt = datetime.now()
+    entry = {
+        "id": uuid.uuid4().hex[:10],
+        "timestamp": now_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "time_short": now_dt.strftime("%H:%M:%S"),
+        "ts_epoch": time.time(),
+        "group": str(group_label or 'مجموعة'),
+        "risk": str(risk_assessment or 'low'),
+        "original_preview": orig_txt[:280],
+        "sanitized_preview": clean_txt[:280],
+        "replacements": repl_list,
+        "extra_actions": non_kw_actions[:4],
+        "source": source,
+    }
+
+    with SANITIZATION_LOGS_LOCK:
+        user_entries = SANITIZATION_LOGS.setdefault(uid, [])
+        if user_entries:
+            last = user_entries[0]
+            if (
+                last.get("group") == entry["group"]
+                and last.get("original_preview") == entry["original_preview"]
+                and last.get("sanitized_preview") == entry["sanitized_preview"]
+                and (entry["ts_epoch"] - float(last.get("ts_epoch", 0))) < 6.0
+            ):
+                return last
+
+        user_entries.insert(0, entry)
+        if len(user_entries) > 40:
+            SANITIZATION_LOGS[uid] = user_entries[:40]
+        _save_sanitization_logs_unlocked()
+        summary = _build_sanitization_summary(SANITIZATION_LOGS[uid])
+
+    try:
+        socketio.emit('sanitization_log_update', {
+            "entry": entry,
+            "summary": summary,
+        }, to=uid)
+    except Exception:
+        pass
+
+    return entry
+
 
 PROTECTION_BOTS = {
     'missrose_bot', 'rose_bot', 'therose_bot', 'rosebot',
@@ -5600,7 +5779,20 @@ class TelegramManager:
 
         return True, False, None, {"type": "ready"}
 
-    def send_message_async(self, user_id, entity, message, forced_action=None, wait_for_completion=False, cancel_event=None):
+    def send_message_async(
+        self,
+        user_id,
+        entity,
+        message,
+        forced_action=None,
+        wait_for_completion=False,
+        cancel_event=None,
+        original_message_for_log=None,
+        pre_replacements=None,
+        pre_actions=None,
+        pre_risk=None,
+        log_source="send",
+    ):
         """
         إرسال رسالة مع دعم الإجراء المختار مسبقاً من نافذة الفحص الاستباقي.
         forced_action: 'skip' | 'sanitize' | 'salam' | 'send' | None
@@ -5652,9 +5844,13 @@ class TelegramManager:
             )
 
             # ── 2. تكييف الرسالة وتغيير أو حذف الكلمات والعبارات التي تستدعي الحظر ──
-            final_message, _, safety_actions = self.adapt_message_to_group_report(
+            final_message, _, safety_actions, adapt_replacements = self.adapt_message_to_group_report_detailed(
                 message, report, has_media=False
             )
+            merged_replacements = _merge_replacements_unique(pre_replacements, adapt_replacements)
+            merged_actions = list(pre_actions or []) + list(safety_actions or [])
+            effective_risk = pre_risk or report.get('risk_assessment', 'low')
+            raw_source_msg = original_message_for_log if original_message_for_log is not None else message
             if safety_actions:
                 socketio.emit('log_update', {
                     "message": f"🛡️ [{entity}] تطبيق إجراءات الأمان للرسالة: {', '.join(safety_actions[:2])}"
@@ -5683,6 +5879,11 @@ class TelegramManager:
             # ── الإرسال الذكي للمجموعات التي بها بوتات حماية وتمنع الإعلانات كلياً (وضع salam) ──
             # نتحقق من عدم إجبار التنقية المباشرة (sanitize) في وضع الإرسال الجماعي
             if action == 'salam' or (needs_smart and forced_action not in ('sanitize', 'send')):
+                record_sanitization_event(
+                    user_id, entity, raw_source_msg, final_message,
+                    replacements=merged_replacements, extra_actions=merged_actions,
+                    risk_assessment=effective_risk, source="smart_salam",
+                )
                 group_id = getattr(entity_obj, 'id', None) or hash(str(entity))
                 key = f"{user_id}_{group_id}"
                 if key in self._smart_running:
@@ -5706,13 +5907,20 @@ class TelegramManager:
                             "message": f"🧠 بدأ الإرسال الذكي لـ {entity} (أُرسلت 'السلام عليكم' وجارٍ استيفاء الشروط للتعديل تلقائياً)"}
 
             # نمرر action مباشرة لتجنب استدعاء _check_group_protection مرة ثانية
-            cleaned_message = self._maybe_sanitize(
+            cleaned_message, sanitize_replacements = self._maybe_sanitize_detailed(
                 user_id, client_manager, entity_obj, entity, final_message,
                 forced_action=action
             )
             if cleaned_message is None:
                 return {"success": False, "skipped": True,
                         "message": "تم تخطي الإرسال: المجموعة محمية أو الرسالة فارغة بعد التنقية"}
+
+            all_replacements = _merge_replacements_unique(merged_replacements, sanitize_replacements)
+            record_sanitization_event(
+                user_id, entity, raw_source_msg, cleaned_message,
+                replacements=all_replacements, extra_actions=merged_actions,
+                risk_assessment=effective_risk, source=log_source,
+            )
 
             try:
                 result = client_manager.run_coroutine(
@@ -5934,17 +6142,17 @@ class TelegramManager:
 
         return new_report, True
 
-    def adapt_message_to_group_report(self, message, report, has_media=False):
+    def adapt_message_to_group_report_detailed(self, message, report, has_media=False):
         """
-        تكييف الرسالة وتغيير أو حذف الكلمات والعبارات التي تستدعي الحظر
-        بناءً على نتائج تقرير المجموعة المخزن في قاعدة البيانات.
+        تكييف الرسالة وإرجاع (النص_المعدل, صلاحية_الوسائط, الإجراءات, قائمة_استبدال_الكلمات_المحظورة)
         """
         if not message:
-            return message, has_media, []
+            return message, has_media, [], []
 
         import re as _re
         adapted = str(message)
         actions = []
+        replacements = []
         prohibited = set(report.get('prohibited_actions', []))
         keywords_avoid = report.get('keywords_to_avoid', [])
         causes = report.get('causes', [])
@@ -5953,7 +6161,7 @@ class TelegramManager:
 
         # 1. تحويل الكلمات المحظورة المكتشفة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
         try:
-            from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_in_text
+            from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_detailed
             extra_texts = (
                 list(causes)
                 + list(mistakes)
@@ -5976,8 +6184,8 @@ class TelegramManager:
 
         if discovered_keywords or has_ad_or_kw_restriction:
             try:
-                from group_ai_analyzer import obfuscate_forbidden_words_in_text
-                adapted, kw_actions = obfuscate_forbidden_words_in_text(
+                from group_ai_analyzer import obfuscate_forbidden_words_detailed
+                adapted, kw_actions, replacements = obfuscate_forbidden_words_detailed(
                     adapted,
                     keywords_to_avoid=discovered_keywords,
                     include_common_ads=has_ad_or_kw_restriction,
@@ -6016,6 +6224,16 @@ class TelegramManager:
         if has_media and not can_media:
             actions.append("إلغاء الصور/الوسائط لأن المجموعة تحظرها")
 
+        return adapted, can_media, actions, replacements
+
+    def adapt_message_to_group_report(self, message, report, has_media=False):
+        """
+        تكييف الرسالة وتغيير أو حذف الكلمات والعبارات التي تستدعي الحظر
+        بناءً على نتائج تقرير المجموعة المخزن في قاعدة البيانات.
+        """
+        adapted, can_media, actions, _ = self.adapt_message_to_group_report_detailed(
+            message, report, has_media=has_media
+        )
         return adapted, can_media, actions
 
     def _check_group_protection(self, user_id, client_manager, entity_obj, entity_label):
@@ -6395,9 +6613,8 @@ class TelegramManager:
                 "message": f"⏹ [Smart] توقفت الدورة الذكية لـ {entity_label}"
             }, to=user_id)
 
-    def _maybe_sanitize(self, user_id, client_manager, entity_obj, entity_label, message, forced_action=None):
-        """تنقية الرسالة حسب وضع الحماية.
-        forced_action: إذا تم تمريره يُتجنب استدعاء _check_group_protection مرة ثانية."""
+    def _maybe_sanitize_detailed(self, user_id, client_manager, entity_obj, entity_label, message, forced_action=None):
+        """تنقية الرسالة مع إرجاع (النص_المنقى, قائمة_الاستبدالات)."""
         try:
             if forced_action is not None:
                 action = forced_action
@@ -6405,10 +6622,10 @@ class TelegramManager:
                 action, _ = self._check_group_protection(user_id, client_manager, entity_obj, entity_label)
 
             if action in ('skip', 'smart'):
-                return None
+                return None, []
 
             if action == 'send':
-                return message
+                return message, []
 
             if action == 'transform':
                 transformed = MessageSanitizer.transform_whatsapp_links(message)
@@ -6416,24 +6633,31 @@ class TelegramManager:
                     socketio.emit('log_update', {
                         "message": f"🔄 تم تحويل روابط واتساب في الرسالة إلى {entity_label}"
                     }, to=user_id)
-                return transformed
+                return transformed, []
 
             if not message:
-                return message
-            cleaned = MessageSanitizer.sanitize(message, mode='clean')
+                return message, []
+            cleaned, repls = MessageSanitizer.sanitize_detailed(message, mode='clean')
             if cleaned is None:
                 socketio.emit('log_update', {
                     "message": f"⚠️ تم تخطي الإرسال إلى {entity_label}: الرسالة إعلانية بالكامل بعد التنقية"
                 }, to=user_id)
-                return None
+                return None, []
             if cleaned != message:
                 socketio.emit('log_update', {
                     "message": f"🧹 تنقية الرسالة قبل الإرسال إلى {entity_label}"
                 }, to=user_id)
-            return cleaned
+            return cleaned, repls
         except Exception as e:
-            logger.warning(f"_maybe_sanitize error: {e}")
-            return message
+            logger.warning(f"_maybe_sanitize_detailed error: {e}")
+            return message, []
+
+    def _maybe_sanitize(self, user_id, client_manager, entity_obj, entity_label, message, forced_action=None):
+        """تنقية الرسالة حسب وضع الحماية."""
+        cleaned, _ = self._maybe_sanitize_detailed(
+            user_id, client_manager, entity_obj, entity_label, message, forced_action=forced_action
+        )
+        return cleaned
 
     def send_media_async(self, user_id, entity, image_files):
         try:
@@ -6484,7 +6708,18 @@ class TelegramManager:
             logger.error(f"Send media error: {str(e)}")
             raise Exception(str(e))
 
-    def send_message_with_media_async(self, user_id, entity, message, image_files):
+    def send_message_with_media_async(
+        self,
+        user_id,
+        entity,
+        message,
+        image_files,
+        original_message_for_log=None,
+        pre_replacements=None,
+        pre_actions=None,
+        pre_risk=None,
+        log_source="media",
+    ):
         try:
             with USERS_LOCK:
                 if user_id not in USERS:
@@ -6504,19 +6739,33 @@ class TelegramManager:
             entity_obj = self._resolve_entity(client_manager, entity)
 
             if message:
+                raw_source_msg = original_message_for_log if original_message_for_log is not None else message
+                adapt_repls = []
+                adapt_actions = []
+                effective_risk = pre_risk or "low"
                 try:
                     _rep, _ = self.get_or_create_group_safety_report(
                         user_id, client_manager, entity_obj, entity, sample_message=message
                     )
-                    _adapted_msg, _, _ = self.adapt_message_to_group_report(message, _rep, has_media=True)
+                    effective_risk = pre_risk or _rep.get('risk_assessment', 'low')
+                    _adapted_msg, _, adapt_actions, adapt_repls = self.adapt_message_to_group_report_detailed(
+                        message, _rep, has_media=True
+                    )
                     message = _adapted_msg
                 except Exception:
                     pass
-                _cleaned = self._maybe_sanitize(user_id, client_manager, entity_obj, entity, message)
+                _cleaned, _san_repls = self._maybe_sanitize_detailed(user_id, client_manager, entity_obj, entity, message)
                 if _cleaned is None:
                     return {"success": False, "skipped": True,
                             "message": "تم تخطي الإرسال: الرسالة بعد التنقية أصبحت فارغة"}
                 message = _cleaned
+                record_sanitization_event(
+                    user_id, entity, raw_source_msg, message,
+                    replacements=_merge_replacements_unique(pre_replacements, _merge_replacements_unique(adapt_repls, _san_repls)),
+                    extra_actions=list(pre_actions or []) + list(adapt_actions or []),
+                    risk_assessment=effective_risk,
+                    source=log_source,
+                )
 
             results = []
 
@@ -9143,6 +9392,85 @@ def api_pre_send_scan():
     })
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  API: شفافية التنقية والكلمات المحظورة المستبدلة (لوحة المراقبة)
+# ══════════════════════════════════════════════════════════════════════════════
+@app.route("/api/sanitization_logs", methods=["GET"])
+def api_get_sanitization_logs():
+    user_id = resolve_request_user_id() if 'resolve_request_user_id' in globals() else None
+    if not user_id:
+        user_id = request.args.get('user_id') or session.get('user_id') or 'user_1'
+    payload = get_sanitization_logs_payload(user_id)
+    return jsonify({"success": True, **payload})
+
+
+@app.route("/api/sanitization_logs/clear", methods=["POST"])
+def api_clear_sanitization_logs():
+    data = request.get_json(silent=True) or {}
+    user_id = resolve_request_user_id(data) if 'resolve_request_user_id' in globals() else None
+    if not user_id:
+        user_id = data.get('user_id') or session.get('user_id') or 'user_1'
+    uid = str(user_id)
+    with SANITIZATION_LOGS_LOCK:
+        SANITIZATION_LOGS[uid] = []
+        _save_sanitization_logs_unlocked()
+    return jsonify({
+        "success": True,
+        "logs": [],
+        "summary": _build_sanitization_summary([]),
+    })
+
+
+@app.route("/api/sanitization_preview", methods=["POST"])
+def api_sanitization_preview():
+    """معاينة فورية لكيفية اكتشاف واستبدال الكلمات المحظورة في نص الرسالة للتحقق من جودة التنقية."""
+    data = request.get_json(silent=True) or {}
+    raw_msg = str(data.get('message') or '').strip()
+    if not raw_msg:
+        return jsonify({"success": False, "message": "يرجى كتابة نص الرسالة أولاً للمعاينة."}), 400
+
+    groups_raw = str(data.get('groups') or '').strip()
+    import firestore_sync
+    merged_report = {
+        "is_protected": True,
+        "blocks_ads": True,
+        "prohibited_actions": ["no_ads"],
+        "keywords_to_avoid": [],
+        "causes": [],
+        "mistakes_by_others": [],
+        "details_of_punishments": [],
+        "can_send_media": True,
+    }
+    matched_groups = []
+    if groups_raw:
+        import re as _re
+        first_groups = [g.strip() for g in _re.split(r'[\r\n,;\t]+', groups_raw) if g.strip()][:5]
+        for grp in first_groups:
+            rep = firestore_sync.get_group_safety_report_from_db(grp)
+            if rep and not rep.get('error'):
+                matched_groups.append(rep.get('group_title') or grp)
+                merged_report["keywords_to_avoid"].extend(rep.get("keywords_to_avoid", []))
+                merged_report["causes"].extend(rep.get("causes", []))
+                merged_report["mistakes_by_others"].extend(rep.get("mistakes_by_others", []))
+                merged_report["details_of_punishments"].extend(rep.get("details_of_punishments", []))
+                for pa in (rep.get("prohibited_actions") or []):
+                    if pa not in merged_report["prohibited_actions"]:
+                        merged_report["prohibited_actions"].append(pa)
+
+    adapted_msg, _, actions, replacements = telegram_manager.adapt_message_to_group_report_detailed(
+        raw_msg, merged_report, has_media=False
+    )
+    return jsonify({
+        "success": True,
+        "original": raw_msg,
+        "sanitized": adapted_msg,
+        "replacements": replacements,
+        "actions": actions,
+        "matched_groups": matched_groups,
+    })
+
+
+
 @app.route("/api/send_now/pause", methods=["POST"])
 @app.route("/api/send_now/stop", methods=["POST"])
 def api_send_now_stop():
@@ -9483,7 +9811,7 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 report, is_new = telegram_manager.get_or_create_group_safety_report(
                     user_id, cm, entity_obj, group, sample_message=message
                 )
-                curr_message, can_media, safety_actions = telegram_manager.adapt_message_to_group_report(
+                curr_message, can_media, safety_actions, kw_replacements = telegram_manager.adapt_message_to_group_report_detailed(
                     message, report, has_media=bool(image_files)
                 )
                 curr_images = image_files if can_media else []
@@ -9548,11 +9876,21 @@ def _execute_batch_send(user_id, state, is_resume=False):
                             }, to=user_id)
                             result = telegram_manager.send_message_async(
                                 user_id, group, curr_message, forced_action='salam',
-                                wait_for_completion=is_batch, cancel_event=cancel_event
+                                wait_for_completion=is_batch, cancel_event=cancel_event,
+                                original_message_for_log=message,
+                                pre_replacements=kw_replacements,
+                                pre_actions=safety_actions,
+                                pre_risk=report.get('risk_assessment', 'low'),
+                                log_source="batch_salam",
                             )
                         elif curr_images and curr_message:
                             result = telegram_manager.send_message_with_media_async(
-                                user_id, group, curr_message, curr_images
+                                user_id, group, curr_message, curr_images,
+                                original_message_for_log=message,
+                                pre_replacements=kw_replacements,
+                                pre_actions=safety_actions,
+                                pre_risk=report.get('risk_assessment', 'low'),
+                                log_source="batch_media",
                             )
                         elif curr_images:
                             result = telegram_manager.send_media_async(
@@ -9560,7 +9898,12 @@ def _execute_batch_send(user_id, state, is_resume=False):
                             )
                         else:
                             result = telegram_manager.send_message_async(
-                                user_id, group, curr_message, forced_action=action_to_use
+                                user_id, group, curr_message, forced_action=action_to_use,
+                                original_message_for_log=message,
+                                pre_replacements=kw_replacements,
+                                pre_actions=safety_actions,
+                                pre_risk=report.get('risk_assessment', 'low'),
+                                log_source="batch",
                             )
                         break
                     except FloodWaitError as fwe:
@@ -13483,6 +13826,21 @@ def formatter_page():
 def html_to_word_studio():
     """استوديو تحويل HTML إلى Word الاحترافي بالذكاء الاصطناعي"""
     resp = make_response(render_template('html_to_word.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return resp
+
+
+@app.route("/performance_portfolio")
+@app.route("/performance_portfolio/")
+def performance_portfolio_page():
+    """ملف الأداء الوظيفي - الواجهة التفاعلية الكاملة بدون أي تعديل"""
+    resp = make_response(
+        send_file(
+            os.path.join(app.root_path, 'templates', 'performance_portfolio.html'),
+            mimetype='text/html; charset=utf-8',
+        )
+    )
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
     return resp

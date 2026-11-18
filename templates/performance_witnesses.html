@@ -26,6 +26,7 @@
         --font-display: 'Aref Ruqaa', serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
     body { font-family: var(--font-main); background: #dcdcdc; color: var(--text); font-weight: 700; padding-bottom: 80px; }
 
     /* ===== شريط الأدوات ===== */
@@ -55,16 +56,29 @@
 
     /* ===== الصفحات ===== */
     .page {
-        background-color: white; width: 210mm; height: 297mm; position: relative;
+        background-color: white;
+        width: 210mm; min-width: 210mm; max-width: 210mm;
+        height: 297mm; min-height: 297mm;
+        position: relative;
         overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         page-break-after: always; display: flex; flex-direction: column;
         margin: 0 auto 20px auto;
     }
     @media print {
         .toolbar, .preview-bar, .preview-page-badge, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
-        body { background-color: white !important; padding: 0 !important; margin: 0 !important; }
-        .pages-wrap { margin: 0 !important; padding: 0 !important; }
-        .page { box-shadow: none !important; margin: 0 !important; width: 210mm !important; height: 297mm !important; page-break-after: always; transform: none !important; }
+        html, body {
+            width: 210mm !important; min-width: 210mm !important;
+            background-color: white !important; padding: 0 !important; margin: 0 !important;
+            -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+        }
+        .pages-wrap { margin: 0 !important; padding: 0 !important; width: 210mm !important; }
+        .page {
+            box-shadow: none !important; margin: 0 !important;
+            width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important;
+            height: 297mm !important; min-height: 297mm !important;
+            page-break-after: always; transform: none !important;
+        }
+        .cv-page, .charter-page, .toc-list { overflow: visible !important; }
         @page { size: A4; margin: 0; }
         .edit-only { display: none !important; }
         .editable-area { background: transparent !important; outline: none !important; box-shadow: none !important; }
@@ -137,9 +151,23 @@
     }
 
     /* ===== وضع التصدير إلى PDF ===== */
-    body.pdf-exporting { background: #fff !important; padding: 0 !important; }
-    body.pdf-exporting .pages-wrap { margin: 0 !important; padding: 0 !important; }
-    body.pdf-exporting .page { box-shadow: none !important; margin: 0 auto !important; transform: none !important; }
+    html.pdf-exporting, body.pdf-exporting {
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important;
+        background: #fff !important; padding: 0 !important; margin: 0 !important;
+        overflow-x: visible !important;
+        -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+    }
+    body.pdf-exporting .pages-wrap {
+        width: 794px !important; min-width: 794px !important; margin: 0 !important; padding: 0 !important;
+    }
+    body.pdf-exporting .page {
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important;
+        height: 1123px !important; min-height: 1123px !important;
+        box-shadow: none !important; margin: 0 !important; transform: none !important;
+    }
+    body.pdf-exporting .cv-page,
+    body.pdf-exporting .charter-page,
+    body.pdf-exporting .toc-list { overflow: visible !important; }
     body.pdf-exporting .edit-only,
     body.pdf-exporting .table-controls,
     body.pdf-exporting .row-del-btn,
@@ -314,7 +342,7 @@
     }
     .content-header h2 {
         color: var(--purple); font-family: var(--font-academic); font-size: 30px;
-        font-weight: 900;
+        font-weight: 700;
     }
     .content-header .page-badge {
         background: var(--purple); color: white; padding: 4px 15px;
@@ -373,7 +401,7 @@
     .vision-card.mission { background: linear-gradient(135deg, #e0f0ec, #f0f7f5); border-right: 8px solid #4a9b8a; }
     .vision-card.values { background: linear-gradient(135deg, #f7f0e0, #faf6ec); border-right: 8px solid var(--accent); }
     .vision-card h3 {
-        font-family: var(--font-academic); font-size: 28px; margin-bottom: 15px; font-weight: 900;
+        font-family: var(--font-academic); font-size: 28px; margin-bottom: 15px; font-weight: 700;
         display: flex; align-items: center; gap: 10px;
     }
     .vision-card.vision h3 { color: var(--purple); }
@@ -397,7 +425,7 @@
         padding: 20px;
         text-align: center;
     }
-    .cv-header h2 { margin: 0; font-size: 28px; font-family: var(--font-academic); font-weight: 900; }
+    .cv-header h2 { margin: 0; font-size: 28px; font-family: var(--font-academic); font-weight: 700; }
     .cv-header p { margin: 5px 0 0 0; font-size: 16px; color: #f0ecf7; }
     
     .cv-section {
@@ -485,7 +513,7 @@
         background: linear-gradient(135deg, var(--purple), var(--lavender));
         color: white; padding: 10px 20px; border-radius: 8px;
         font-family: var(--font-academic); font-size: 20px; margin-bottom: 12px;
-        font-weight: 900;
+        font-weight: 700;
     }
     .charter-article p, .charter-article li {
         font-size: 17px; line-height: 1.75; margin-bottom: 8px; text-align: justify; font-weight: 700;
@@ -497,7 +525,7 @@
     .eval-table-page table { width: 100%; border-collapse: collapse; }
     .eval-table-page th {
         background: var(--purple); color: white; padding: 15px;
-        font-family: var(--font-academic); font-size: 20px; font-weight: 900;
+        font-family: var(--font-academic); font-size: 20px; font-weight: 700;
     }
     .eval-table-page td {
         border: 1px solid var(--border); padding: 12px 15px;
@@ -541,7 +569,7 @@
     .witness-title {
         background: linear-gradient(135deg, var(--purple), var(--lavender));
         color: white; padding: 12px 20px; border-radius: 8px;
-        font-family: var(--font-academic); font-size: 22px; font-weight: 900;
+        font-family: var(--font-academic); font-size: 22px; font-weight: 700;
         margin-bottom: 8px; text-align: center;
     }
     .witness-weight {
@@ -551,7 +579,7 @@
     .witness-table { width: 100%; border-collapse: collapse; }
     .witness-table th {
         background: var(--purple); color: white; padding: 10px;
-        font-size: 16px; font-weight: 900; font-family: var(--font-academic);
+        font-size: 16px; font-weight: 700; font-family: var(--font-academic);
     }
     .witness-table td {
         border: 1px solid var(--border); padding: 10px; text-align: center;
@@ -639,7 +667,7 @@
         margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--purple);
     }
     .witness-modal-header h3 {
-        color: var(--purple); font-family: var(--font-academic); font-size: 22px; font-weight: 900;
+        color: var(--purple); font-family: var(--font-academic); font-size: 22px; font-weight: 700;
     }
     .witness-modal-close {
         background: #c0392b; color: white; border: none;
@@ -2018,6 +2046,69 @@ function closePdfReadyBanner() {
     document.getElementById('pdfReadyBanner')?.classList.remove('show');
 }
 
+async function ensureExportFontsLoaded() {
+    try {
+        if (document.fonts && typeof document.fonts.load === 'function') {
+            await Promise.allSettled([
+                document.fonts.load('400 16px Cairo'),
+                document.fonts.load('700 16px Cairo'),
+                document.fonts.load('900 16px Cairo'),
+                document.fonts.load('400 24px Amiri'),
+                document.fonts.load('700 24px Amiri'),
+                document.fonts.load('400 32px "Aref Ruqaa"'),
+                document.fonts.load('700 32px "Aref Ruqaa"')
+            ]);
+        }
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+    } catch (e) {}
+}
+
+function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
+    const pageWmm = 210;
+    const pageHmm = 297;
+    const maxAspectRatio = pageHmm / pageWmm;
+    const canvasRatio = canvas.height / Math.max(1, canvas.width);
+
+    if (canvasRatio <= maxAspectRatio + 0.025) {
+        if (!isFirstPage) pdf.addPage('a4', 'p');
+        let renderW = pageWmm;
+        let renderH = canvasRatio * pageWmm;
+        if (renderH > pageHmm) {
+            renderH = pageHmm;
+            renderW = pageHmm / canvasRatio;
+        }
+        const offsetX = Math.max(0, (pageWmm - renderW) / 2);
+        const offsetY = Math.max(0, (pageHmm - renderH) / 2);
+        const imgData = canvas.toDataURL('image/jpeg', 0.93);
+        pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'FAST');
+        return;
+    }
+
+    const sliceMaxPxH = Math.floor(pageHmm * (canvas.width / pageWmm));
+    let yPx = 0;
+    let firstSlice = true;
+    while (yPx < canvas.height) {
+        const sliceH = Math.min(sliceMaxPxH, canvas.height - yPx);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceMaxPxH;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, yPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+        if (!isFirstPage || !firstSlice) {
+            pdf.addPage('a4', 'p');
+        }
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.93);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
+        yPx += sliceH;
+        firstSlice = false;
+    }
+}
+
 async function exportPDF() {
     if (isExportingPdf) return;
     if (!window.jspdf || !window.jspdf.jsPDF || typeof window.html2canvas !== 'function') {
@@ -2051,12 +2142,11 @@ async function exportPDF() {
         p.style.transform = '';
         p.style.marginBottom = '';
     });
+    document.documentElement.classList.add('pdf-exporting');
     document.body.classList.add('pdf-exporting');
 
     try {
-        if (document.fonts && document.fonts.ready) {
-            await document.fonts.ready;
-        }
+        await ensureExportFontsLoaded();
         await new Promise(r => setTimeout(r, 220));
 
         const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
@@ -2064,6 +2154,7 @@ async function exportPDF() {
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+        let isFirstPdfPage = true;
 
         for (let i = 0; i < pages.length; i++) {
             const pageEl = pages[i];
@@ -2075,6 +2166,16 @@ async function exportPDF() {
 
             await new Promise(r => setTimeout(r, 20));
 
+            const prevHeight = pageEl.style.height;
+            const prevOverflow = pageEl.style.overflow;
+            const hasContentOverflow = pageEl.scrollHeight > 1130;
+            if (hasContentOverflow) {
+                pageEl.style.setProperty('height', 'auto', 'important');
+                pageEl.style.setProperty('overflow', 'visible', 'important');
+            }
+            const captureW = 794;
+            const captureH = hasContentOverflow ? Math.max(1123, pageEl.scrollHeight) : 1123;
+
             let canvas;
             try {
                 canvas = await html2canvas(pageEl, {
@@ -2082,10 +2183,10 @@ async function exportPDF() {
                     useCORS: true,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: pageEl.offsetWidth,
-                    height: pageEl.offsetHeight,
-                    windowWidth: pageEl.scrollWidth,
-                    windowHeight: pageEl.scrollHeight,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
                     scrollX: 0,
                     scrollY: 0,
                     logging: false
@@ -2096,18 +2197,22 @@ async function exportPDF() {
                     useCORS: false,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: pageEl.offsetWidth,
-                    height: pageEl.offsetHeight,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
                     scrollX: 0,
                     scrollY: 0,
                     logging: false,
                     ignoreElements: (el) => el.tagName === 'IMG' && el.src && !el.src.startsWith('data:') && !el.src.startsWith(location.origin)
                 });
+            } finally {
+                pageEl.style.height = prevHeight;
+                pageEl.style.overflow = prevOverflow;
             }
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.93);
-            if (i > 0) pdf.addPage('a4', 'p');
-            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+            appendCanvasProportionalToPdf(pdf, canvas, isFirstPdfPage);
+            isFirstPdfPage = false;
         }
 
         if (subEl) subEl.textContent = 'جاري حفظ ملف PDF...';
@@ -2137,6 +2242,7 @@ async function exportPDF() {
     } catch (e) {
         setStatus('❌ تعذر إنشاء PDF: ' + (e.message || e));
     } finally {
+        document.documentElement.classList.remove('pdf-exporting');
         document.body.classList.remove('pdf-exporting');
         if (overlay) overlay.classList.remove('show');
         if (wasPreview) {

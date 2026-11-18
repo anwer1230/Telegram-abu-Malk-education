@@ -38,6 +38,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
 
     body {
         font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
@@ -478,9 +479,14 @@
     }
 
     /* ==================== وضع التصدير إلى PDF ==================== */
-    body.pdf-exporting { background: #fff !important; padding: 0 !important; margin: 0 !important; align-items: flex-start !important; }
+    html.pdf-exporting, body.pdf-exporting {
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important;
+        background: #fff !important; padding: 0 !important; margin: 0 !important;
+        align-items: flex-start !important; overflow-x: visible !important;
+        -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+    }
     body.pdf-exporting .container {
-        width: 794px !important; max-width: 794px !important; box-shadow: none !important;
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important; box-shadow: none !important;
         margin: 0 !important; transform: none !important;
     }
     body.pdf-exporting .toolbar,
@@ -491,7 +497,7 @@
     body.pdf-exporting .page-ctrl-bar,
     body.pdf-exporting .witness-del-btn,
     body.pdf-exporting .edit-only { display: none !important; }
-    body.pdf-exporting .cover { height: 1123px !important; min-height: 1123px !important; }
+    body.pdf-exporting .cover { height: 1123px !important; min-height: 1123px !important; width: 794px !important; }
     body.pdf-exporting .cover::before { display: none !important; }
     body.pdf-exporting .single-page-report { min-height: 1123px !important; padding: 36px !important; }
     body.pdf-exporting .index-section { min-height: 1123px !important; padding: 36px !important; }
@@ -501,13 +507,17 @@
     /* ==================== إعدادات الطباعة ==================== */
     @media print {
         @page { size: A4; margin: 0 !important; }
-        body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 11pt; }
-        .container { box-shadow: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
+        html, body {
+            width: 210mm !important; min-width: 210mm !important;
+            background: white !important; padding: 0 !important; margin: 0 !important; font-size: 11pt;
+            -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+        }
+        .container { box-shadow: none !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
         .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
-        .cover { width: 100vw; height: 297mm; min-height: 297mm; margin: 0; border-radius: 0; page-break-after: always; }
+        .cover { width: 100% !important; height: 297mm !important; min-height: 297mm !important; margin: 0; border-radius: 0; page-break-after: always; }
         .cover::before { display: none; }
-        .single-page-report { height: 297mm; min-height: 297mm; page-break-after: always; page-break-inside: avoid; margin: 0; padding: 40px; justify-content: flex-start; overflow: hidden; }
-        .index-section { page-break-after: always; min-height: 297mm; padding: 40px; overflow: hidden; }
+        .single-page-report { height: auto; min-height: 297mm; page-break-after: always; page-break-inside: avoid; margin: 0; padding: 40px; justify-content: flex-start; overflow: visible; }
+        .index-section { page-break-after: always; min-height: 297mm; padding: 40px; overflow: visible; }
         .section-header { page-break-before: always; page-break-after: avoid; padding: 20px !important; font-size: 1.5em !important; margin-top: 0 !important; }
         .report { page-break-inside: avoid; padding: 15px 20px !important; border-bottom: none; margin: 0; }
         .report-title { page-break-after: avoid; padding: 10px 15px !important; font-size: 1.3em !important; margin-bottom: 15px; }
@@ -2488,17 +2498,38 @@ function closePdfReadyBanner() {
     document.getElementById('pdfReadyBanner')?.classList.remove('show');
 }
 
+async function ensureExportFontsLoaded() {
+    try {
+        if (document.fonts && typeof document.fonts.load === 'function') {
+            await Promise.allSettled([
+                document.fonts.load('400 16px Cairo'),
+                document.fonts.load('700 16px Cairo'),
+                document.fonts.load('900 16px Cairo'),
+                document.fonts.load('400 16px Tajawal'),
+                document.fonts.load('700 16px Tajawal'),
+                document.fonts.load('400 24px Amiri'),
+                document.fonts.load('700 24px Amiri')
+            ]);
+        }
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+    } catch (e) {}
+}
+
 async function captureElementSafe(el) {
+    const captureW = 794;
+    const captureH = Math.max(1, el.offsetHeight || 0, el.scrollHeight || 0);
     try {
         return await html2canvas(el, {
             scale: 2,
             useCORS: true,
             allowTaint: false,
             backgroundColor: '#ffffff',
-            width: el.offsetWidth,
-            height: el.offsetHeight,
-            windowWidth: el.scrollWidth,
-            windowHeight: el.scrollHeight,
+            width: captureW,
+            height: captureH,
+            windowWidth: captureW,
+            windowHeight: captureH,
             scrollX: 0,
             scrollY: 0,
             logging: false
@@ -2509,8 +2540,10 @@ async function captureElementSafe(el) {
             useCORS: false,
             allowTaint: false,
             backgroundColor: '#ffffff',
-            width: el.offsetWidth,
-            height: el.offsetHeight,
+            width: captureW,
+            height: captureH,
+            windowWidth: captureW,
+            windowHeight: captureH,
             scrollX: 0,
             scrollY: 0,
             logging: false,
@@ -2576,6 +2609,7 @@ async function exportPDF() {
         container.style.transform = '';
         container.style.marginBottom = '';
     }
+    document.documentElement.classList.add('pdf-exporting');
     document.body.classList.add('pdf-exporting');
 
     if (overlay) overlay.classList.add('show');
@@ -2584,9 +2618,7 @@ async function exportPDF() {
     if (pctEl) pctEl.textContent = '5%';
 
     try {
-        if (document.fonts && document.fonts.ready) {
-            await document.fonts.ready;
-        }
+        await ensureExportFontsLoaded();
         await new Promise(r => setTimeout(r, 200));
 
         // تجميع الكتل المنطقية (دمج عنوان القسم مع التقرير الذي يليه مباشرة حتى لا يظهر عنوان قسم منفرداً)
@@ -2665,6 +2697,7 @@ async function exportPDF() {
     } catch (e) {
         setStatus('❌ تعذر إنشاء PDF: ' + (e.message || e));
     } finally {
+        document.documentElement.classList.remove('pdf-exporting');
         document.body.classList.remove('pdf-exporting');
         if (overlay) overlay.classList.remove('show');
         if (wasPreview) applyPreviewZoom();

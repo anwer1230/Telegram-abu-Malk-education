@@ -21,6 +21,7 @@
         --check-color: #e57373;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
     body { font-family: var(--font-main); background-color: #dcdcdc; color: var(--text-color); font-weight: 700; padding-bottom: 80px; }
 
     /* ===== شريط الأدوات ===== */
@@ -47,16 +48,29 @@
 
     /* ===== الصفحات ===== */
     .page {
-        background-color: white; width: 210mm; height: 297mm; position: relative;
+        background-color: white;
+        width: 210mm; min-width: 210mm; max-width: 210mm;
+        height: 297mm; min-height: 297mm;
+        position: relative;
         overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         page-break-after: always; display: flex; flex-direction: column;
         margin: 0 auto 20px auto;
     }
     @media print {
         .toolbar, .preview-bar, .preview-page-badge, .pdf-overlay, .pdf-ready-banner { display: none !important; }
-        body { background-color: white !important; padding: 0 !important; margin: 0 !important; }
-        .pages-wrap { margin: 0 !important; padding: 0 !important; }
-        .page { box-shadow: none !important; margin: 0 !important; width: 210mm !important; height: 297mm !important; page-break-after: always; transform: none !important; }
+        html, body {
+            width: 210mm !important; min-width: 210mm !important;
+            background-color: white !important; padding: 0 !important; margin: 0 !important;
+            -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+        }
+        .pages-wrap { margin: 0 !important; padding: 0 !important; width: 210mm !important; }
+        .page {
+            box-shadow: none !important; margin: 0 !important;
+            width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important;
+            height: 297mm !important; min-height: 297mm !important;
+            page-break-after: always; transform: none !important;
+        }
+        .text-page-box, .table-page { overflow: visible !important; }
         @page { size: A4; margin: 0; }
         .edit-only { display: none !important; }
         .editable-area { background: transparent !important; outline: none !important; box-shadow: none !important; }
@@ -121,9 +135,22 @@
     }
 
     /* ===== وضع التصدير إلى PDF ===== */
-    body.pdf-exporting { background: #fff !important; padding: 0 !important; }
-    body.pdf-exporting .pages-wrap { margin: 0 !important; padding: 0 !important; }
-    body.pdf-exporting .page { box-shadow: none !important; margin: 0 auto !important; transform: none !important; }
+    html.pdf-exporting, body.pdf-exporting {
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important;
+        background: #fff !important; padding: 0 !important; margin: 0 !important;
+        overflow-x: visible !important;
+        -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+    }
+    body.pdf-exporting .pages-wrap {
+        width: 794px !important; min-width: 794px !important; margin: 0 !important; padding: 0 !important;
+    }
+    body.pdf-exporting .page {
+        width: 794px !important; min-width: 794px !important; max-width: 794px !important;
+        height: 1123px !important; min-height: 1123px !important;
+        box-shadow: none !important; margin: 0 !important; transform: none !important;
+    }
+    body.pdf-exporting .text-page-box,
+    body.pdf-exporting .table-page { overflow: visible !important; }
     body.pdf-exporting .edit-only,
     body.pdf-exporting .table-controls,
     body.pdf-exporting .row-del-btn,
@@ -214,27 +241,27 @@
     /* ===== الأدعية ===== */
     .prayer-page { background-color: white; padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
     .prayer-card { background: #ffffff; border: 3px solid var(--border-color); border-radius: 30px; padding: 50px; width: 90%; box-shadow: 0 6px 15px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 450px; }
-    .prayer-title { font-family: var(--font-academic); font-size: 44px; margin-bottom: 35px; color: var(--dark-teal); font-weight: 900; line-height: 1.4; }
-    .prayer-content { font-size: 38px; line-height: 1.9; font-weight: 900; font-family: var(--font-academic); }
+    .prayer-title { font-family: var(--font-academic); font-size: 44px; margin-bottom: 35px; color: var(--dark-teal); font-weight: 700; line-height: 1.4; }
+    .prayer-content { font-size: 38px; line-height: 1.9; font-weight: 700; font-family: var(--font-academic); }
 
     /* ===== المحتويات ===== */
     .toc { padding: 40px 50px; height: 100%; border-left: 15px solid var(--primary-teal); border-right: 15px solid var(--primary-teal); border-radius: 30px; margin: 20px; border-top: 15px solid var(--light-teal); border-bottom: 15px solid var(--dark-teal); background: white; display: flex; flex-direction: column; justify-content: center; }
-    .toc h2 { text-align: center; color: var(--primary-teal); margin-bottom: 25px; font-size: 36px; font-family: var(--font-academic); font-weight: 900; }
+    .toc h2 { text-align: center; color: var(--primary-teal); margin-bottom: 25px; font-size: 36px; font-family: var(--font-academic); font-weight: 700; }
     .toc ul { list-style-type: none; padding-right: 20px; }
-    .toc li { margin-bottom: 12px; font-size: 21px; font-weight: 900; font-family: var(--font-academic); color: #111; border-bottom: 1px dashed #ddd; padding-bottom: 4px; display: flex; align-items: center; }
+    .toc li { margin-bottom: 12px; font-size: 21px; font-weight: 700; font-family: var(--font-academic); color: #111; border-bottom: 1px dashed #ddd; padding-bottom: 4px; display: flex; align-items: center; }
     .toc li::before { content: '❖'; color: var(--primary-teal); margin-left: 15px; font-size: 18px; }
 
     /* ===== الاقتباسات ===== */
-    .quote-page { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px; text-align: center; height: 100%; }
+    .quote-page { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px; text-align: center; min-height: 297mm; }
     .portrait-img { width: 320px; height: 320px; border-radius: 50%; border: 6px solid var(--primary-teal); margin-bottom: 50px; object-fit: cover; object-position: top; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     .speech-bubble { border: 2px solid var(--primary-teal); border-radius: 30px; padding: 40px; position: relative; background: white; max-width: 80%; }
     .speech-bubble::after { content: ''; position: absolute; bottom: -20px; right: 50px; border-width: 20px 20px 0; border-style: solid; border-color: var(--primary-teal) transparent transparent; }
-    .speech-bubble p { font-size: 28px; font-weight: 900; margin: 0; line-height: 1.8; text-align: center; font-family: var(--font-academic); }
+    .speech-bubble p { font-size: 28px; font-weight: 700; margin: 0; line-height: 1.8; text-align: center; font-family: var(--font-academic); }
 
     /* ===== عناوين الأقسام ===== */
-    .section-title-page { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; }
-    .icon-placeholder { width: 150px; height: 150px; margin-bottom: 30px; }
-    .section-title { font-size: 50px; font-weight: 900; color: black; text-align: center; margin-bottom: 30px; position: relative; display: inline-block; font-family: var(--font-academic); }
+    .section-title-page { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 297mm; padding: 40px; }
+    .icon-placeholder { width: 150px; height: 150px; margin-bottom: 30px; flex-shrink: 0; }
+    .section-title { font-size: 50px; font-weight: 700; color: black; text-align: center; margin-bottom: 30px; position: relative; display: inline-block; font-family: var(--font-academic); }
     .section-title::before, .section-title::after { content: ''; position: absolute; width: 100px; height: 3px; background-color: var(--border-color); top: 50%; transform: translateY(-50%); }
     .section-title::before { left: -120px; }
     .section-title::after { right: -120px; }
@@ -243,16 +270,16 @@
     /* ===== النصوص ===== */
     .text-page-box { border: 2px solid var(--border-color); border-radius: 15px; padding: 35px; margin: 25px; position: relative; background: white; height: calc(100% - 50px); display: flex; flex-direction: column; overflow-y: auto; }
     .text-page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    .text-page-header h2 { color: var(--primary-teal); font-size: 26px; margin: 0; font-family: var(--font-academic); font-weight: 900; }
+    .text-page-header h2 { color: var(--primary-teal); font-size: 26px; margin: 0; font-family: var(--font-academic); font-weight: 700; }
     .text-page-box p, .text-page-box li { font-size: 19px; font-weight: 700; line-height: 1.65; margin-bottom: 10px; text-align: justify; }
     .text-page-box ul { padding-right: 25px; margin-bottom: 5px; }
 
     /* ===== الجداول ===== */
-    .table-page { padding: 30px 40px; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
-    .table-title { font-size: 26px; font-weight: 900; margin-bottom: 15px; color: var(--primary-teal); text-align: right; border-bottom: 2px solid #eee; padding-bottom: 10px; font-family: var(--font-academic); }
+    .table-page { padding: 30px 40px; min-height: 297mm; display: flex; flex-direction: column; overflow-y: auto; }
+    .table-title { font-size: 26px; font-weight: 700; margin-bottom: 15px; color: var(--primary-teal); text-align: right; border-bottom: 2px solid #eee; padding-bottom: 10px; font-family: var(--font-academic); }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid var(--border-color); padding: 8px; text-align: center; font-size: 16px; font-weight: 700; }
-    th { background-color: #f0f4f5; font-weight: 900; color: var(--dark-teal); font-family: var(--font-academic); font-size: 17px; }
+    th { background-color: #f0f4f5; font-weight: 700; color: var(--dark-teal); font-family: var(--font-academic); font-size: 17px; }
     td.col-empty { width: 12%; }
     td.col-type { width: 18%; }
     td.col-item { width: 58%; text-align: right; font-weight: 900; }
@@ -285,9 +312,9 @@
     .tape-bottom-right { bottom: -10px; right: -20px; transform: rotate(-45deg); }
 
     /* ===== الخاتمة ===== */
-    .conclusion-page { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px; height: 100%; font-family: var(--font-academic); }
-    .conclusion-page p { font-size: 28px; font-weight: 900; line-height: 2; margin-bottom: 30px; }
-    .conclusion-title { font-size: 50px; font-weight: 900; color: black; text-align: center; margin-bottom: 40px; position: relative; display: inline-block; font-family: var(--font-academic); }
+    .conclusion-page { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px; min-height: 297mm; font-family: var(--font-academic); }
+    .conclusion-page p { font-size: 28px; font-weight: 700; line-height: 2; margin-bottom: 30px; }
+    .conclusion-title { font-size: 50px; font-weight: 700; color: black; text-align: center; margin-bottom: 40px; position: relative; display: inline-block; font-family: var(--font-academic); }
     .conclusion-title::before, .conclusion-title::after { content: ''; position: absolute; width: 100px; height: 3px; background-color: var(--border-color); top: 50%; transform: translateY(-50%); }
     .conclusion-title::before { left: -120px; }
     .conclusion-title::after { right: -120px; }
@@ -1569,6 +1596,67 @@ function closePdfReadyBanner() {
     document.getElementById('pdfReadyBanner')?.classList.remove('show');
 }
 
+async function ensureExportFontsLoaded() {
+    try {
+        if (document.fonts && typeof document.fonts.load === 'function') {
+            await Promise.allSettled([
+                document.fonts.load('400 16px Cairo'),
+                document.fonts.load('700 16px Cairo'),
+                document.fonts.load('900 16px Cairo'),
+                document.fonts.load('400 24px Amiri'),
+                document.fonts.load('700 24px Amiri')
+            ]);
+        }
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+    } catch (e) {}
+}
+
+function appendCanvasProportionalToPdf(pdf, canvas, isFirstPage) {
+    const pageWmm = 210;
+    const pageHmm = 297;
+    const maxAspectRatio = pageHmm / pageWmm;
+    const canvasRatio = canvas.height / Math.max(1, canvas.width);
+
+    if (canvasRatio <= maxAspectRatio + 0.025) {
+        if (!isFirstPage) pdf.addPage('a4', 'p');
+        let renderW = pageWmm;
+        let renderH = canvasRatio * pageWmm;
+        if (renderH > pageHmm) {
+            renderH = pageHmm;
+            renderW = pageHmm / canvasRatio;
+        }
+        const offsetX = Math.max(0, (pageWmm - renderW) / 2);
+        const offsetY = Math.max(0, (pageHmm - renderH) / 2);
+        const imgData = canvas.toDataURL('image/jpeg', 0.93);
+        pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'FAST');
+        return;
+    }
+
+    const sliceMaxPxH = Math.floor(pageHmm * (canvas.width / pageWmm));
+    let yPx = 0;
+    let firstSlice = true;
+    while (yPx < canvas.height) {
+        const sliceH = Math.min(sliceMaxPxH, canvas.height - yPx);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceMaxPxH;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, yPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+        if (!isFirstPage || !firstSlice) {
+            pdf.addPage('a4', 'p');
+        }
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.93);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
+        yPx += sliceH;
+        firstSlice = false;
+    }
+}
+
 async function exportPDF() {
     if (isExportingPdf) return;
     if (!window.jspdf || !window.jspdf.jsPDF || typeof window.html2canvas !== 'function') {
@@ -1596,25 +1684,25 @@ async function exportPDF() {
     if (fillEl) fillEl.style.width = '5%';
     if (pctEl) pctEl.textContent = '5%';
 
-    // تعطيل زووم المعاينة وإخفاء أدوات التحرير مؤقتاً
+    // تعطيل زووم المعاينة وإخفاء أدوات التحرير مؤقتاً وتثبيت مقاس A4 معزول
     removePreviewBadges();
     document.querySelectorAll('#pagesWrap > .page').forEach(p => {
         p.style.transform = '';
         p.style.marginBottom = '';
     });
+    document.documentElement.classList.add('pdf-exporting');
     document.body.classList.add('pdf-exporting');
 
     try {
-        if (document.fonts && document.fonts.ready) {
-            await document.fonts.ready;
-        }
-        await new Promise(r => setTimeout(r, 140));
+        await ensureExportFontsLoaded();
+        await new Promise(r => setTimeout(r, 180));
 
         const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
         if (!pages.length) throw new Error('لا توجد صفحات للتصدير');
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+        let isFirstPdfPage = true;
 
         for (let i = 0; i < pages.length; i++) {
             const pageEl = pages[i];
@@ -1626,6 +1714,16 @@ async function exportPDF() {
 
             await new Promise(r => setTimeout(r, 20));
 
+            const prevHeight = pageEl.style.height;
+            const prevOverflow = pageEl.style.overflow;
+            const hasContentOverflow = pageEl.scrollHeight > 1130;
+            if (hasContentOverflow) {
+                pageEl.style.setProperty('height', 'auto', 'important');
+                pageEl.style.setProperty('overflow', 'visible', 'important');
+            }
+            const captureW = 794;
+            const captureH = hasContentOverflow ? Math.max(1123, pageEl.scrollHeight) : 1123;
+
             let canvas;
             try {
                 canvas = await html2canvas(pageEl, {
@@ -1633,33 +1731,36 @@ async function exportPDF() {
                     useCORS: true,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: pageEl.offsetWidth,
-                    height: pageEl.offsetHeight,
-                    windowWidth: pageEl.scrollWidth,
-                    windowHeight: pageEl.scrollHeight,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
                     scrollX: 0,
                     scrollY: 0,
                     logging: false
                 });
             } catch (pageErr) {
-                // محاولة بديلة في حال تعذر تحميل صورة خارجية بسبب CORS
                 canvas = await html2canvas(pageEl, {
                     scale: 2,
                     useCORS: false,
                     allowTaint: false,
                     backgroundColor: '#ffffff',
-                    width: pageEl.offsetWidth,
-                    height: pageEl.offsetHeight,
+                    width: captureW,
+                    height: captureH,
+                    windowWidth: captureW,
+                    windowHeight: captureH,
                     scrollX: 0,
                     scrollY: 0,
                     logging: false,
                     ignoreElements: (el) => el.tagName === 'IMG' && el.src && !el.src.startsWith('data:') && !el.src.startsWith(location.origin)
                 });
+            } finally {
+                pageEl.style.height = prevHeight;
+                pageEl.style.overflow = prevOverflow;
             }
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.93);
-            if (i > 0) pdf.addPage('a4', 'p');
-            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+            appendCanvasProportionalToPdf(pdf, canvas, isFirstPdfPage);
+            isFirstPdfPage = false;
         }
 
         if (subEl) subEl.textContent = 'جاري حفظ ملف PDF...';
@@ -1689,6 +1790,7 @@ async function exportPDF() {
     } catch (e) {
         setStatus('❌ تعذر إنشاء PDF: ' + (e.message || e));
     } finally {
+        document.documentElement.classList.remove('pdf-exporting');
         document.body.classList.remove('pdf-exporting');
         if (overlay) overlay.classList.remove('show');
         if (wasPreview) {

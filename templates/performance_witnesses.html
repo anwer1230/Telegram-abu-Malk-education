@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
     :root {
         --primary: #62929e;
@@ -59,13 +61,13 @@
         margin: 0 auto 20px auto;
     }
     @media print {
-        .toolbar { display: none !important; }
-        body { background-color: white; padding: 0; margin: 0; }
-        .pages-wrap { margin: 0; }
-        .page { box-shadow: none; margin: 0 !important; width: 210mm; height: 297mm; page-break-after: always; }
+        .toolbar, .preview-bar, .preview-page-badge, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
+        body { background-color: white !important; padding: 0 !important; margin: 0 !important; }
+        .pages-wrap { margin: 0 !important; padding: 0 !important; }
+        .page { box-shadow: none !important; margin: 0 !important; width: 210mm !important; height: 297mm !important; page-break-after: always; transform: none !important; }
         @page { size: A4; margin: 0; }
         .edit-only { display: none !important; }
-        .editable-area { background: transparent !important; outline: none !important; }
+        .editable-area { background: transparent !important; outline: none !important; box-shadow: none !important; }
         .table-controls { display: none !important; }
         .row-del-btn { display: none !important; }
         td.action-cell { display: none !important; }
@@ -76,6 +78,128 @@
         .witness-thumbnails { display: none !important; }
         .witness-qr { display: block !important; }
         .witness-info .link-count { display: none !important; }
+    }
+
+    /* ===== وضع معاينة قبل الطباعة ===== */
+    .toolbar button.preview-btn { background: #8e44ad; }
+    .toolbar button.preview-btn:hover { background: #9b59b6; }
+    .toolbar button.back-btn { background: #475569; display: none; }
+    .toolbar button.back-btn:hover { background: #64748b; }
+
+    .preview-bar {
+        display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 10001;
+        background: linear-gradient(135deg, #1e293b, #334155); color: #fff;
+        padding: 10px 16px; flex-wrap: wrap; gap: 8px; align-items: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.35); font-size: 13px;
+    }
+    body.print-preview-mode .preview-bar { display: flex; }
+    body.print-preview-mode .toolbar { display: none !important; }
+    body.print-preview-mode { background: #475569; padding-bottom: 40px; }
+    body.print-preview-mode .pages-wrap { margin-top: 68px; padding: 12px 0; }
+    body.print-preview-mode .page {
+        box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+        transform-origin: top center;
+    }
+    body.print-preview-mode .edit-only,
+    body.print-preview-mode .table-controls,
+    body.print-preview-mode .row-del-btn,
+    body.print-preview-mode td.action-cell,
+    body.print-preview-mode .add-page-bar,
+    body.print-preview-mode .fmt-bar,
+    body.print-preview-mode .witness-actions,
+    body.print-preview-mode .witness-modal,
+    body.print-preview-mode .witness-thumbnails,
+    body.print-preview-mode .witness-info .link-count { display: none !important; }
+    body.print-preview-mode .witness-qr { display: block !important; }
+    body.print-preview-mode .editable-area,
+    body.print-preview-mode .cell-content {
+        background: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+        pointer-events: none;
+    }
+    .preview-bar .preview-title { font-weight: 900; color: #ffd166; margin-left: 8px; }
+    .preview-bar button {
+        background: #0d9488; color: #fff; border: none; padding: 7px 13px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 13px;
+    }
+    .preview-bar button:hover { opacity: 0.9; }
+    .preview-bar button.exit-btn { background: #e11d48; }
+    .preview-bar button.pdf-btn { background: #d97706; }
+    .preview-bar button.zoom-btn { background: #475569; }
+    .preview-bar button.zoom-btn.active { background: #3b82f6; }
+    .preview-bar .page-counter { margin-right: auto; font-size: 12px; color: #cbd5e1; font-weight: 700; }
+
+    .preview-page-badge {
+        width: fit-content; margin: 14px auto 6px auto; padding: 4px 14px;
+        background: rgba(15, 23, 42, 0.85); color: #f8fafc; border-radius: 999px;
+        font-size: 12px; font-weight: 700; border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* ===== وضع التصدير إلى PDF ===== */
+    body.pdf-exporting { background: #fff !important; padding: 0 !important; }
+    body.pdf-exporting .pages-wrap { margin: 0 !important; padding: 0 !important; }
+    body.pdf-exporting .page { box-shadow: none !important; margin: 0 auto !important; transform: none !important; }
+    body.pdf-exporting .edit-only,
+    body.pdf-exporting .table-controls,
+    body.pdf-exporting .row-del-btn,
+    body.pdf-exporting td.action-cell,
+    body.pdf-exporting .add-page-bar,
+    body.pdf-exporting .fmt-bar,
+    body.pdf-exporting .witness-actions,
+    body.pdf-exporting .witness-modal,
+    body.pdf-exporting .witness-thumbnails,
+    body.pdf-exporting .witness-info .link-count,
+    body.pdf-exporting .preview-page-badge { display: none !important; }
+    body.pdf-exporting .witness-qr { display: block !important; }
+    body.pdf-exporting .editable-area,
+    body.pdf-exporting .cell-content { background: transparent !important; box-shadow: none !important; outline: none !important; }
+
+    .pdf-overlay {
+        display: none; position: fixed; inset: 0; z-index: 20000;
+        background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(3px);
+        align-items: center; justify-content: center; padding: 20px;
+    }
+    .pdf-overlay.show { display: flex; }
+    .pdf-overlay-box {
+        background: #fff; color: #1e293b; border-radius: 14px; padding: 24px 28px;
+        max-width: 380px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .pdf-progress-track {
+        width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px;
+        overflow: hidden; margin: 14px 0 8px 0;
+    }
+    .pdf-progress-fill {
+        width: 0%; height: 100%; background: linear-gradient(90deg, #8b7cb5, #3b6978);
+        transition: width 0.2s ease;
+    }
+
+    .pdf-ready-banner {
+        display: none; position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+        z-index: 15000; background: #0f172a; color: #fff; padding: 10px 16px;
+        border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
+        border: 1px solid rgba(255,255,255,0.18);
+    }
+    .pdf-ready-banner.show { display: flex; }
+    .pdf-ready-banner a, .pdf-ready-banner button {
+        background: #10b981; color: #fff; border: none; padding: 6px 12px;
+        border-radius: 6px; text-decoration: none; font-family: inherit; font-weight: 700;
+        font-size: 12px; cursor: pointer;
+    }
+    .pdf-ready-banner button.open-btn { background: #3b82f6; }
+    .pdf-ready-banner button.close-btn { background: #475569; padding: 6px 9px; }
+
+    .img-lightbox {
+        display: none; position: fixed; inset: 0; z-index: 25000;
+        background: rgba(0,0,0,0.86); align-items: center; justify-content: center; padding: 20px;
+    }
+    .img-lightbox.show { display: flex; }
+    .img-lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 10px 35px rgba(0,0,0,0.6); }
+    .img-lightbox .lb-close {
+        position: fixed; top: 18px; left: 18px; background: #ef4444; color: #fff;
+        border: none; width: 38px; height: 38px; border-radius: 50%; font-size: 18px;
+        font-weight: 900; cursor: pointer;
     }
 
     /* ===== العناصر القابلة للتعديل ===== */
@@ -629,14 +753,52 @@
 
 <!-- ===== شريط الأدوات ===== -->
 <div class="toolbar">
+    <button type="button" id="btnBackHome" class="back-btn" onclick="goBackToDashboard()">⬅️ الرئيسية</button>
     <span class="brand">📋 سجل شواهد الأداء الوظيفي</span>
-    <button onclick="saveData()" class="success">💾 حفظ</button>
-    <button onclick="exportPDF()" class="gold">📄 تصدير PDF</button>
-    <button onclick="loadData()">🔄 استرجاع</button>
-    <button onclick="addNewPage()">➕ صفحة جديدة</button>
-    <button onclick="window.print()">🖨️ طباعة</button>
-    <button onclick="resetAll()" class="danger">🗑️ إعادة تعيين</button>
+    <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
+    <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
+    <button type="button" onclick="exportPDF()" class="gold">📄 تصدير PDF</button>
+    <button type="button" onclick="loadData()">🔄 استرجاع</button>
+    <button type="button" onclick="addNewPage()">➕ صفحة جديدة</button>
+    <button type="button" onclick="printDocument()">🖨️ طباعة</button>
+    <button type="button" onclick="resetAll()" class="danger">🗑️ إعادة تعيين</button>
     <span class="status" id="statusMsg">جاهز للتعديل</span>
+</div>
+
+<!-- ===== شريط وضع المعاينة قبل الطباعة ===== -->
+<div class="preview-bar" id="previewBar">
+    <span class="preview-title">👁️ وضع المعاينة قبل الطباعة</span>
+    <button type="button" class="exit-btn" onclick="togglePrintPreview(false)">⬅️ العودة للتعديل</button>
+    <button type="button" class="pdf-btn" onclick="exportPDF()">📄 تنزيل PDF</button>
+    <button type="button" onclick="printDocument()">🖨️ طباعة مباشرة</button>
+    <button type="button" id="btnZoomFit" class="zoom-btn active" onclick="setPreviewZoom('fit')">🔍 ملائمة للشاشة</button>
+    <button type="button" id="btnZoomFull" class="zoom-btn" onclick="setPreviewZoom('full')">🔍 100% A4</button>
+    <span class="page-counter" id="previewPageCounter">إجمالي الصفحات: 0</span>
+</div>
+
+<!-- ===== شاشة تقدم تصدير PDF ===== -->
+<div class="pdf-overlay" id="pdfProgressOverlay">
+    <div class="pdf-overlay-box">
+        <div style="font-size:28px;margin-bottom:6px;">📄</div>
+        <div style="font-weight:900;font-size:16px;" id="pdfProgressTitle">جاري تجهيز ملف PDF...</div>
+        <div style="font-size:13px;color:#64748b;margin-top:4px;" id="pdfProgressSub">يرجى الانتظار لحين تحويل الصفحات</div>
+        <div class="pdf-progress-track"><div class="pdf-progress-fill" id="pdfProgressFill"></div></div>
+        <div style="font-size:12px;font-weight:700;color:#6d5ca0;" id="pdfProgressPct">0%</div>
+    </div>
+</div>
+
+<!-- ===== شريط جاهزية PDF المباشر ===== -->
+<div class="pdf-ready-banner" id="pdfReadyBanner">
+    <span>✅ ملف PDF جاهز للتحميل:</span>
+    <a id="pdfDirectDownloadLink" href="#" download="سجل_شواهد_الأداء_الوظيفي.pdf">📥 حفظ الملف</a>
+    <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
+    <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
+</div>
+
+<!-- ===== عارض صور الشواهد المدمج ===== -->
+<div class="img-lightbox" id="imgLightboxModal" onclick="if(event.target===this) closeImageLightbox()">
+    <button type="button" class="lb-close" onclick="closeImageLightbox()" title="إغلاق">✕</button>
+    <img id="imgLightboxEl" src="" alt="عرض الشاهد">
 </div>
 
 <!-- ===== شريط التنسيق العائم ===== -->
@@ -1640,8 +1802,17 @@ function renderWitnessCell(cell) {
 }
 
 function viewImage(src) {
-    const w = window.open('');
-    w.document.write(`<html><head><title>عرض الشاهد</title></head><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${src}" style="max-width:100%;max-height:100%;"></body></html>`);
+    const lb = document.getElementById('imgLightboxModal');
+    const imgEl = document.getElementById('imgLightboxEl');
+    if (lb && imgEl) {
+        imgEl.src = src;
+        lb.classList.add('show');
+    }
+}
+
+function closeImageLightbox() {
+    const lb = document.getElementById('imgLightboxModal');
+    if (lb) lb.classList.remove('show');
 }
 
 function removeImageFromCell(btn, idx) {
@@ -1717,20 +1888,277 @@ function resetAll() {
     }
 }
 
-/* ============ التصدير PDF ============ */
-function exportPDF() {
-    setStatus('جارٍ تحضير الطباعة...');
+/* ============ تجهيز باركود QR قبل المعاينة أو الطباعة ============ */
+function renderAllWitnesses() {
     document.querySelectorAll('.col-evidence').forEach(cell => {
         if (cell.dataset.witness) renderWitnessCell(cell);
     });
+}
+
+/* ============ معاينة قبل الطباعة ============ */
+let isPrintPreview = false;
+let previewZoomMode = 'fit';
+
+function removePreviewBadges() {
+    document.querySelectorAll('.preview-page-badge').forEach(b => b.remove());
+}
+
+function renderPreviewBadges() {
+    removePreviewBadges();
+    const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
+    const total = pages.length;
+    pages.forEach((p, idx) => {
+        const badge = document.createElement('div');
+        badge.className = 'preview-page-badge';
+        badge.textContent = `صفحة ${idx + 1} من ${total}`;
+        p.parentNode.insertBefore(badge, p);
+    });
+    const counter = document.getElementById('previewPageCounter');
+    if (counter) counter.textContent = `إجمالي الصفحات: ${total} صفحة A4`;
+}
+
+function applyPreviewZoom() {
+    const pages = document.querySelectorAll('#pagesWrap > .page');
+    if (!isPrintPreview) {
+        pages.forEach(p => {
+            p.style.transform = '';
+            p.style.marginBottom = '';
+        });
+        return;
+    }
+    pages.forEach(p => {
+        p.style.transform = '';
+        p.style.marginBottom = '';
+    });
+    if (previewZoomMode === 'fit') {
+        const availW = Math.max(280, window.innerWidth - 28);
+        pages.forEach(p => {
+            const w = p.offsetWidth || 794;
+            const h = p.offsetHeight || 1123;
+            const scale = Math.min(1, availW / w);
+            if (scale < 0.99) {
+                p.style.transform = `scale(${scale.toFixed(4)})`;
+                p.style.marginBottom = `${Math.round(-(h * (1 - scale)) + 16)}px`;
+            }
+        });
+    }
+}
+
+function setPreviewZoom(mode) {
+    previewZoomMode = mode;
+    document.getElementById('btnZoomFit')?.classList.toggle('active', mode === 'fit');
+    document.getElementById('btnZoomFull')?.classList.toggle('active', mode === 'full');
+    applyPreviewZoom();
+}
+
+function togglePrintPreview(forceState) {
+    const next = typeof forceState === 'boolean' ? forceState : !isPrintPreview;
+    isPrintPreview = next;
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    if (next) {
+        renderAllWitnesses();
+        document.body.classList.add('print-preview-mode');
+        renderPreviewBadges();
+        applyPreviewZoom();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setStatus('👁️ وضع المعاينة قبل الطباعة');
+    } else {
+        document.body.classList.remove('print-preview-mode');
+        removePreviewBadges();
+        applyPreviewZoom();
+        setStatus('تمت العودة لوضع التعديل');
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (isPrintPreview) applyPreviewZoom();
+});
+
+/* ============ طباعة مباشرة ============ */
+function printDocument() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    renderAllWitnesses();
+    document.querySelectorAll('#pagesWrap > .page').forEach(p => {
+        p.style.transform = '';
+        p.style.marginBottom = '';
+    });
+    setStatus('جارٍ إرسال السجل للطباعة...');
     setTimeout(() => {
-        window.print();
-        setStatus('اختر "حفظ كـ PDF"');
-    }, 500);
+        try {
+            window.focus();
+            window.print();
+        } catch (e) {}
+        setTimeout(() => {
+            if (isPrintPreview) applyPreviewZoom();
+        }, 400);
+        setStatus('💡 إذا لم تظهر نافذة الطباعة استخدم زر "📄 تصدير PDF"');
+    }, 250);
+}
+
+/* ============ التصدير PDF المباشر ============ */
+let isExportingPdf = false;
+let lastPdfBlobUrl = null;
+
+function openLastPdfBlob() {
+    if (!lastPdfBlobUrl) return;
+    const w = window.open(lastPdfBlobUrl, '_blank', 'noopener,noreferrer');
+    if (!w) {
+        const a = document.getElementById('pdfDirectDownloadLink');
+        if (a) a.click();
+    }
+}
+
+function closePdfReadyBanner() {
+    document.getElementById('pdfReadyBanner')?.classList.remove('show');
+}
+
+async function exportPDF() {
+    if (isExportingPdf) return;
+    if (!window.jspdf || !window.jspdf.jsPDF || typeof window.html2canvas !== 'function') {
+        setStatus('❌ مكتبة تصدير PDF غير محملة، جرب الطباعة المباشرة');
+        printDocument();
+        return;
+    }
+
+    isExportingPdf = true;
+    const wasPreview = isPrintPreview;
+    const overlay = document.getElementById('pdfProgressOverlay');
+    const titleEl = document.getElementById('pdfProgressTitle');
+    const subEl = document.getElementById('pdfProgressSub');
+    const fillEl = document.getElementById('pdfProgressFill');
+    const pctEl = document.getElementById('pdfProgressPct');
+
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    closePdfReadyBanner();
+    renderAllWitnesses();
+
+    if (overlay) overlay.classList.add('show');
+    if (titleEl) titleEl.textContent = 'جاري تجهيز ملف PDF...';
+    if (fillEl) fillEl.style.width = '5%';
+    if (pctEl) pctEl.textContent = '5%';
+
+    removePreviewBadges();
+    document.querySelectorAll('#pagesWrap > .page').forEach(p => {
+        p.style.transform = '';
+        p.style.marginBottom = '';
+    });
+    document.body.classList.add('pdf-exporting');
+
+    try {
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+        await new Promise(r => setTimeout(r, 220));
+
+        const pages = Array.from(document.querySelectorAll('#pagesWrap > .page'));
+        if (!pages.length) throw new Error('لا توجد صفحات للتصدير');
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+
+        for (let i = 0; i < pages.length; i++) {
+            const pageEl = pages[i];
+            const pct = Math.round(((i + 1) / pages.length) * 95);
+            if (subEl) subEl.textContent = `جاري تحويل الصفحة ${i + 1} من ${pages.length}...`;
+            if (fillEl) fillEl.style.width = `${pct}%`;
+            if (pctEl) pctEl.textContent = `${pct}%`;
+            setStatus(`⏳ جاري تصدير PDF (${i + 1}/${pages.length})...`);
+
+            await new Promise(r => setTimeout(r, 20));
+
+            let canvas;
+            try {
+                canvas = await html2canvas(pageEl, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: false,
+                    backgroundColor: '#ffffff',
+                    width: pageEl.offsetWidth,
+                    height: pageEl.offsetHeight,
+                    windowWidth: pageEl.scrollWidth,
+                    windowHeight: pageEl.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0,
+                    logging: false
+                });
+            } catch (pageErr) {
+                canvas = await html2canvas(pageEl, {
+                    scale: 2,
+                    useCORS: false,
+                    allowTaint: false,
+                    backgroundColor: '#ffffff',
+                    width: pageEl.offsetWidth,
+                    height: pageEl.offsetHeight,
+                    scrollX: 0,
+                    scrollY: 0,
+                    logging: false,
+                    ignoreElements: (el) => el.tagName === 'IMG' && el.src && !el.src.startsWith('data:') && !el.src.startsWith(location.origin)
+                });
+            }
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.93);
+            if (i > 0) pdf.addPage('a4', 'p');
+            pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+        }
+
+        if (subEl) subEl.textContent = 'جاري حفظ ملف PDF...';
+        if (fillEl) fillEl.style.width = '100%';
+        if (pctEl) pctEl.textContent = '100%';
+
+        const filename = 'سجل_شواهد_الأداء_الوظيفي.pdf';
+        const pdfBlob = pdf.output('blob');
+        if (lastPdfBlobUrl) {
+            try { URL.revokeObjectURL(lastPdfBlobUrl); } catch (e) {}
+        }
+        lastPdfBlobUrl = URL.createObjectURL(pdfBlob);
+
+        const dlLink = document.getElementById('pdfDirectDownloadLink');
+        if (dlLink) {
+            dlLink.href = lastPdfBlobUrl;
+            dlLink.download = filename;
+        }
+        document.getElementById('pdfReadyBanner')?.classList.add('show');
+
+        try {
+            pdf.save(filename);
+        } catch (saveErr) {
+            if (dlLink) dlLink.click();
+        }
+        setStatus('✅ تم تصدير ملف PDF بنجاح (' + pages.length + ' صفحة)');
+    } catch (e) {
+        setStatus('❌ تعذر إنشاء PDF: ' + (e.message || e));
+    } finally {
+        document.body.classList.remove('pdf-exporting');
+        if (overlay) overlay.classList.remove('show');
+        if (wasPreview) {
+            renderPreviewBadges();
+            applyPreviewZoom();
+        }
+        isExportingPdf = false;
+    }
+}
+
+/* ============ العودة للوحة التحكم في الوضع المستقل ============ */
+function goBackToDashboard() {
+    if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) {
+        history.back();
+    } else {
+        window.location.href = '/';
+    }
 }
 
 function setStatus(msg) {
     const el = document.getElementById('statusMsg');
+    if (!el) return;
     el.textContent = msg;
     setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
 }
@@ -1741,6 +2169,10 @@ setInterval(() => {
 }, 30000);
 
 window.addEventListener('load', () => {
+    const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get('standalone') === '1';
+    const backBtn = document.getElementById('btnBackHome');
+    if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
+
     initWitnessCells();
     const raw = localStorage.getItem('perf_form_v5');
     if (raw) {

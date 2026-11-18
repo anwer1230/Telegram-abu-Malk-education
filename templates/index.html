@@ -5079,10 +5079,18 @@
     <div class="modal fade" id="performancePortfolioModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#3b6978,#62929e);">
-            <h5 class="modal-title"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center">
-              <a href="/performance_portfolio" target="_blank" class="btn btn-sm btn-light opacity-90" title="فتح في تبويب مستقل">
+          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#3b6978,#62929e);">
+            <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
+                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
+              </button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
+                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
+              </button>
+              <a href="/performance_portfolio?standalone=1" target="_blank" rel="noopener noreferrer"
+                 onclick="return openEduStandalone('/performance_portfolio', event)"
+                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
                 <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
               </a>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
@@ -5090,6 +5098,7 @@
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
             <iframe id="performancePortfolioFrame" src="about:blank"
+              allow="fullscreen"
               style="width:100%;height:100%;border:none;display:block;"
               title="ملف الأداء الوظيفي"></iframe>
           </div>
@@ -5101,10 +5110,18 @@
     <div class="modal fade" id="performanceWitnessesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
-            <h5 class="modal-title"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center">
-              <a href="/performance_witnesses" target="_blank" class="btn btn-sm btn-light opacity-90" title="فتح في تبويب مستقل">
+          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
+            <h5 class="modal-title mb-0"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل السجل قبل الطباعة">
+                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
+              </button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
+                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
+              </button>
+              <a href="/performance_witnesses?standalone=1" target="_blank" rel="noopener noreferrer"
+                 onclick="return openEduStandalone('/performance_witnesses', event)"
+                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
                 <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
               </a>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
@@ -5112,6 +5129,7 @@
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
             <iframe id="performanceWitnessesFrame" src="about:blank"
+              allow="fullscreen"
               style="width:100%;height:100%;border:none;display:block;"
               title="شواهد الأداء"></iframe>
           </div>
@@ -5148,6 +5166,39 @@
         if (witEl && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(witEl).show();
         }
+      }
+      function callEduFrameAction(frameId, fnName) {
+        const frame = document.getElementById(frameId);
+        if (!frame || !frame.contentWindow) return;
+        try {
+          if (typeof frame.contentWindow[fnName] === 'function') {
+            frame.contentWindow[fnName]();
+          }
+        } catch (e) {}
+      }
+      function openEduStandalone(path, evt) {
+        if (evt) evt.preventDefault();
+        const sep = path.includes('?') ? '&' : '?';
+        const targetUrl = new URL(path + sep + 'standalone=1', window.location.origin).href;
+        let win = null;
+        try {
+          win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        } catch (e) {
+          win = null;
+        }
+        if (win && !win.closed) {
+          try { win.focus(); } catch (e) {}
+          return false;
+        }
+        // بديل موثوق إذا حجب الإطار المضمن أو WebView النوافذ المنبثقة: فتح الواجهة المستقلة مباشرة مع زر العودة للرئيسية
+        try {
+          if (window.top && window.top !== window.self && window.top.location && window.top.location.origin === window.location.origin) {
+            window.top.location.href = targetUrl;
+            return false;
+          }
+        } catch (e) {}
+        window.location.assign(targetUrl);
+        return false;
       }
     </script>
 

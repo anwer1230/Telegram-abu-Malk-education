@@ -13834,7 +13834,7 @@ def html_to_word_studio():
 @app.route("/performance_portfolio")
 @app.route("/performance_portfolio/")
 def performance_portfolio_page():
-    """ملف الأداء الوظيفي - الواجهة التفاعلية الكاملة بدون أي تعديل"""
+    """ملف الأداء الوظيفي - الواجهة التفاعلية الكاملة"""
     resp = make_response(
         send_file(
             os.path.join(app.root_path, 'templates', 'performance_portfolio.html'),
@@ -13842,14 +13842,13 @@ def performance_portfolio_page():
         )
     )
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
     return resp
 
 
 @app.route("/performance_witnesses")
 @app.route("/performance_witnesses/")
 def performance_witnesses_page():
-    """شواهد الأداء - الواجهة التفاعلية الكاملة بدون أي تعديل"""
+    """شواهد الأداء - الواجهة التفاعلية الكاملة"""
     resp = make_response(
         send_file(
             os.path.join(app.root_path, 'templates', 'performance_witnesses.html'),
@@ -13857,7 +13856,6 @@ def performance_witnesses_page():
         )
     )
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
     return resp
 
 

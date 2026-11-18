@@ -1,0 +1,2719 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف التقارير التربوية والبرامج والأنشطة المدرسية - تفاعلي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    :root {
+        --primary: #1e3a8a;
+        --primary-light: #3b82f6;
+        --primary-dark: #1e40af;
+        --secondary: #0f766e;
+        --secondary-light: #14b8a6;
+        --accent: #b45309;
+        --accent-light: #f59e0b;
+        --danger: #991b1b;
+        --danger-light: #ef4444;
+        --success: #166534;
+        --success-light: #22c55e;
+        --purple: #6b21a8;
+        --purple-light: #a855f7;
+        --pink: #9d174d;
+        --pink-light: #ec4899;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-600: #4b5563;
+        --gray-700: #374151;
+        --gray-800: #1f2937;
+        --gray-900: #111827;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    body {
+        font-family: 'Cairo', 'Tajawal', 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+        background: #d1d5db; color: var(--gray-800); line-height: 1.8; padding: 20px;
+        min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+        padding-top: 84px;
+    }
+
+    .container {
+        max-width: 1200px; width: 100%; background: #ffffff;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); overflow: hidden; margin: 0 auto;
+    }
+
+    /* ==================== شريط الأدوات ==================== */
+    .toolbar {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: #1f2937; color: white; padding: 10px 16px;
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 13px;
+    }
+    .toolbar .brand { font-weight: 900; color: #fbbf24; margin-left: 10px; font-size: 15px; }
+    .toolbar button {
+        background: #3b82f6; color: white; border: none; padding: 7px 12px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 13px;
+        transition: 0.2s;
+    }
+    .toolbar button:hover { background: #60a5fa; transform: translateY(-1px); }
+    .toolbar button.success { background: #22c55e; }
+    .toolbar button.success:hover { background: #4ade80; }
+    .toolbar button.warning { background: #f59e0b; color: #1f2937; }
+    .toolbar button.warning:hover { background: #fbbf24; }
+    .toolbar button.preview-btn { background: #8e44ad; }
+    .toolbar button.preview-btn:hover { background: #9b59b6; }
+    .toolbar button.teal-btn { background: #0f766e; }
+    .toolbar button.teal-btn:hover { background: #14b8a6; }
+    .toolbar button.danger { background: #ef4444; }
+    .toolbar button.danger:hover { background: #f87171; }
+    .toolbar button.back-btn { background: #475569; display: none; }
+    .toolbar button.back-btn:hover { background: #64748b; }
+    .toolbar .status { margin-right: auto; font-size: 12px; color: #cbd5e1; font-weight: 700; }
+
+    /* ==================== شريط وضع المعاينة قبل الطباعة ==================== */
+    .preview-bar {
+        display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 10001;
+        background: linear-gradient(135deg, #1e293b, #334155); color: #fff;
+        padding: 10px 16px; flex-wrap: wrap; gap: 8px; align-items: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.35); font-size: 13px;
+    }
+    body.print-preview-mode .preview-bar { display: flex; }
+    body.print-preview-mode .toolbar { display: none !important; }
+    body.print-preview-mode { background: #475569; padding: 70px 10px 40px 10px; }
+    body.print-preview-mode .container {
+        width: 210mm; max-width: 210mm; box-shadow: 0 12px 35px rgba(0,0,0,0.45);
+        transform-origin: top center;
+    }
+    body.print-preview-mode .edit-only,
+    body.print-preview-mode .fmt-bar,
+    body.print-preview-mode .witness-actions,
+    body.print-preview-mode .page-ctrl-bar,
+    body.print-preview-mode .witness-del-btn { display: none !important; }
+    body.print-preview-mode .editable-area {
+        background: transparent !important; box-shadow: none !important;
+        outline: none !important; pointer-events: none;
+    }
+    body.print-preview-mode input[type="checkbox"] { pointer-events: none; }
+    .preview-bar .preview-title { font-weight: 900; color: #fbbf24; margin-left: 8px; }
+    .preview-bar button {
+        background: #0d9488; color: #fff; border: none; padding: 7px 13px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 13px;
+    }
+    .preview-bar button:hover { opacity: 0.9; }
+    .preview-bar button.exit-btn { background: #e11d48; }
+    .preview-bar button.pdf-btn { background: #d97706; }
+    .preview-bar button.zoom-btn { background: #475569; }
+    .preview-bar button.zoom-btn.active { background: #3b82f6; }
+    .preview-bar .page-counter { margin-right: auto; font-size: 12px; color: #cbd5e1; font-weight: 700; }
+
+    /* ==================== شريط التحكم في الصفحة/القسم ==================== */
+    .manage-block { position: relative; }
+    .page-ctrl-bar {
+        display: flex; gap: 6px; align-items: center; justify-content: flex-end;
+        padding: 6px 12px; background: rgba(15, 23, 42, 0.06);
+        border-bottom: 1px dashed #cbd5e1; font-size: 12px;
+    }
+    .cover .page-ctrl-bar {
+        position: absolute; top: 12px; left: 12px; z-index: 20;
+        background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 8px; padding: 5px 8px;
+    }
+    .page-ctrl-bar button {
+        border: none; border-radius: 5px; padding: 4px 10px; cursor: pointer;
+        font-family: inherit; font-weight: 700; font-size: 12px; color: #fff;
+        transition: 0.2s;
+    }
+    .page-ctrl-bar .btn-add-after { background: #0d9488; }
+    .page-ctrl-bar .btn-add-after:hover { background: #14b8a6; }
+    .page-ctrl-bar .btn-del-block { background: #dc2626; }
+    .page-ctrl-bar .btn-del-block:hover { background: #ef4444; }
+    .page-ctrl-bar .block-tag {
+        margin-left: auto; font-size: 11px; color: #475569; font-weight: 700;
+    }
+    .cover .page-ctrl-bar .block-tag { display: none; }
+
+    /* ==================== شريط التنسيق العائم ==================== */
+    .fmt-bar {
+        display: none; position: fixed; z-index: 10000; background: #1f2937; color: white;
+        border-radius: 8px; padding: 6px 8px; gap: 6px; align-items: center;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.4); font-size: 13px;
+    }
+    .fmt-bar.show { display: flex; }
+    .fmt-bar button {
+        background: #374151; color: white; border: none; width: 32px; height: 32px;
+        border-radius: 5px; cursor: pointer; font-weight: 900; font-size: 15px;
+    }
+    .fmt-bar button:hover { background: #3b82f6; }
+    .fmt-bar input[type=color] { width: 34px; height: 32px; border: none; border-radius: 5px; cursor: pointer; background: #374151; padding: 2px; }
+    .fmt-bar input[type=number] { width: 50px; height: 32px; border: none; border-radius: 5px; text-align: center; font-family: inherit; font-weight: 700; font-size: 13px; }
+
+    /* ==================== عناصر قابلة للتعديل ==================== */
+    .editable-area { outline: none; border-radius: 4px; transition: 0.2s; min-width: 20px; display: inline-block; padding: 2px 4px; }
+    .editable-area:hover { background: rgba(59, 130, 246, 0.1); }
+    .editable-area:focus { background: rgba(59, 130, 246, 0.15); box-shadow: 0 0 0 2px #3b82f6; }
+    .editable-block { display: block; width: 100%; }
+
+    /* ==================== الغلاف ==================== */
+    .cover {
+        background: linear-gradient(135deg, #1e3a8a 0%, #0f766e 50%, #6b21a8 100%);
+        color: white; padding: 60px 40px; text-align: center; position: relative;
+        overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+        align-items: center; min-height: 100vh; width: 100%; border-radius: 0; page-break-after: always;
+    }
+    .cover::before {
+        content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } }
+    .cover-content { position: relative; z-index: 2; width: 100%; max-width: 800px; }
+    .cover .kingdom { font-size: 1.8em; font-weight: bold; letter-spacing: 1px; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+    .cover .ministry { font-size: 1.4em; margin-bottom: 5px; opacity: 0.95; }
+    .cover .school { font-size: 1.3em; margin-bottom: 60px; opacity: 0.9; }
+    .cover .file-title {
+        font-size: 3.5em; font-weight: bold; margin: 40px 0; padding: 30px;
+        background: rgba(255, 255, 255, 0.15); border: 3px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px; text-shadow: 3px 3px 6px rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+    }
+    .cover .year { font-size: 1.8em; font-weight: bold; margin: 30px 0; padding: 15px 30px; background: rgba(255, 255, 255, 0.2); border-radius: 40px; display: inline-block; }
+    .cover .info-box {
+        margin-top: 50px; display: inline-block; background: rgba(255, 255, 255, 0.15);
+        padding: 30px 60px; border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.3); text-align: right;
+    }
+    .cover .info-box p { font-size: 1.4em; margin: 12px 0; }
+
+    /* ==================== صفحات القادة والصفحات المضافة ==================== */
+    .single-page-report {
+        padding: 40px; min-height: 100vh; display: flex; flex-direction: column;
+        justify-content: center; align-items: center; page-break-after: always;
+        page-break-inside: avoid; background: white; position: relative;
+    }
+    .single-page-report.custom-page {
+        justify-content: flex-start; align-items: stretch; border-bottom: 3px dashed var(--gray-300);
+    }
+    .portrait-container { display: flex; flex-direction: column; align-items: center; gap: 30px; width: 100%; max-width: 800px; }
+    .portrait-image {
+        width: 280px; height: 340px; object-fit: cover; border-radius: 15px;
+        border: 5px solid var(--primary-light); box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease;
+    }
+    .portrait-image:hover { transform: scale(1.03); }
+    .quote-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+        border-right: 6px solid var(--primary); padding: 25px 35px; border-radius: 12px;
+        font-size: 1.3em; font-weight: 600; color: var(--primary-dark); text-align: center;
+        line-height: 1.8; box-shadow: 0 10px 25px rgba(30, 58, 138, 0.1); position: relative;
+    }
+    .quote-box::before { content: '❝'; position: absolute; top: -10px; right: 15px; font-size: 3em; color: rgba(30, 58, 138, 0.2); }
+    .quote-box::after { content: '❞'; position: absolute; bottom: -25px; left: 15px; font-size: 3em; color: rgba(30, 58, 138, 0.2); }
+
+    /* ==================== الفهرس ==================== */
+    .index-section { padding: 50px; background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%); page-break-after: always; min-height: 100vh; position: relative; }
+    .index-section h2 { color: var(--primary); font-size: 2.2em; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 4px solid var(--primary-light); text-align: center; }
+    .index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .index-item {
+        background: white; padding: 15px 25px; border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; align-items: center;
+        gap: 15px; transition: all 0.3s ease; border-right: 5px solid var(--primary-light);
+    }
+    .index-item:hover { transform: translateX(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+    .index-number { background: var(--primary); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1em; flex-shrink: 0; }
+    .index-text { font-weight: 600; color: var(--gray-700); font-size: 1.05em; }
+
+    /* ==================== فواصل الأقسام ==================== */
+    .section-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white; padding: 40px; font-size: 2em; font-weight: bold; text-align: center;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3); letter-spacing: 1px;
+        page-break-before: always; page-break-after: avoid; position: relative;
+    }
+    .section-header.teal { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); }
+    .section-header.purple { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); }
+    .section-header.orange { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
+    .section-header.pink { background: linear-gradient(135deg, #9d174d 0%, #ec4899 100%); }
+
+    /* ==================== التقارير ==================== */
+    .report { padding: 40px; border-bottom: 3px dashed var(--gray-300); page-break-inside: avoid; position: relative; background: #fff; }
+    .report:last-child { border-bottom: none; }
+    .report-title {
+        font-size: 1.8em; font-weight: bold; color: white; padding: 20px 30px;
+        border-radius: 10px; margin-bottom: 30px; display: flex; align-items: center;
+        gap: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); page-break-after: avoid;
+    }
+    .report-title.blue { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+    .report-title.teal { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); }
+    .report-title.purple { background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); }
+    .report-title.orange { background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%); }
+    .report-title.pink { background: linear-gradient(135deg, #9d174d 0%, #ec4899 100%); }
+    .report-title .num {
+        background: white; color: var(--gray-900); width: 50px; height: 50px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 1.2em; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* ==================== الجداول ==================== */
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); page-break-inside: avoid; }
+    th { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; padding: 15px; text-align: right; font-weight: 600; font-size: 1.05em; }
+    td { padding: 15px; border-bottom: 1px solid var(--gray-200); text-align: right; font-size: 1.05em; }
+    tr:nth-child(even) td { background: var(--gray-50); }
+    tr:hover td { background: #eff6ff; transition: background 0.2s ease; }
+    .info-table th { width: 35%; background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%); }
+
+    /* ==================== العناوين الفرعية ==================== */
+    .sub-heading {
+        font-size: 1.3em; font-weight: bold; color: var(--primary-dark);
+        margin: 30px 0 15px 0; padding: 12px 25px;
+        background: linear-gradient(90deg, #dbeafe 0%, transparent 100%);
+        border-right: 6px solid var(--primary-light); border-radius: 5px; page-break-after: avoid;
+    }
+    .sub-heading.teal { color: #0f766e; background: linear-gradient(90deg, #ccfbf1 0%, transparent 100%); border-right-color: var(--secondary-light); }
+    .sub-heading.purple { color: #6b21a8; background: linear-gradient(90deg, #f3e8ff 0%, transparent 100%); border-right-color: var(--purple-light); }
+    .sub-heading.orange { color: #b45309; background: linear-gradient(90deg, #fef3c7 0%, transparent 100%); border-right-color: var(--accent-light); }
+    .sub-heading.green { color: #166534; background: linear-gradient(90deg, #dcfce7 0%, transparent 100%); border-right-color: var(--success-light); }
+    .sub-heading.pink { color: #9d174d; background: linear-gradient(90deg, #fce7f3 0%, transparent 100%); border-right-color: var(--pink-light); }
+
+    /* ==================== القوائم ==================== */
+    .goals-list, .content-list, .pros-list, .cons-list { list-style: none; padding: 0; margin: 15px 0; page-break-inside: avoid; }
+    .goals-list li, .content-list li, .pros-list li, .cons-list li {
+        padding: 12px 25px 12px 50px; margin: 8px 0; background: white;
+        border-radius: 8px; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        border-right: 4px solid var(--primary-light); transition: all 0.2s ease; font-size: 1.05em;
+    }
+    .goals-list li:hover, .content-list li:hover { transform: translateX(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .goals-list li::before {
+        content: '✓'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        background: var(--success); color: white; width: 24px; height: 24px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 0.9em; font-weight: bold;
+    }
+    .pros-list li { border-right-color: var(--success-light); }
+    .pros-list li::before { content: '👍'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); }
+    .cons-list li { border-right-color: var(--accent-light); }
+    .cons-list li::before { content: '💡'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); }
+
+    /* ==================== مربعات الاختيار ==================== */
+    .checkbox-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px; margin: 15px 0; padding: 20px; background: var(--gray-50);
+        border-radius: 8px; border: 2px dashed var(--gray-300); page-break-inside: avoid;
+    }
+    .checkbox-item {
+        display: flex; align-items: center; gap: 12px; padding: 10px 15px;
+        background: white; border-radius: 6px; font-size: 1.05em; cursor: pointer;
+        transition: all 0.2s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .checkbox-item:hover { background: #eff6ff; transform: translateY(-2px); }
+    .checkbox-item input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary-light); }
+
+    /* ==================== جدول عناصر التقييم ==================== */
+    .eval-table th { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); text-align: center; }
+    .eval-table td { text-align: center; }
+    .eval-table td:first-child { text-align: right; font-weight: 600; background: #f0fdfa; }
+    .eval-table .check-cell { cursor: pointer; transition: all 0.2s ease; }
+    .eval-table .check-cell:hover { background: #fef3c7; }
+    .eval-table input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; accent-color: var(--success); }
+
+    /* ==================== صناديق الشواهد ==================== */
+    .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 20px 0; page-break-inside: avoid; }
+    .evidence-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 2px dashed #cbd5e1; border-radius: 10px; padding: 10px;
+        text-align: center; color: var(--gray-600); font-weight: 600;
+        transition: all 0.3s ease; min-height: 200px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 8px; overflow: hidden; position: relative;
+    }
+    .evidence-box.photo-box { padding: 0; border-style: solid; border-color: #93c5fd; }
+    .evidence-box:hover { border-color: var(--primary-light); transform: scale(1.01); }
+    .evidence-box .icon { font-size: 3em; }
+    .evidence-box .label { font-size: 1em; padding: 10px; }
+    .evidence-box > img.witness-photo {
+        width: 100%; height: 100%; object-fit: cover; border-radius: 8px;
+        position: absolute; top: 0; left: 0; cursor: pointer;
+    }
+    .evidence-box .qr-container {
+        padding: 8px; background: #ffffff; border-radius: 8px;
+        border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;
+    }
+    .evidence-box .qr-container img,
+    .evidence-box .qr-container canvas {
+        width: 112px !important; height: 112px !important; position: static !important; display: block !important;
+    }
+    .evidence-box .qr-title {
+        font-size: 11px; color: #1e3a8a; font-weight: 700; text-align: center;
+        word-break: break-word; line-height: 1.4; max-width: 100%; padding: 0 4px;
+    }
+    .evidence-box .qr-url-link {
+        font-size: 10px; color: #2563eb; text-decoration: none; word-break: break-all;
+    }
+    .witness-del-btn {
+        position: absolute; top: 6px; left: 6px; z-index: 5;
+        background: rgba(220, 38, 38, 0.9); color: #fff; border: none;
+        width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+        font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ==================== معرض الصور ==================== */
+    .image-gallery {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;
+        align-content: start; page-break-inside: auto;
+    }
+    .gallery-item {
+        border: 3px solid #eee; border-radius: 10px; overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1); background: #fff;
+        display: flex; justify-content: center; align-items: center; position: relative;
+        min-height: 150px;
+    }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gallery-item.wide { grid-column: span 2; }
+    .gallery-item.tall { grid-row: span 2; min-height: 315px; }
+
+    /* ==================== التوقيعات ==================== */
+    .signatures { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 40px; padding-top: 30px; border-top: 3px double var(--gray-300); page-break-inside: avoid; }
+    .signatures.three { grid-template-columns: repeat(3, 1fr); }
+    .signature-box { text-align: center; padding: 20px; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border-radius: 8px; border: 2px solid var(--gray-200); }
+    .signature-box .label { font-weight: 700; color: var(--primary-dark); margin-bottom: 10px; font-size: 1.1em; }
+    .signature-box .name { font-size: 1.1em; color: var(--gray-900); margin: 10px 0; font-weight: bold; }
+    .signature-box .line { margin-top: 40px; border-top: 2px dotted var(--gray-400); padding-top: 10px; color: var(--gray-500); font-size: 0.9em; }
+
+    /* ==================== صناديق النسبة ==================== */
+    .percentage-box {
+        display: inline-flex; align-items: center; gap: 10px; padding: 10px 25px;
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        border: 3px solid var(--success-light); border-radius: 30px;
+        font-weight: bold; color: var(--success); font-size: 1.2em; margin: 10px 0;
+        box-shadow: 0 4px 12px rgba(22, 101, 52, 0.15);
+    }
+    .percentage-box .value { background: var(--success); color: white; padding: 5px 20px; border-radius: 20px; font-size: 1.1em; }
+
+    /* ==================== النوافذ المنبثقة ==================== */
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7); z-index: 100000; align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+        background: white; border-radius: 15px; padding: 25px; width: 100%; max-width: 620px;
+        max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--primary-light); }
+    .modal-header h3 { color: var(--primary); font-size: 1.25em; }
+    .modal-close { background: #ef4444; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 18px; cursor: pointer; font-weight: bold; }
+    .modal-section { margin-bottom: 18px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; }
+    .modal-section h4 { color: var(--primary-dark); margin-bottom: 10px; }
+    .modal-section input[type="file"] { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-family: inherit; }
+    .modal-section input[type="url"], .modal-section input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 8px; font-family: inherit; }
+    .add-link-btn { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; }
+    .add-link-btn:hover { background: #2563eb; }
+    .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; margin-top: 10px; }
+    .image-preview-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-light); }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .remove-img { position: absolute; top: 3px; right: 3px; background: #ef4444; color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; font-weight: 900; }
+
+    /* ==================== أزرار إضافة الشواهد ==================== */
+    .witness-actions { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+    .witness-actions button {
+        background: var(--primary); color: white; border: none; padding: 8px 18px;
+        border-radius: 8px; cursor: pointer; font-size: 14px; font-family: inherit; font-weight: 700;
+        display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(30,58,138,0.2);
+    }
+    .witness-actions button:hover { background: var(--primary-light); transform: translateY(-1px); }
+
+    /* ==================== شاشة تقدم PDF والعارض ==================== */
+    .pdf-overlay {
+        display: none; position: fixed; inset: 0; z-index: 200000;
+        background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(3px);
+        align-items: center; justify-content: center; padding: 20px;
+    }
+    .pdf-overlay.show { display: flex; }
+    .pdf-overlay-box {
+        background: #fff; color: #1e293b; border-radius: 14px; padding: 24px 28px;
+        max-width: 390px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+    .pdf-progress-track {
+        width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px;
+        overflow: hidden; margin: 14px 0 8px 0;
+    }
+    .pdf-progress-fill {
+        width: 0%; height: 100%; background: linear-gradient(90deg, #1e3a8a, #0f766e);
+        transition: width 0.2s ease;
+    }
+
+    .pdf-ready-banner {
+        display: none; position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+        z-index: 150000; background: #0f172a; color: #fff; padding: 10px 16px;
+        border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
+        border: 1px solid rgba(255,255,255,0.18);
+    }
+    .pdf-ready-banner.show { display: flex; }
+    .pdf-ready-banner a, .pdf-ready-banner button {
+        background: #10b981; color: #fff; border: none; padding: 6px 12px;
+        border-radius: 6px; text-decoration: none; font-family: inherit; font-weight: 700;
+        font-size: 12px; cursor: pointer;
+    }
+    .pdf-ready-banner button.open-btn { background: #3b82f6; }
+    .pdf-ready-banner button.close-btn { background: #475569; padding: 6px 9px; }
+
+    .img-lightbox {
+        display: none; position: fixed; inset: 0; z-index: 250000;
+        background: rgba(0,0,0,0.88); align-items: center; justify-content: center; padding: 20px;
+    }
+    .img-lightbox.show { display: flex; }
+    .img-lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 10px 35px rgba(0,0,0,0.6); }
+    .img-lightbox .lb-close {
+        position: fixed; top: 18px; left: 18px; background: #ef4444; color: #fff;
+        border: none; width: 38px; height: 38px; border-radius: 50%; font-size: 18px;
+        font-weight: 900; cursor: pointer;
+    }
+
+    /* ==================== وضع التصدير إلى PDF ==================== */
+    body.pdf-exporting { background: #fff !important; padding: 0 !important; margin: 0 !important; align-items: flex-start !important; }
+    body.pdf-exporting .container {
+        width: 794px !important; max-width: 794px !important; box-shadow: none !important;
+        margin: 0 !important; transform: none !important;
+    }
+    body.pdf-exporting .toolbar,
+    body.pdf-exporting .preview-bar,
+    body.pdf-exporting .fmt-bar,
+    body.pdf-exporting .modal-overlay,
+    body.pdf-exporting .witness-actions,
+    body.pdf-exporting .page-ctrl-bar,
+    body.pdf-exporting .witness-del-btn,
+    body.pdf-exporting .edit-only { display: none !important; }
+    body.pdf-exporting .cover { height: 1123px !important; min-height: 1123px !important; }
+    body.pdf-exporting .cover::before { display: none !important; }
+    body.pdf-exporting .single-page-report { min-height: 1123px !important; padding: 36px !important; }
+    body.pdf-exporting .index-section { min-height: 1123px !important; padding: 36px !important; }
+    body.pdf-exporting .report { padding: 24px 28px !important; border-bottom: none !important; }
+    body.pdf-exporting .editable-area { background: transparent !important; outline: none !important; box-shadow: none !important; }
+
+    /* ==================== إعدادات الطباعة ==================== */
+    @media print {
+        @page { size: A4; margin: 0 !important; }
+        body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 11pt; }
+        .container { box-shadow: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
+        .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
+        .cover { width: 100vw; height: 297mm; min-height: 297mm; margin: 0; border-radius: 0; page-break-after: always; }
+        .cover::before { display: none; }
+        .single-page-report { height: 297mm; min-height: 297mm; page-break-after: always; page-break-inside: avoid; margin: 0; padding: 40px; justify-content: flex-start; overflow: hidden; }
+        .index-section { page-break-after: always; min-height: 297mm; padding: 40px; overflow: hidden; }
+        .section-header { page-break-before: always; page-break-after: avoid; padding: 20px !important; font-size: 1.5em !important; margin-top: 0 !important; }
+        .report { page-break-inside: avoid; padding: 15px 20px !important; border-bottom: none; margin: 0; }
+        .report-title { page-break-after: avoid; padding: 10px 15px !important; font-size: 1.3em !important; margin-bottom: 15px; }
+        table { page-break-inside: avoid; }
+        th, td { padding: 8px !important; font-size: 10pt !important; }
+        .evidence-grid, .image-gallery { page-break-inside: avoid; }
+        .evidence-box { min-height: 150px !important; }
+        .signatures { page-break-inside: avoid; }
+        .goals-list li, .pros-list li, .cons-list li, .content-list li { padding: 6px 25px 6px 10px !important; margin: 4px 0 !important; font-size: 10pt !important; }
+        .sub-heading { margin: 15px 0 8px 0 !important; padding: 8px 12px !important; font-size: 1.1em !important; page-break-after: avoid; }
+        .portrait-image { width: 220px; height: 260px; border-width: 3px; }
+        .quote-box { font-size: 1.1em; padding: 15px 25px; margin-top: 10px; }
+        .editable-area { background: transparent !important; outline: none !important; padding: 0 !important; }
+    }
+</style>
+</head>
+<body>
+
+<!-- ==================== شريط الأدوات ==================== -->
+<div class="toolbar">
+    <button type="button" id="btnBackHome" class="back-btn" onclick="goBackToDashboard()">⬅️ الرئيسية</button>
+    <span class="brand">📚 محرر التقارير التربوية والشواهد</span>
+    <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
+    <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
+    <button type="button" onclick="exportPDF()" class="warning">📄 تصدير PDF</button>
+    <button type="button" onclick="loadData()">🔄 استرجاع</button>
+    <button type="button" onclick="addNewPage()" class="teal-btn">➕ إضافة صفحة</button>
+    <button type="button" onclick="addNewSection()">➕ إضافة قسم/تقرير</button>
+    <button type="button" onclick="printDocument()">🖨️ طباعة</button>
+    <button type="button" onclick="resetAll()" class="danger">🗑️ إعادة تعيين</button>
+    <span class="status" id="statusMsg">جاهز للتعديل المباشر</span>
+</div>
+
+<!-- ==================== شريط وضع المعاينة قبل الطباعة ==================== -->
+<div class="preview-bar" id="previewBar">
+    <span class="preview-title">👁️ وضع المعاينة قبل الطباعة</span>
+    <button type="button" class="exit-btn" onclick="togglePrintPreview(false)">⬅️ العودة للتعديل</button>
+    <button type="button" class="pdf-btn" onclick="exportPDF()">📄 تنزيل PDF</button>
+    <button type="button" onclick="printDocument()">🖨️ طباعة مباشرة</button>
+    <button type="button" id="btnZoomFit" class="zoom-btn active" onclick="setPreviewZoom('fit')">🔍 ملائمة للشاشة</button>
+    <button type="button" id="btnZoomFull" class="zoom-btn" onclick="setPreviewZoom('full')">🔍 100% A4</button>
+    <span class="page-counter" id="previewPageCounter">الأقسام/الصفحات: 0</span>
+</div>
+
+<!-- ==================== شاشة تقدم تصدير PDF ==================== -->
+<div class="pdf-overlay" id="pdfProgressOverlay">
+    <div class="pdf-overlay-box">
+        <div style="font-size:28px;margin-bottom:6px;">📄</div>
+        <div style="font-weight:900;font-size:16px;" id="pdfProgressTitle">جاري تجهيز ملف PDF...</div>
+        <div style="font-size:13px;color:#64748b;margin-top:4px;" id="pdfProgressSub">يرجى الانتظار لحين تحويل الصفحات والتقارير</div>
+        <div class="pdf-progress-track"><div class="pdf-progress-fill" id="pdfProgressFill"></div></div>
+        <div style="font-size:12px;font-weight:700;color:#1e3a8a;" id="pdfProgressPct">0%</div>
+    </div>
+</div>
+
+<!-- ==================== شريط جاهزية PDF المباشر ==================== -->
+<div class="pdf-ready-banner" id="pdfReadyBanner">
+    <span>✅ ملف PDF جاهز للتحميل:</span>
+    <a id="pdfDirectDownloadLink" href="#" download="ملف_التقارير_والشواهد_المدرسية.pdf">📥 حفظ الملف</a>
+    <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
+    <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
+</div>
+
+<!-- ==================== عارض صور الشواهد المدمج ==================== -->
+<div class="img-lightbox" id="imgLightboxModal" onclick="if(event.target===this) closeImageLightbox()">
+    <button type="button" class="lb-close" onclick="closeImageLightbox()" title="إغلاق">✕</button>
+    <img id="imgLightboxEl" src="" alt="عرض الشاهد">
+</div>
+
+<!-- ==================== نافذة تأكيد داخل التطبيق ==================== -->
+<div class="modal-overlay" id="appConfirmModal">
+    <div class="modal-content" style="max-width:420px;text-align:center;">
+        <h3 id="appConfirmTitle" style="color:#1e3a8a;margin-bottom:10px;">تأكيد الإجراء</h3>
+        <p id="appConfirmMessage" style="color:#374151;font-size:15px;margin-bottom:22px;"></p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button type="button" id="appConfirmOkBtn" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">نعم، تأكيد</button>
+            <button type="button" onclick="closeAppConfirm(false)" style="background:#64748b;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== شريط التنسيق ==================== -->
+<div class="fmt-bar" id="fmtBar">
+    <button type="button" onclick="execCmd('bold')"><b>B</b></button>
+    <button type="button" onclick="execCmd('italic')"><i>I</i></button>
+    <button type="button" onclick="execCmd('underline')"><u>U</u></button>
+    <button type="button" onclick="changeSize(2)">A+</button>
+    <button type="button" onclick="changeSize(-2)">A−</button>
+    <input type="number" id="fontSizeInput" min="8" max="72" value="16" onchange="setExactSize(this.value)">
+    <input type="color" onchange="execCmd('foreColor', this.value)" value="#1f2937">
+    <input type="color" onchange="execCmd('hiliteColor', this.value)" value="#ffffff">
+    <button type="button" onclick="execCmd('removeFormat')">✕</button>
+</div>
+
+<!-- ==================== نافذة الشواهد ==================== -->
+<div class="modal-overlay" id="witnessModal" onclick="if(event.target===this) closeWitnessModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📎 إضافة شواهد (صور وروابط باركود QR)</h3>
+            <button type="button" class="modal-close" onclick="closeWitnessModal()">✕</button>
+        </div>
+        <div class="modal-section">
+            <h4>📷 رفع صور الشواهد من الجهاز</h4>
+            <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+            <div style="font-size:12px;color:#64748b;margin-top:6px;">يمكنك اختيار صورة أو عدة صور معاً وسيتم ضغطها تلقائياً لسرعة الحفظ والطباعة.</div>
+            <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        </div>
+        <div class="modal-section">
+            <h4>🔗 إضافة رابط (يتحول إلى باركود QR تلقائياً)</h4>
+            <input type="url" id="linkInput" placeholder="https://example.com" dir="ltr">
+            <input type="text" id="linkTitleInput" placeholder="عنوان الرابط (اختياري)">
+            <button type="button" class="add-link-btn" onclick="addLink()">➕ إضافة رابط وتحويله لباركود</button>
+            <div id="linkList" style="margin-top:10px;"></div>
+        </div>
+        <div style="text-align:center;display:flex;gap:10px;justify-content:center;">
+            <button type="button" onclick="saveWitness()" style="background:#22c55e;color:white;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-weight:bold;font-family:inherit;font-size:14px;">💾 حفظ الشواهد</button>
+            <button type="button" onclick="closeWitnessModal()" style="background:#64748b;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;font-family:inherit;font-size:14px;">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="mainContainer">
+
+    <!-- ==================== الغلاف ==================== -->
+    <div class="cover">
+        <div class="cover-content">
+            <div class="kingdom editable-area" contenteditable="true">المملكة العربية السعودية</div>
+            <div class="ministry editable-area" contenteditable="true">وزارة التعليم</div>
+            <div class="school editable-area" contenteditable="true">مدرسة أمنة بنت عفان</div>
+            <div class="file-title editable-area" contenteditable="true">📚 ملف التقارير التربوية<br>والبرامج والأنشطة المدرسية</div>
+            <div class="year editable-area" contenteditable="true">📅 للعام الدراسي 1448هـ</div>
+            <div class="info-box">
+                <p class="editable-area" contenteditable="true">👩🏫 إعداد: أ/ أسماء ياسين الخيري</p>
+                <p class="editable-area" contenteditable="true">📖 المادة: لغة عربية ودراسات اجتماعية</p>
+                <p class="editable-area" contenteditable="true">🏫 المرحلة: الابتدائية</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== صفحة الملك سلمان ==================== -->
+    <div class="single-page-report">
+        <div class="report-title blue" style="width: 100%; justify-content: center; margin-bottom: 20px;">
+            <div class="editable-area" contenteditable="true">خادم الحرمين الشريفين الملك سلمان بن عبدالعزيز آل سعود</div>
+        </div>
+        <div class="portrait-container">
+            <img crossorigin="anonymous" src="https://raw.githubusercontent.com/anwer1230/Anwer-Examination-editor/main/Screenshot_20261101-202614-572.png" class="portrait-image">
+            <div class="quote-box editable-area" contenteditable="true">
+                "إن المعلم هو حجر الزاوية في العملية التعليمية، وهو من يربي الأجيال على القيم والمبادئ، فلنحرص على دعمه وتقديره."
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== صفحة ولي العهد ==================== -->
+    <div class="single-page-report">
+        <div class="report-title blue" style="width: 100%; justify-content: center; margin-bottom: 20px;">
+            <div class="editable-area" contenteditable="true">ولي العهد رئيس مجلس الوزراء الأمير محمد بن سلمان بن عبدالعزيز آل سعود</div>
+        </div>
+        <div class="portrait-container">
+            <img crossorigin="anonymous" src="https://raw.githubusercontent.com/anwer1230/Anwer-Examination-editor/main/Screenshot_20261101-202542-432.png" class="portrait-image">
+            <div class="quote-box editable-area" contenteditable="true">
+                "يعد التعليم الركيزة الأساسية لتحقيق رؤية المملكة 2030، ونحرص على تهيئة بيئة تعليمية محفزة للإبداع والابتكار."
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== الفهرس ==================== -->
+    <div class="index-section">
+        <h2 class="editable-area" contenteditable="true">📋 الفهرس (جدول المحتويات)</h2>
+        <div class="index-grid">
+            <div class="index-item"><div class="index-number">1</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة</div></div>
+            <div class="index-item"><div class="index-number">2</div><div class="index-text editable-area" contenteditable="true">تقرير تبادل الزيارات</div></div>
+            <div class="index-item"><div class="index-number">3</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div></div>
+            <div class="index-item"><div class="index-number">4</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</div></div>
+            <div class="index-item"><div class="index-number">5</div><div class="index-text editable-area" contenteditable="true">تقرير الأسبوع التمهيدي</div></div>
+            <div class="index-item"><div class="index-number">6</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</div></div>
+            <div class="index-item"><div class="index-number">8</div><div class="index-text editable-area" contenteditable="true">تقرير الأنشطة الصفية</div></div>
+            <div class="index-item"><div class="index-number">9</div><div class="index-text editable-area" contenteditable="true">تقرير التفاعل المهني</div></div>
+            <div class="index-item"><div class="index-number">10</div><div class="index-text editable-area" contenteditable="true">تقرير تحليل النتائج</div></div>
+            <div class="index-item"><div class="index-number">12</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</div></div>
+            <div class="index-item"><div class="index-number">13</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</div></div>
+            <div class="index-item"><div class="index-number">14</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف</div></div>
+            <div class="index-item"><div class="index-number">15</div><div class="index-text editable-area" contenteditable="true">تقرير خطة التعليم</div></div>
+            <div class="index-item"><div class="index-number">16</div><div class="index-text editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</div></div>
+            <div class="index-item"><div class="index-number">17</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div></div>
+            <div class="index-item"><div class="index-number">18</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div></div>
+            <div class="index-item"><div class="index-number">19</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div></div>
+            <div class="index-item"><div class="index-number">20</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</div></div>
+            <div class="index-item"><div class="index-number">21</div><div class="index-text editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</div></div>
+            <div class="index-item"><div class="index-number">22</div><div class="index-text editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</div></div>
+            <div class="index-item"><div class="index-number">23</div><div class="index-text editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</div></div>
+            <div class="index-item"><div class="index-number">24</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</div></div>
+            <div class="index-item"><div class="index-number">26</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ ورشة عمل</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الأول ==================== -->
+    <div class="section-header editable-area" contenteditable="true">🎯 القسم الأول: تقارير استراتيجيات التدريس وأدواته</div>
+
+    <!-- تقرير 1 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">1</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة</div>
+        </div>
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">العصف الذهني / التعلم باللعب والرسم</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">دراسات اجتماعية</td></tr>
+            <tr><th>تاريخ التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>المرحلة الدراسية</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد الطلاب</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عنوان الدرس</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🛠️ الأدوات والوسائل التعليمية المستخدمة</div>
+        <div class="checkbox-grid">
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">سبورة تقليدية</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">جهاز عرض</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">سبورة ذكية</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">جهاز الحاسب</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">بطاقات تعليمية</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">صور توضيحية</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">أوراق عمل</span></label>
+            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">عرض تقديمي</span></label>
+        </div>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">رفع مستوى التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين التفاعل داخل الفصل</li>
+            <li class="editable-area editable-block" contenteditable="true">مراعاة الفروق الفردية</li>
+            <li class="editable-area editable-block" contenteditable="true">بناء اتجاهات وقيم إيجابية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين نواتج التعلم</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تنوعت استراتيجيات التدريس التي وظفتها المعلمة لتناسب الفروق الفردية وتزيد من دافعية الطالبات.</li>
+            <li class="editable-area editable-block" contenteditable="true">تم دمج استراتيجية التعلم باللعب والرسم لتنمية المهارات الحركية والدقيقة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تفعيل استراتيجية العصف الذهني في بداية الدروس لتحفيز التفكير وإثارة الفضول.</li>
+            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة مفتوحة (مثل: هل تبدو جميع أجزاء سطح الأرض متشابهة؟) لربط خبرات الطالبات السابقة بالموضوع الجديد.</li>
+            <li class="editable-area editable-block" contenteditable="true">أظهرت الاستراتيجيات تفاعلاً ممتازاً وساعدت في تهيئة أذهان الطالبات لاستقبال المعلومات الجغرافية الجديدة، مما جعل بيئة التعلم أكثر متعة وجاذبية.</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير تنفيذ استراتيجية البطاقات الملونة</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">حرصت المعلمة على تفعيل 'استراتيجية البطاقات الملونة' لتنظيم المعلومات الجغرافية المعقدة (مثل الهضاب في المملكة) وتحويلها إلى صورة بصرية جاذبة. تم تقسيم الطالبات وتوزيع المفاهيم بألوان مختلفة، مما سهل عليهن عملية التصنيف والربط بين المعلومة واللون. وقد أثرت هذه الاستراتيجية بشكل إيجابي على مستوى الانتباه والتركيز لدى الطالبات، وساعدت في ترسيخ المعلومة في ذهن المتعلمة بطريقة تفاعلية وممتعة بعيداً عن التلقين. (تم التنفيذ بتاريخ 12/11/2026 لصف رابع).</p>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير استراتيجية بطاقة الخروج (التقويم الختامي)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #eff6ff; border-right: 4px solid var(--primary-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">طبقت المعلمة 'استراتيجية بطاقة الخروج' كأداة تقويم ختامي بديلة، حيث طُلب من الطالبات كتابة ثلاث أفكار مستفادة، وشيئين أعجبهما، وسؤال يودن معرفته. وقد أظهرت النتائج مدى استيعاب الطالبات لأهداف الدرس، كما أتاحت للمعلمة التعرف على الفجوات الفردية والمفاهيم الغامضة التي تحتاج إلى معالجة في الحصة القادمة. تعكس هذه الاستراتيجية حرص المعلمة على تقييم نواتج التعلم بشكل شامل وشفاف، وتعزيز مهارات التفكير التأملي لدى الطالبات. (تم التنفيذ بتاريخ 12/11/2026 لصف رابع).</p>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد (استراتيجيات التدريس)</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 17 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">17</div>
+            <div class="editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأربعاء</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثانية</td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">توظيف استراتيجية العصف الذهني لتنمية التفكير الإبداعي</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلم المادة</td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي لدى الطلاب من خلال توليد أفكار متنوعة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة الفاعلة وبناء الثقة في طرح آرائهم بحرية</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الحوار والنقاش واحترام الرأي الآخر داخل الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">إثراء الدرس بأفكار متعددة تسهم في رفع مستوى الفهم والتحصيل</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تفعيل استراتيجية العصف الذهني في بداية الدروس لتحفيز التفكير وإثارة الفضول.</li>
+            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة مفتوحة (مثل: هل تبدو جميع أجزاء سطح الأرض متشابهة؟) لربط خبرات الطالبات السابقة بالموضوع الجديد.</li>
+            <li class="editable-area editable-block" contenteditable="true">فتح باب المشاركة وكتابة الإجابات المقترحة على السبورة أو الشاشة.</li>
+            <li class="editable-area editable-block" contenteditable="true">مناقشة الأفكار وتحليلها مع المجموعة الصفية وتلخيص أهم الأفكار وإعادة ربطها بهدف الدرس.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">زيادة دافعية الطلاب للمشاركة</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي والناقد</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات التواصل واحترام آراء الآخرين</li>
+            <li class="editable-area editable-block" contenteditable="true">إثراء الدرس بعدد كبير من الأفكار من الطلاب أنفسهم</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تشجيع كل الإجابات دون تصحيح مباشر أثناء العصف</li>
+            <li class="editable-area editable-block" contenteditable="true">إدارة الوقت بدقة لتحقيق الهدف من النشاط</li>
+            <li class="editable-area editable-block" contenteditable="true">ربط الأفكار الناتجة بالمخرجات التعليمية للدرس</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 18 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">18</div>
+            <div class="editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثالثة</td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">استخدام التقنية في العملية التعليمية</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">توظيف أدوات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالذكاء</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز المشاركة الفاعلة للطلاب وتحفيزهم على طرح الأسئلة والاستكشاف</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">استخدام أدوات الذكاء الاصطناعي لعرض مفاهيم الدرس بطريقة تفاعلية</li>
+            <li class="editable-area editable-block" contenteditable="true">توليد أسئلة إثرائية فورية بناءً على الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">عرض صور ورسوم توضيحية مرتبطة بمحتوى الدرس</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">في إطار توظيف التقنيات الحديثة، استخدمت المعلمة منصة Wordwall لتحويل مراجعة درس 'مظاهر السطح' إلى لعبة تفاعلية تنافسية. ساهمت هذه الأداة الرقمية في رفع مستوى الدافعية لدى الطالبات وجذبهن للمشاركة الفعالة، كما وفرت للمعلمة تغذية راجعة فورية (Feedback) عن مستوى استيعاب الطالبات للمفاهيم، مما جعل بيئة التعلم تفاعلية ومحفزة وتحقق متعة التعلم.</p>
+        <div class="sub-heading editable-area" contenteditable="true">🛠️ الوسائل المستخدمة</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">جهاز عرض (داتا شو) + حاسب محمول</li>
+            <li class="editable-area editable-block" contenteditable="true">أداة ChatGPT أو أدوات مشابهة في توليد المحتوى والأسئلة</li>
+            <li class="editable-area editable-block" contenteditable="true">عروض تفاعلية PowerPoint / Canva</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">جذب انتباه الطلاب وتشويقهم لمفاهيم المادة التعليمية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل الصور التوضيحية والأسئلة الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة وطرح الأسئلة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام أدوات الذكاء الاصطناعي التعليمية بفعالية</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الذكاء الاصطناعي في دروس إضافية تعزز استيعاب الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى المولد مع القيم الإسلامية والمناهج الرسمية</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الثاني ==================== -->
+    <div class="section-header teal editable-area" contenteditable="true">🎉 القسم الثاني: تقارير البرامج والمناسبات الوطنية والاجتماعية</div>
+
+    <!-- تقرير 3 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">3</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">........%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن في نفوس الطلاب والطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية روح المشاركة والمسؤولية الاجتماعية لدى منسوبي المدرسة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعريف الطلاب بتاريخ المملكة ومنجزاتها الوطنية والحضارية</li>
+            <li class="editable-area editable-block" contenteditable="true">غرس القيم الوطنية والاعتزاز بالهوية السعودية</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تجسيداً لروح الانتماء والولاء للوطن الغالي، نفذت المعلمة باقة من الفعاليات والأنشطة الوطنية المتنوعة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تزيين الفصول بالعلم السعودي.</li>
+            <li class="editable-area editable-block" contenteditable="true">توزيع الهدايا الرمزية.</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم مسابقات ثقافية وطنية.</li>
+            <li class="editable-area editable-block" contenteditable="true">عززت هذه الأنشطة في نفوس الطالبات الفخر والاعتزاز بمملكتنا الحبيبة وتاريخها العريق.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل كبير من الطلاب والمعلمين وأولياء الأمور مع الفعاليات</li>
+            <li class="editable-area editable-block" contenteditable="true">إبراز مواهب الطلاب الإبداعية في مجالات متنوعة (فنية، ثقافية، تقنية)</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية الروح الوطنية وتعزيز الهوية السعودية بأسلوب ممتع وجاذب</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">توسيع المشاركة لتشمل فقرات ميدانية وزيارات للمعالم الوطنية القريبة</li>
+            <li class="editable-area editable-block" contenteditable="true">إشراك أولياء الأمور بشكل أكبر في التنظيم والتفعيل المسبق للفعاليات</li>
+            <li class="editable-area editable-block" contenteditable="true">الاستفادة من التقنية بشكل أوسع (تصميم فيديوهات – مسابقات رقمية)</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 5 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">5</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج الأسبوع التمهيدي</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true">طالبات الصف الأول الابتدائي</td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">أسبوع</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">بداية العام الدراسي 1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">المدرسة</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تهيئة الطالبات المستجدات ومساعدتهن على التكيف مع البيئة المدرسية الجديدة</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">كسر حاجز الرهبة والخوف لدى الطالبات المستجدات.</li>
+            <li class="editable-area editable-block" contenteditable="true">تعريف الطالبات بمرافق المدرسة وأدوارهن الجديدة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تسهيل انتقال الطالبات إلى المرحلة الابتدائية بسلاسة ويسر.</li>
+            <li class="editable-area editable-block" contenteditable="true">خلق اتجاهات إيجابية نحو المدرسة والتعلم.</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تجسدت جهود المعلمة في الأسبوع التمهيدي من خلال تهيئة بيئة مدرسية جاذبة وآمنة للطالبات.</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم أركان استقبال مبهجة بالبالونات والهدايا الرمزية لكسر حاجز الرهبة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تعريف الطالبات بمرافقهن الجديدة وأدوارهن في المدرسة.</li>
+            <li class="editable-area editable-block" contenteditable="true">ساهم البرنامج في تسهيل انتقالهن إلى المرحلة الابتدائية بسلاسة ويسر.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">انخفاض ملحوظ في توتر وقلق الطالبات المستجدات.</li>
+            <li class="editable-area editable-block" contenteditable="true">تفاعل إيجابي من أولياء الأمور وارتياحهم لاستقبال المدرسة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تكوين صداقات جديدة بين الطالبات بسرعة.</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استمرار تنفيذ فعاليات الأسبوع التمهيدي بأساليب مبتكرة كل عام.</li>
+            <li class="editable-area editable-block" contenteditable="true">إشراك طالبات الصفوف العليا في استقبال المستجدات لتعزيز روح المسؤولية.</li>
+            <li class="editable-area editable-block" contenteditable="true">توفير نشرات إرشادية لأولياء الأمور لدعم أبنائهم في هذه المرحلة.</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 8 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">8</div>
+            <div class="editable-area" contenteditable="true">تقرير الأنشطة الصفية</div>
+        </div>
+        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid var(--secondary-light);">
+            حرصت المعلمة على دمج أنشطة إثرائية وتفاعلية ضمن الحصص الدراسية، مثل الأعمال اليدوية، والرسم، والأنشطة الجماعية، بهدف تنمية المهارات الحركية والدقيقة للطالبات، وإطلاق طاقاتهن الإبداعية، وجعل بيئة التعلم أكثر متعة وتحفيزاً.
+        </p>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 9 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">9</div>
+            <div class="editable-area" contenteditable="true">تقرير التفاعل المهني</div>
+        </div>
+        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid var(--secondary-light);">
+            شاركت المعلمة بفعالية في المجتمع المهني من خلال إطلاق مبادرات تعليمية تطوعية، وتبادل الخبرات التربوية مع الزميلات، مما يعكس روح التعاون والحرص على التطوير المستمر للعملية التعليمية داخل المدرسة.
+        </p>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الثالث ==================== -->
+    <div class="section-header purple editable-area" contenteditable="true">📊 القسم الثالث: تقارير الأداء الأكاديمي والخطط العلاجية والإثرائية</div>
+
+    <!-- تقرير 2 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">2</div>
+            <div class="editable-area" contenteditable="true">تقرير تبادل الزيارات</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اسم المعلم الزائر</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>اسم المعلم المزار</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>اليوم والتاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف والفصل</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الفصل الدراسي</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عنوان الدرس</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">📋 عناصر التقييم</div>
+        <table class="eval-table">
+            <thead><tr><th>عنصر التقييم</th><th>متحقق</th><th>متحقق جزئياً</th><th>غير متحقق</th></tr></thead>
+            <tbody>
+                <tr><td class="editable-area" contenteditable="true">الأهداف واضحة ومحددة ومعلنة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">المحتوى مناسب للمرحلة ومرتبط بخبرات الطلاب</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تنوع الاستراتيجيات المستخدمة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">إشراك جميع الطلاب وتوزيع الفرص</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">الانضباط الصفي والتحفيز الإيجابي</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">استخدام الوسائل التعليمية بفعالية</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">وجود تقويم قبلي / بنائي / ختامي</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">توظيف نتائج التقويم الفوري خلال الدرس</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تقبل المعلم لمشاركات الطلاب</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">وضوح أثر التعلم على الطلاب</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+            </tbody>
+        </table>
+        <div class="sub-heading green editable-area" contenteditable="true">🌟 نقاط تميز أداء المعلم</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true"></li>
+            <li class="editable-area editable-block" contenteditable="true"></li>
+            <li class="editable-area editable-block" contenteditable="true"></li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true"></li>
+            <li class="editable-area editable-block" contenteditable="true"></li>
+            <li class="editable-area editable-block" contenteditable="true"></li>
+        </ul>
+        <div class="signatures three">
+            <div class="signature-box"><div class="label">اسم المعلم/ة المزار</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">اسم المعلم/ة الزائر</div><div class="name editable-area" contenteditable="true"></div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 10 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">10</div>
+            <div class="editable-area" contenteditable="true">تقرير تحليل النتائج</div>
+        </div>
+        <table class="info-table">
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">رفع مستوى نواتج التعلم وتحسين الأداء الأكاديمي للطلاب من خلال تحليل النتائج ووضع خطط تطويرية</td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تحديد مواطن القوة والضعف في أداء الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم اتخاذ قرارات تربوية مبنية على بيانات دقيقة</li>
+            <li class="editable-area editable-block" contenteditable="true">بناء خطط علاجية وإثرائية لتحسين نواتج التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة تطور مستويات الطالبات وقياس التحسن بمرور الوقت</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تقارير تفصيلية توضح مستويات التحصيل الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تحديد فجوات التعلم ووضع خطط علاجية مناسبة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين الأداء العام للطالبات في المواد الدراسية</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز ثقافة التحليل واتخاذ القرار القائم على البيانات داخل المدرسة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تفعيل البرامج العلاجية والإثرائية وفق نتائج التحليل</li>
+            <li class="editable-area editable-block" contenteditable="true">تكثيف المتابعة الأكاديمية للطالبات منخفضي التحصيل</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف استراتيجيات تدريس حديثة لمعالجة جوانب الضعف</li>
+            <li class="editable-area editable-block" contenteditable="true">إشراك أولياء الأمور في دعم العملية التعليمية</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 12 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">12</div>
+            <div class="editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">رفع المستوى الأكاديمي للطالبات الضعيفات وتحسين نواتج التعلم من خلال خطط علاجية مستهدفة ومنظمة</td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تحديد نقاط الضعف الأكاديمية بدقة من خلال نتائج التقييم</li>
+            <li class="editable-area editable-block" contenteditable="true">تقديم برامج علاجية موجهة لتحسين الأداء الفردي</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم الطالبات الضعيفات بأساليب تعليمية متنوعة تناسب احتياجاتهن</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز ثقة الطالبات بأنفسهن وتحفيزهن على المشاركة الفعالة</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تحسن ملموس في مستوى الطالبات الضعيفات في المهارات المستهدفة</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع نسبة المشاركة الصفية والثقة بالنفس</li>
+            <li class="editable-area editable-block" contenteditable="true">تقليص الفجوة بين الطالبات الضعيفات وبقية الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز بيئة تعليمية داعمة وشاملة لجميع الطالبات</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استمرار تنفيذ البرامج العلاجية بشكل منتظم ومتابعتها</li>
+            <li class="editable-area editable-block" contenteditable="true">تفعيل أساليب التعليم النشط لجذب وتحفيز الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">التعاون مع أولياء الأمور لدعم الطالبات خارج وقت الحصة</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق نتائج المتابعة وقياس مدى التحسن بشكل دوري</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 13 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">13</div>
+            <div class="editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تنمية قدرات الطالبات المتفوقات وصقل مهاراتهن من خلال أنشطة وبرامج إثرائية محفزة للإبداع والتميز</td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تلبية احتياجات المتفوقات من خلال برامج تعليمية متقدمة ومحفزة</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير العليا والإبداع وحل المشكلات</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز روح التحدي والتميز لدى الطالبات المتفوقات</li>
+            <li class="editable-area editable-block" contenteditable="true">إعداد الطالبات للمنافسات والمسابقات العلمية والثقافية</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي والنقدي لدى المتفوقات</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع مستوى الدافعية نحو التعلم والمشاركة الفاعلة</li>
+            <li class="editable-area editable-block" contenteditable="true">تميز الطالبات في المسابقات والفعاليات المختلفة</li>
+            <li class="editable-area editable-block" contenteditable="true">توفير بيئة تعليمية محفزة تدعم التفوق والابتكار</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">الاستمرار في تنفيذ البرامج الإثرائية بانتظام على مدار الفصل الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع الأنشطة الإثرائية بما يتناسب مع ميول الطالبات وقدراتهن</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطالبات المتفوقات بالمشاركات الداخلية والخارجية</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق المخرجات والإنجازات ضمن ملفات تميز الطالبات</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 15 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">15</div>
+            <div class="editable-area" contenteditable="true">تقرير خطة التعليم</div>
+        </div>
+        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #fdf2f8; padding: 20px; border-radius: 8px; border-right: 4px solid var(--pink-light);">
+            تم إعداد خطط توزيع المناهج، والخطط الأسبوعية، والدروس اليومية بكل دقة واحترافية، مع مراعاة الفروق الفردية وأساليب التقويم المتنوعة، لضمان تغطية كاملة للمقررات الدراسية في الوقت المحدد وبما يحقق الأهداف التعليمية. كما يوضح الجدول الأسبوعي المرفق التوزيع الدقيق للحصص.
+        </p>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 21 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">21</div>
+            <div class="editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثالثة</td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">28</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">رفع مستوى التحصيل الأكاديمي وتحسين نواتج التعلم</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">المعلم</td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">رفع متوسط الأداء الأكاديمي في المواد الدراسية المستهدفة بنسبة ملحوظة خلال الفصل الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">معالجة مواطن الضعف المكتشفة من خلال أدوات التقويم القبلي والبعدي</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز استخدام استراتيجيات التعلم النشط وأساليب التقويم البنّاء لتحسين الفهم والاستيعاب</li>
+            <li class="editable-area editable-block" contenteditable="true">استكشاف نقاط الضعف لدى المتعلمين ومعالجتها خلال الفصل الدراسي</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ برامج علاجية موجهة للطالبات ذوي الأداء المنخفض في المهارات الأساسية</li>
+            <li class="editable-area editable-block" contenteditable="true">إعداد اختبارات قبليّة وبعديّة لقياس مدى التحسن في نواتج التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">عقد لقاءات مهنية بين المعلمات لتبادل الخبرات وتوحيد آليات تنفيذ الخطط العلاجية</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة تنفيذ الخطط العلاجية ميدانيًا من خلال زيارات إشرافية دورية</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تحسن واضح في نسب التحصيل الدراسي وفق تحليل نتائج الاختبارات</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع نسبة إتقان المهارات الأساسية لدى الطالبات المستهدفات</li>
+            <li class="editable-area editable-block" contenteditable="true">زيادة تفاعل الطالبات داخل الحصة وتوظيف استراتيجيات تعلم متنوعة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">رفع مستوى التحصيل الدراسي لدى المتعلمين والعمل على ذلك خلال العام الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">عمل اختبارات وأوراق عمل بشكل مستمر لمتابعة مدى تقدم الطلاب</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 22 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">22</div>
+            <div class="editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تحفيز الطالبات على التميز الأكاديمي وتعزيز روح التنافس الإيجابي بينهن في الاختبارات الدورية</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تشجيع الطالبات على رفع مستواهن التحصيلي خلال الفترات القادمة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز الدافعية الداخلية نحو الجد والاجتهاد في جميع المواد الدراسية</li>
+            <li class="editable-area editable-block" contenteditable="true">نشر ثقافة التقدير والاحتفاء بالإنجاز داخل البيئة المدرسية</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز العلاقة الإيجابية بين المعلمة والطالبات من خلال الدعم والتحفيز</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #faf5ff; border-right: 4px solid var(--purple-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em;">
+            تم إعداد برنامج تكريمي خاص بالطالبات المتميزات في اختبار الفترة، شمل إعلان النتائج، وتجهيز ركن احتفالي بسيط داخل الصف، وتوزيع شهادات شكر وهدايا رمزية على الطالبات المتفوقات، مع عرض عبارات تحفيزية وصور تشجيعية. كما تم تسليط الضوء على الجهود المبذولة من الطالبات عبر لوحة الشرف الأسبوعية.
+        </p>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع مستوى الحماس والدافعية لدى جميع الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">زيادة الإقبال على المذاكرة والمشاركة الفاعلة في الحصة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز روح المنافسة الإيجابية بين الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز العلاقات الإنسانية الإيجابية بين الطالبات والمعلمات</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">الاستمرار في إقامة برامج التكريم التحفيزية بشكل دوري بعد كل فترة تقييم</li>
+            <li class="editable-area editable-block" contenteditable="true">ربط برامج التكريم بخطط تحسين نواتج التعلم لزيادة الأثر الإيجابي على التحصيل الدراسي والسلوك التعليمي</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 23 -->
+    <div class="report fade-in">
+        <div class="report-title purple">
+            <div class="num">23</div>
+            <div class="editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">رفع مستوى التحصيل الأكاديمي وتحسين نواتج التعلم</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">رفع متوسط الأداء الأكاديمي في المواد الدراسية المستهدفة بنسبة ملحوظة خلال الفصل الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">معالجة مواطن الضعف المكتشفة من خلال أدوات التقويم القبلي والبعدي</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز استخدام استراتيجيات التعلم النشط وأساليب التقويم البنّاء لتحسين الفهم والاستيعاب</li>
+            <li class="editable-area editable-block" contenteditable="true">استكشاف نقاط الضعف لدى المتعلمين ومعالجتها خلال الفصل الدراسي</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ برامج علاجية موجهة للطالبات ذوي الأداء المنخفض في المهارات الأساسية</li>
+            <li class="editable-area editable-block" contenteditable="true">إعداد اختبارات قبليّة وبعديّة لقياس مدى التحسن في نواتج التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">عقد لقاءات مهنية بين المعلمات لتبادل الخبرات وتوحيد آليات تنفيذ الخطط العلاجية</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة تنفيذ الخطط العلاجية ميدانيًا من خلال زيارات إشرافية دورية</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تحسن واضح في نسب التحصيل الدراسي وفق تحليل نتائج الاختبارات</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع نسبة إتقان المهارات الأساسية لدى الطالبات المستهدفات</li>
+            <li class="editable-area editable-block" contenteditable="true">زيادة تفاعل الطالبات داخل الحصة وتوظيف استراتيجيات تعلم متنوعة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">رفع مستوى التحصيل الدراسي لدى المتعلمين والعمل على ذلك خلال العام الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">عمل اختبارات وأوراق عمل بشكل مستمر لمتابعة مدى تقدم الطلاب</li>
+        </ul>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الرابع ==================== -->
+    <div class="section-header orange editable-area" contenteditable="true">👥 القسم الرابع: تقارير الإدارة الصفية والسلوك والمناسبات الاجتماعية</div>
+
+    <!-- تقرير 4 -->
+    <div class="report fade-in">
+        <div class="report-title orange">
+            <div class="num">4</div>
+            <div class="editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">تنمية القيم الإيجابية وتعزيز السلوك الإيجابي لدى الطالبات أثناء حصة الانتظار</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">........%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">استثمار وقت الانتظار في أنشطة تربوية هادفة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز القيم والسلوكيات الإيجابية لدى الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات الحوار والتعاون والعمل الجماعي</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم الانضباط المدرسي وتحسين سلوك الطالبات داخل المدرسة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">التزاماً باللوائح التنظيمية والتعليمات الوزارية، قامت المعلمة بتسديد حصص الانتظار الموكلة إليها بكل دقة واحترافية.</li>
+            <li class="editable-area editable-block" contenteditable="true">إدارة الصفوف بكفاءة عالية خلال غياب الزميلات، حيث تم توثيق أيام الحصص والصفوف الدراسية.</li>
+            <li class="editable-area editable-block" contenteditable="true">تدوين الإجراءات التربوية والتعليمية التي تم تنفيذها (مثل: مراجعة الدروس، حل الواجبات، والقراءة).</li>
+            <li class="editable-area editable-block" contenteditable="true">ضمان استمرارية العملية التعليمية وعدم ضياع وقت الطالبات وتحقيق الانضباط الصفي.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل كبير من الطالبات مع الأنشطة المقدمة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز روح التعاون والاحترام المتبادل بين الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">إشغال الوقت بما يفيد ويعزز السلوك الإيجابي</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">إشراك الطالبات في إعداد وتنفيذ الأنشطة لزيادة الحماس</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع المواضيع بما يتناسب مع اهتمامات الطالبات والقيم التربوية</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق الأنشطة بشكل دوري لتعزيز الممارسات المتميزة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 6 -->
+    <div class="report fade-in">
+        <div class="report-title orange">
+            <div class="num">6</div>
+            <div class="editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">تنمية القيم الإيجابية وتعزيز السلوك الإيجابي لدى الطالبات</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">........%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">توعية الطالبات بالانضباط السلوكي</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز القيم والسلوكيات الإيجابية لدى الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات الحوار والتعاون والعمل الجماعي</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم الانضباط المدرسي وتحسين سلوك الطالبات داخل المدرسة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تقديم عرض مبسط حول قيمة «الاحترام» وأثرها في المجتمع المدرسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم نشاط تفاعلي (مناقشة / عصف ذهني) لتعزيز فهم الطالبات للموضوع</li>
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ أنشطة كتابية وفنية مرتبطة بالموضوع</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل كبير من الطالبات مع الأنشطة المقدمة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز روح التعاون والاحترام المتبادل بين الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">إشغال الوقت بما يفيد ويعزز السلوك الإيجابي</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">إشراك الطالبات في إعداد وتنفيذ الأنشطة لزيادة الحماس</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع المواضيع بما يتناسب مع اهتمامات الطالبات والقيم التربوية</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق الأنشطة بشكل دوري لتعزيز الممارسات المتميزة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 14 -->
+    <div class="report fade-in">
+        <div class="report-title orange">
+            <div class="num">14</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">إدارة الصف وتنظيم بيئة التعلم</td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز الانضباط الذاتي والمسؤولية لدى الطالبات داخل الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">تهيئة بيئة صفية جاذبة ومحفزة تسهم في رفع دافعية التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع أساليب إدارة الصف بما يحقق التفاعل الإيجابي بين المعلمة والطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">خلق بيئة صحية ومناسبة للتعلم</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">حرصت المعلمة على تهيئة بيئة صفية محفزة وجاذبة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم المقاعد بشكل يسمح بالتفاعل، وتوفير كافة متطلبات الدروس والوسائل التعليمية التي تدعم التعلم.</li>
+            <li class="editable-area editable-block" contenteditable="true">تطبيق استراتيجيات الإدارة الصفية الفعالة.</li>
+            <li class="editable-area editable-block" contenteditable="true">دمج أنشطة إثرائية وتفاعلية ضمن الحصص الدراسية (مثل: الأعمال اليدوية، الرسم، الأنشطة الجماعية) بهدف تنمية المهارات الحركية والدقيقة للطالبات، وإطلاق طاقاتهن الإبداعية، وجعل بيئة التعلم أكثر متعة وتحفيزاً.</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">الاستمرار في تطبيق الأساليب التحفيزية وتشجيع الطالبات الملتزمات</li>
+            <li class="editable-area editable-block" contenteditable="true">تبادل الخبرات بين المعلمات حول أفضل الممارسات في إدارة الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">إدخال أدوات رقمية تفاعلية لدعم الانضباط والتحفيز مثل منصات المشاركة الصفية</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الخامس ==================== -->
+    <div class="section-header pink editable-area" contenteditable="true">🚀 القسم الخامس: تقارير البرامج الخاصة والمبادرات والورش</div>
+
+    <!-- تقرير 16 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">16</div>
+            <div class="editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تحقيق تعليم فعّال يراعي الفروق الفردية بين الطلاب من خلال تحديد نمط التعلم المناسب</td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">التعرف على أنماط التعلم لدى الطلاب (السمعي، البصري، الحسي الحركي)</li>
+            <li class="editable-area editable-block" contenteditable="true">تحليل نتائج تصنيف الطلاب وتوزيعهم حسب نمط التعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف استراتيجيات تدريس متنوعة تراعي الفروق الفردية بين الطلاب</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين نواتج التعلم من خلال تنويع طرق عرض المحتوى</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">زيادة تفاعل الطلاب داخل الصف الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز دافعية الطلاب للتعلم من خلال توظيف الطريقة الأنسب لهم</li>
+            <li class="editable-area editable-block" contenteditable="true">مساهمة المعلمين في تطوير ممارساتهم التعليمية بما يحقق الشمولية</li>
+            <li class="editable-area editable-block" contenteditable="true">ملاحظة ارتفاع مستوى التحصيل الأكاديمي والاندماج في الأنشطة الصفية</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">الاستمرار في تطبيق مبدأ تصنيف أنماط التعلم بشكل دوري كل فصل دراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">إعداد أنشطة تعليمية متنوعة تلائم جميع الأنماط</li>
+            <li class="editable-area editable-block" contenteditable="true">عقد ورش تدريبية للمعلمين حول كيفية توظيف نتائج التصنيف في التخطيط للدروس</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة أثر تطبيق التصنيف على التحصيل الدراسي وتحديث البيانات بشكل مستمر</li>
+        </ul>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 19 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">19</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">المتوسطة</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">أسبوع</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">33</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">غرفة النشاط</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">ربط أسبوع الفضاء بمهارات اختبارات نافس في مادة العلوم</td></tr>
+            <tr><th>المعلم/ة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الفهم العلمي والتحليل والتفسير لدى الطالبات من خلال ربط مفاهيم الفضاء بمخرجات تعلم مادة العلوم</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية قدرة الطالبات على تطبيق المفاهيم العلمية المتعلقة بالفضاء في مواقف حياتية وأسئلة تقيس مهارات التفكير العليا بما يتوافق مع اختبارات نافس</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم مهارة الاستقصاء العلمي وحل المشكلات عبر تحليل الظواهر الفلكية واستنتاج القوانين العلمية المرتبطة بها</li>
+            <li class="editable-area editable-block" contenteditable="true">رفع مستوى جاهزية الطالبات لاختبارات نافس من خلال توظيف استراتيجيات التعلم النشط والأنشطة التطبيقية في مجال الفضاء</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز الثقة العلمية والقدرة على التفسير المبني على الأدلة لتنمية التفكير الناقد والإبداع العلمي</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 وصف البرنامج</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">الإعلان عن البرنامج من خلال منسقات المواد العلمية وتحفيز الطالبات للمشاركة فيه</li>
+            <li class="editable-area editable-block" contenteditable="true">تقديم عروض مرئية وتطبيقات علمية توضح مفاهيم الفضاء وعلاقتها بمهارات التفكير العلمي والتحليل والاستنتاج</li>
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ أنشطة تدريبية قصيرة تحاكي أسئلة واختبارات نافس في مجال الفضاء، لرفع جاهزية الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تشجيع الطالبات على البحث والاستقصاء العلمي حول الظواهر الفلكية وربطها بمفاهيم دروس العلوم</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة أداء الطالبات وتقويم فهمهن من خلال بطاقات تقويم ومناقشات صفية تعزز مهارات التفكير العليا</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق تنفيذ البرنامج ورفع التقرير النهائي متضمناً أثره في تحسين مهارات الطالبات في اختبارات نافس</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 20 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">20</div>
+            <div class="editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثالثة</td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">استخدام التقنية في العملية التعليمية</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">المعلم/ة</td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">توظيف أدوات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالذكاء</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز المشاركة الفاعلة للطلاب وتحفيزهم على طرح الأسئلة والاستكشاف</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">في إطار التحول الرقمي وتعزيز التعليم الإلكتروني، وظفت المعلمة التقنيات والوسائل التعليمية المتنوعة بفعالية عالية.</li>
+            <li class="editable-area editable-block" contenteditable="true">استخدام منصة Microsoft Teams بكفاءة لإدارة الحصص الافتراضية، وطرح الواجبات، وإجراء الاختبارات التفاعلية، مما ساهم في استمرار التواصل الفعال مع الطالبات.</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم الشرح بالعروض التقديمية الإلكترونية (PowerPoint) التي تتضمن خرائط وصوراً توضيحية (كما في درس جبال الحجاز)، مما سهل استيعاب الطالبات للخصائص الجغرافية وجعل بيئة التعلم أكثر جاذبية وتفاعلاً.</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">في إطار توظيف التقنيات الحديثة، استخدمت المعلمة منصة Wordwall لتحويل مراجعة درس 'مظاهر السطح' إلى لعبة تفاعلية تنافسية. ساهمت هذه الأداة الرقمية في رفع مستوى الدافعية لدى الطالبات وجذبهن للمشاركة الفعالة، كما وفرت للمعلمة تغذية راجعة فورية (Feedback) عن مستوى استيعاب الطالبات للمفاهيم، مما جعل بيئة التعلم تفاعلية ومحفزة وتحقق متعة التعلم.</p>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">جذب انتباه الطلاب وتشويقهم لمفاهيم المادة التعليمية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل الصور التوضيحية والأسئلة الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة وطرح الأسئلة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام أدوات الذكاء الاصطناعي التعليمية بفعالية</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الذكاء الاصطناعي في دروس إضافية تعزز استيعاب الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى المولد مع القيم الإسلامية والمناهج الرسمية</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد (البيئة الفصلية وتوظيف التقنية)</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 24 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">24</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اسم المبادرة</th><td class="editable-area" contenteditable="true">مبادرة الانضباط المدرسي</td></tr>
+            <tr><th>فترة التنفيذ</th><td class="editable-area" contenteditable="true">من تاريخ ٧ / ١١ / ٢٠٢٦ ولمدة أسبوعين</td></tr>
+            <tr><th>فريق العمل المنفذ</th><td class="editable-area" contenteditable="true">المدير، الوكيل، الموجه الطلابي، كادر المدرسة، مجلس الطلاب</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز الانضباط المدرسي وبناء بيئة تعليمية محفزة ومستقرة</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز قيم الانضباط والالتزام بالمواعيد المدرسية لدى الطلاب والطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تكامل الجهود بين الكادر التعليمي والإداري والأسر لدعم الانضباط المدرسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تفعيل المجالس الطلابية لتكون شريكاً فاعلاً في غرس السلوك الإيجابي</li>
+            <li class="editable-area editable-block" contenteditable="true">تقدير وتكريم الفصول الأكثر التزاماً والمعلمين المتميزين في تعزيز الانضباط</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #fdf2f8; border-right: 4px solid var(--pink-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; line-height: 1.8;">
+            تم تنفيذ هذه المبادرة ككادر تعليمي متكامل في المدرسة، حيث تضمنت توزيع الأدوار والمسؤوليات على فريق العمل (المدير، الوكيل، الموجه الطلابي، كادر المدرسة، ومجلس الطلاب) لضمان تكامل الجهود. وشملت المبادرة تعزيز التواصل بين المدرسة والأسرة لدعم الانضباط، وتفعيل المجالس الطلابية، وتخصيص شعار لفظي مميز يعزز القيمة، بالإضافة إلى تكريم الفصول الأكثر التزاماً والمعلمين المتميزين في تعزيز الانضباط المدرسي. وكانت الفترة من تاريخ ٧/١١/٢٠٢٦ ولمدة اسبوعين.
+        </p>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 تقرير تنفيذ فرصة تطوعية</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #e0f2fe; border-right: 4px solid #3b82f6; border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">
+            في إطار حرص المعلمة على تفعيل المسؤولية المجتمعية والتحول الرقمي، قامت بتصميم وإطلاق فرصة تطوعية رقمية (عن بُعد) بعنوان "وعي رقمي"؛ وتهدف إلى تصميم منشورات ومقاطع فيديو توعوية قصيرة لتوعية الطالبات وأولياء الأمور بأهمية المواطنة الرقمية والاستخدام الآمن للإنترنت، وحماية الطالبات من المخاطر الإلكترونية. وقد لاقت هذه الفرصة تفاعلاً إيجابياً وموافقة من قبل أولياء الأمور، مما يعكس الشراكة الفاعلة بين المدرسة والأسرة. (من 15/11 إلى 19/11).
+        </p>
+        <div class="sub-heading pink editable-area" contenteditable="true">📋 عناصر التقييم المناسبة للمبادرة</div>
+        <table class="eval-table">
+            <thead><tr><th>عنصر التقييم</th><th>متحقق</th><th>متحقق جزئياً</th><th>غير متحقق</th></tr></thead>
+            <tbody>
+                <tr><td class="editable-area" contenteditable="true">توزيع الأدوار والمسؤوليات بوضوح على فريق العمل</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">فعالية الشراكة والتواصل المستمر مع الأسرة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تفعيل المجالس الطلابية بفاعلية داخل المدرسة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">نجاح تخصيص الشعار اللفظي المميز لتعزيز الانضباط</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تحقيق الأثر الملموس في التزام الفصول الدراسية</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تكريم الفصول والمعلمين المتميزين في الوقت المحدد</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+            </tbody>
+        </table>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تكاتف جهود الكادر الإداري والتعليمي والطلاب لتحقيق أهداف المبادرة</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع ملحوظ في نسبة الانضباط المدرسي وحضور الطلاب بانتظام</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز الشراكة الإيجابية والفعالة مع أولياء الأمور</li>
+            <li class="editable-area editable-block" contenteditable="true">نشر ثقافة التحفيز والتقدير للفصول والمعلمين المتميزين</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استمرار تفعيل الشعار اللفظي وبرامج الانضباط طوال العام الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ حملات تحفيزية دورية لتكريم الطلاب الملتزمين</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز دور المجالس الطلابية في نشر الوعي السلوكي بشكل مستمر</li>
+        </ul>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script>
+/* ==================================================
+   تطبيق المحرر التفاعلي لملف التقارير والشواهد المدرسية
+================================================== */
+const STORAGE_KEY = 'edu_reports_full';
+let activeEditable = null;
+let currentWitnessContainer = null;
+let currentImages = [];
+let currentLinks = [];
+let pendingConfirmCb = null;
+
+/* ============ حوار تأكيد داخلي موثوق (لا يتأثر بحظر الإطارات) ============ */
+function showAppConfirm(title, message, onConfirm) {
+    const modal = document.getElementById('appConfirmModal');
+    const titleEl = document.getElementById('appConfirmTitle');
+    const msgEl = document.getElementById('appConfirmMessage');
+    const okBtn = document.getElementById('appConfirmOkBtn');
+    if (!modal || !okBtn) {
+        if (onConfirm) onConfirm();
+        return;
+    }
+    if (titleEl) titleEl.textContent = title || 'تأكيد';
+    if (msgEl) msgEl.textContent = message || '';
+    pendingConfirmCb = onConfirm;
+    okBtn.onclick = function() {
+        closeAppConfirm(true);
+    };
+    modal.classList.add('show');
+}
+
+function closeAppConfirm(confirmed) {
+    const modal = document.getElementById('appConfirmModal');
+    if (modal) modal.classList.remove('show');
+    const cb = pendingConfirmCb;
+    pendingConfirmCb = null;
+    if (confirmed && typeof cb === 'function') cb();
+}
+
+/* ============ شريط التنسيق العائم ============ */
+const fmtBar = document.getElementById('fmtBar');
+
+document.addEventListener('focusin', function(e) {
+    if (e.target.isContentEditable && !isPrintPreview) {
+        activeEditable = e.target;
+        const rect = e.target.getBoundingClientRect();
+        fmtBar.classList.add('show');
+        let top = rect.top - 50;
+        if (top < 70) top = rect.bottom + 10;
+        fmtBar.style.top = top + 'px';
+        fmtBar.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 380)) + 'px';
+        const size = parseFloat(window.getComputedStyle(e.target).fontSize);
+        const inp = document.getElementById('fontSizeInput');
+        if (inp && !isNaN(size)) inp.value = Math.round(size);
+    }
+});
+
+document.addEventListener('focusout', function() {
+    setTimeout(() => {
+        if (!fmtBar.contains(document.activeElement) && (!document.activeElement || !document.activeElement.isContentEditable)) {
+            fmtBar.classList.remove('show');
+        }
+    }, 150);
+});
+
+function execCmd(cmd, val) {
+    document.execCommand(cmd, false, val || null);
+    if (activeEditable) activeEditable.focus();
+}
+
+function changeSize(delta) {
+    if (!activeEditable) return;
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) {
+        const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+        activeEditable.style.fontSize = (current + delta) + 'px';
+    } else {
+        document.execCommand('fontSize', false, '7');
+        const fonts = activeEditable.querySelectorAll('font[size="7"]');
+        const last = fonts[fonts.length - 1];
+        if (last) {
+            const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+            const span = document.createElement('span');
+            span.style.fontSize = (current + delta) + 'px';
+            span.innerHTML = last.innerHTML;
+            last.replaceWith(span);
+        }
+    }
+}
+
+function setExactSize(size) {
+    if (!activeEditable) return;
+    activeEditable.style.fontSize = size + 'px';
+}
+
+/* ============ إدارة الصفحات والأقسام (إضافة وحذف) ============ */
+function buildCustomPageElement() {
+    const page = document.createElement('div');
+    page.className = 'single-page-report custom-page fade-in';
+    page.innerHTML = `
+        <div class="report-title teal" style="width:100%;">
+            <div class="num">📄</div>
+            <div class="editable-area" contenteditable="true">عنوان الصفحة الجديدة</div>
+        </div>
+        <div class="editable-area editable-block" contenteditable="true"
+             style="width:100%; min-height:220px; padding:20px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; font-size:1.1em; line-height:1.9; text-align:justify;">
+            اكتب محتوى الصفحة أو التقرير هنا...
+        </div>
+        <div class="sub-heading teal editable-area" contenteditable="true" style="width:100%;">📸 الشواهد والمرفقات</div>
+        <div class="evidence-grid" style="width:100%;"></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures" style="width:100%;">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    `;
+    return page;
+}
+
+function addNewPage(afterEl) {
+    const container = document.getElementById('mainContainer');
+    const page = buildCustomPageElement();
+    if (afterEl && afterEl.parentNode) {
+        afterEl.parentNode.insertBefore(page, afterEl.nextSibling);
+    } else {
+        container.appendChild(page);
+    }
+    initPageControls();
+    page.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setStatus('✅ تمت إضافة صفحة جديدة');
+}
+
+function addNewSection() {
+    const container = document.getElementById('mainContainer');
+    const header = document.createElement('div');
+    header.className = 'section-header editable-area';
+    header.contentEditable = 'true';
+    header.style.background = 'linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%)';
+    header.textContent = '🎯 قسم جديد: عنوان القسم هنا';
+
+    const report = document.createElement('div');
+    report.className = 'report fade-in';
+    report.innerHTML = `
+        <div class="report-title blue">
+            <div class="num">جديد</div>
+            <div class="editable-area" contenteditable="true">عنوان التقرير الجديد</div>
+        </div>
+        <table class="info-table">
+            <tr><th>العنصر</th><td class="editable-area" contenteditable="true">القيمة</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">الهدف الأول</li>
+            <li class="editable-area editable-block" contenteditable="true">الهدف الثاني</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">الإجراء الأول</li>
+            <li class="editable-area editable-block" contenteditable="true">الإجراء الثاني</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">الإيجابية الأولى</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">التوصية الأولى</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid"></div>
+        <div class="witness-actions edit-only">
+            <button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button>
+        </div>
+        <div class="signatures">
+            <div class="signature-box">
+                <div class="label">معلم/ة المادة</div>
+                <div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div>
+                <div class="line">التوقيع</div>
+            </div>
+            <div class="signature-box">
+                <div class="label">مدير/ة المدرسة</div>
+                <div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div>
+                <div class="line">التوقيع</div>
+            </div>
+        </div>
+    `;
+    container.appendChild(header);
+    container.appendChild(report);
+    initPageControls();
+    header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setStatus('✅ تمت إضافة قسم وتقرير جديد');
+}
+
+function getManagedBlocks() {
+    const container = document.getElementById('mainContainer');
+    if (!container) return [];
+    // فك أي غلاف قديم غير قياسي ناتج عن حفظ سابق
+    Array.from(container.children).forEach(child => {
+        if (
+            !child.classList.contains('cover') &&
+            !child.classList.contains('single-page-report') &&
+            !child.classList.contains('index-section') &&
+            !child.classList.contains('section-header') &&
+            !child.classList.contains('report') &&
+            child.querySelector('.section-header, .report, .single-page-report')
+        ) {
+            while (child.firstChild) container.insertBefore(child.firstChild, child);
+            child.remove();
+        }
+    });
+    return Array.from(container.querySelectorAll(':scope > .cover, :scope > .single-page-report, :scope > .index-section, :scope > .section-header, :scope > .report'));
+}
+
+function getBlockLabel(el, idx) {
+    if (el.classList.contains('cover')) return 'صفحة الغلاف';
+    if (el.classList.contains('index-section')) return 'صفحة الفهرس';
+    if (el.classList.contains('section-header')) return 'عنوان قسم';
+    if (el.classList.contains('single-page-report')) {
+        const titleEl = el.querySelector('.report-title');
+        return titleEl ? titleEl.textContent.trim().slice(0, 38) : `صفحة #${idx + 1}`;
+    }
+    if (el.classList.contains('report')) {
+        const titleEl = el.querySelector('.report-title');
+        return titleEl ? titleEl.textContent.trim().replace(/\s+/g, ' ').slice(0, 42) : `تقرير #${idx + 1}`;
+    }
+    return `عنصر #${idx + 1}`;
+}
+
+function deleteBlockConfirm(btn) {
+    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report');
+    if (!block) return;
+    const allBlocks = getManagedBlocks();
+    if (allBlocks.length <= 1) {
+        setStatus('⚠️ يجب الإبقاء على صفحة واحدة على الأقل في الملف');
+        return;
+    }
+    const label = getBlockLabel(block, allBlocks.indexOf(block));
+    showAppConfirm('حذف الصفحة / القسم', `هل تريد حذف "${label}" من الملف نهائياً؟`, () => {
+        block.remove();
+        initPageControls();
+        setStatus('🗑️ تم حذف: ' + label);
+    });
+}
+
+function addPageAfterBtn(btn) {
+    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report');
+    addNewPage(block);
+}
+
+function initPageControls() {
+    document.querySelectorAll('#mainContainer .page-ctrl-bar').forEach(bar => bar.remove());
+    const blocks = getManagedBlocks();
+    blocks.forEach((block, idx) => {
+        block.classList.add('manage-block');
+        const bar = document.createElement('div');
+        bar.className = 'page-ctrl-bar edit-only';
+        bar.contentEditable = 'false';
+
+        const tag = document.createElement('span');
+        tag.className = 'block-tag';
+        tag.textContent = `${idx + 1} / ${blocks.length} — ${getBlockLabel(block, idx)}`;
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn-add-after';
+        addBtn.textContent = '➕ صفحة بعدها';
+        addBtn.onclick = function() { addPageAfterBtn(this); };
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn-del-block';
+        delBtn.textContent = '🗑️ حذف الصفحة';
+        delBtn.onclick = function() { deleteBlockConfirm(this); };
+
+        bar.appendChild(tag);
+        bar.appendChild(addBtn);
+        bar.appendChild(delBtn);
+        block.insertBefore(bar, block.firstChild);
+    });
+}
+
+/* ============ نظام الشواهد (صور + روابط تتحول لباركود QR تلقائياً) ============ */
+function resolveEvidenceGrid(triggerEl) {
+    if (!triggerEl) return null;
+    const actionsDiv = triggerEl.closest('.witness-actions');
+    if (actionsDiv) {
+        let prev = actionsDiv.previousElementSibling;
+        while (prev) {
+            if (prev.classList && prev.classList.contains('evidence-grid')) return prev;
+            prev = prev.previousElementSibling;
+        }
+        const parentSection = actionsDiv.closest('.report, .single-page-report');
+        if (parentSection) {
+            const found = parentSection.querySelector('.evidence-grid');
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+function openWitnessModal(btn) {
+    currentWitnessContainer = resolveEvidenceGrid(btn);
+    if (!currentWitnessContainer) {
+        setStatus('❌ تعذر تحديد حاوية الشواهد');
+        return;
+    }
+    currentImages = [];
+    currentLinks = [];
+
+    try {
+        if (currentWitnessContainer.dataset.images) {
+            currentImages = JSON.parse(currentWitnessContainer.dataset.images);
+        }
+    } catch (e) { currentImages = []; }
+    try {
+        if (currentWitnessContainer.dataset.links) {
+            currentLinks = JSON.parse(currentWitnessContainer.dataset.links);
+        }
+    } catch (e) { currentLinks = []; }
+
+    document.getElementById('imagePreviewGrid').innerHTML = '';
+    document.getElementById('linkList').innerHTML = '';
+    document.getElementById('imageInput').value = '';
+    document.getElementById('linkInput').value = '';
+    document.getElementById('linkTitleInput').value = '';
+
+    renderPreviews();
+    renderLinkList();
+
+    document.getElementById('witnessModal').classList.add('show');
+}
+
+function closeWitnessModal() {
+    document.getElementById('witnessModal').classList.remove('show');
+}
+
+function compressImageDataUrl(dataUrl, maxDim = 1200, quality = 0.84) {
+    return new Promise((resolve) => {
+        if (!dataUrl || dataUrl.length < 180000) {
+            resolve(dataUrl);
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            try {
+                let { width, height } = img;
+                if (width > maxDim || height > maxDim) {
+                    const ratio = Math.min(maxDim / width, maxDim / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            } catch (err) {
+                resolve(dataUrl);
+            }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+    });
+}
+
+function handleImageUpload(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    setStatus('⏳ جاري تجهيز الصور...');
+    Promise.all(files.map(file => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const optimized = await compressImageDataUrl(e.target.result);
+            currentImages.push(optimized);
+            resolve();
+        };
+        reader.onerror = () => resolve();
+        reader.readAsDataURL(file);
+    }))).then(() => {
+        renderPreviews();
+        setStatus(`✅ تم تجهيز ${files.length} صورة للشاهد`);
+    });
+    event.target.value = '';
+}
+
+function renderPreviews() {
+    const grid = document.getElementById('imagePreviewGrid');
+    grid.innerHTML = '';
+    currentImages.forEach((img, idx) => {
+        const item = document.createElement('div');
+        item.className = 'image-preview-item';
+        const imgEl = document.createElement('img');
+        imgEl.src = img;
+        imgEl.alt = 'معاينة';
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button';
+        rmBtn.className = 'remove-img';
+        rmBtn.textContent = '✕';
+        rmBtn.onclick = () => removeImage(idx);
+        item.appendChild(imgEl);
+        item.appendChild(rmBtn);
+        grid.appendChild(item);
+    });
+}
+
+function removeImage(idx) {
+    currentImages.splice(idx, 1);
+    renderPreviews();
+}
+
+function normalizeUrlInput(raw) {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^[a-z0-9.-]+\.[a-z]{2,}/i.test(trimmed)) return 'https://' + trimmed;
+    return '';
+}
+
+function addLink(silent = false) {
+    const linkInput = document.getElementById('linkInput');
+    const titleInput = document.getElementById('linkTitleInput');
+    const url = normalizeUrlInput(linkInput.value);
+    const title = (titleInput.value || '').trim();
+    if (!url) {
+        if (!silent) {
+            setStatus('⚠️ يرجى إدخال رابط صحيح مثل https://example.com');
+            linkInput.focus();
+        }
+        return false;
+    }
+    currentLinks.push({ url, title: title || url });
+    linkInput.value = '';
+    titleInput.value = '';
+    renderLinkList();
+    return true;
+}
+
+function renderLinkList() {
+    const list = document.getElementById('linkList');
+    list.innerHTML = '';
+    currentLinks.forEach((link, idx) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex;align-items:center;gap:10px;justify-content:space-between;background:white;padding:8px 10px;border:1px solid #ddd;border-radius:8px;margin-bottom:6px;';
+
+        const qrThumb = document.createElement('div');
+        qrThumb.style.cssText = 'width:46px;height:46px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:2px;display:flex;align-items:center;justify-content:center;';
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(qrThumb, {
+                text: link.url,
+                width: 40,
+                height: 40,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
+
+        const anchor = document.createElement('a');
+        anchor.href = link.url;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.textContent = link.title;
+        anchor.style.cssText = 'flex:1;color:#1d4ed8;font-size:13px;word-break:break-all;text-decoration:none;font-weight:700;';
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = '✕';
+        delBtn.style.cssText = 'background:#ef4444;color:white;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:900;flex-shrink:0;';
+        delBtn.onclick = () => removeLink(idx);
+
+        item.appendChild(qrThumb);
+        item.appendChild(anchor);
+        item.appendChild(delBtn);
+        list.appendChild(item);
+    });
+}
+
+function removeLink(idx) {
+    currentLinks.splice(idx, 1);
+    renderLinkList();
+}
+
+function saveWitness() {
+    if (!currentWitnessContainer) return;
+    // إذا كتب المستخدم رابطاً ولم يضغط "إضافة" بعد، نضيفه تلقائياً قبل الحفظ
+    const pendingUrl = document.getElementById('linkInput')?.value.trim();
+    if (pendingUrl) {
+        addLink(true);
+    }
+    currentWitnessContainer.dataset.images = JSON.stringify(currentImages);
+    currentWitnessContainer.dataset.links = JSON.stringify(currentLinks);
+    renderWitnesses(currentWitnessContainer);
+    closeWitnessModal();
+    setStatus('✅ تم حفظ الشواهد وتحويل الروابط إلى باركود QR');
+}
+
+function deleteSingleWitness(grid, type, idx) {
+    let images = [];
+    let links = [];
+    try { images = JSON.parse(grid.dataset.images || '[]'); } catch (e) {}
+    try { links = JSON.parse(grid.dataset.links || '[]'); } catch (e) {}
+    if (type === 'image') images.splice(idx, 1);
+    if (type === 'link') links.splice(idx, 1);
+    grid.dataset.images = JSON.stringify(images);
+    grid.dataset.links = JSON.stringify(links);
+    renderWitnesses(grid);
+    setStatus('🗑️ تم حذف الشاهد');
+}
+
+function renderWitnesses(container) {
+    if (!container) return;
+    let images = [];
+    let links = [];
+    try { images = JSON.parse(container.dataset.images || '[]'); } catch (e) { images = []; }
+    try { links = JSON.parse(container.dataset.links || '[]'); } catch (e) { links = []; }
+    container.innerHTML = '';
+
+    images.forEach((imgSrc, idx) => {
+        const box = document.createElement('div');
+        box.className = 'evidence-box photo-box';
+
+        const img = document.createElement('img');
+        img.className = 'witness-photo';
+        img.src = imgSrc;
+        img.alt = 'صورة شاهد';
+        img.title = 'اضغط لتكبير الصورة';
+        img.onclick = () => viewImage(imgSrc);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'witness-del-btn edit-only';
+        delBtn.title = 'حذف الصورة';
+        delBtn.textContent = '✕';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteSingleWitness(container, 'image', idx);
+        };
+
+        box.appendChild(img);
+        box.appendChild(delBtn);
+        container.appendChild(box);
+    });
+
+    links.forEach((link, idx) => {
+        const box = document.createElement('div');
+        box.className = 'evidence-box';
+
+        const qrDiv = document.createElement('div');
+        qrDiv.className = 'qr-container';
+        qrDiv.dataset.url = link.url;
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'qr-title';
+        titleEl.textContent = link.title || link.url;
+
+        const urlAnchor = document.createElement('a');
+        urlAnchor.className = 'qr-url-link edit-only';
+        urlAnchor.href = link.url;
+        urlAnchor.target = '_blank';
+        urlAnchor.rel = 'noopener noreferrer';
+        urlAnchor.textContent = '🔗 فتح الرابط';
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'witness-del-btn edit-only';
+        delBtn.title = 'حذف الباركود';
+        delBtn.textContent = '✕';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteSingleWitness(container, 'link', idx);
+        };
+
+        box.appendChild(qrDiv);
+        box.appendChild(titleEl);
+        box.appendChild(urlAnchor);
+        box.appendChild(delBtn);
+        container.appendChild(box);
+
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(qrDiv, {
+                text: link.url,
+                width: 112,
+                height: 112,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+    });
+}
+
+function renderAllWitnesses() {
+    document.querySelectorAll('#mainContainer .evidence-grid').forEach(grid => {
+        if (grid.dataset.images || grid.dataset.links) {
+            renderWitnesses(grid);
+        }
+    });
+}
+
+function viewImage(src) {
+    const lb = document.getElementById('imgLightboxModal');
+    const imgEl = document.getElementById('imgLightboxEl');
+    if (lb && imgEl) {
+        imgEl.src = src;
+        lb.classList.add('show');
+    }
+}
+
+function closeImageLightbox() {
+    document.getElementById('imgLightboxModal')?.classList.remove('show');
+}
+
+/* ============ الحفظ والاسترجاع ============ */
+function syncCheckboxStateAttributes() {
+    document.querySelectorAll('#mainContainer input[type="checkbox"]').forEach(cb => {
+        if (cb.checked) cb.setAttribute('checked', 'checked');
+        else cb.removeAttribute('checked');
+    });
+}
+
+function getSerializedContainerHTML() {
+    syncCheckboxStateAttributes();
+    const clone = document.getElementById('mainContainer').cloneNode(true);
+    clone.querySelectorAll('.page-ctrl-bar').forEach(b => b.remove());
+    return clone.innerHTML;
+}
+
+function saveData() {
+    try {
+        localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+        setStatus('✅ تم الحفظ بنجاح - ' + new Date().toLocaleTimeString('ar-SA'));
+    } catch (e) {
+        setStatus('❌ فشل الحفظ (قد تكون مساحة المتصفح ممتلئة): ' + e.message);
+    }
+}
+
+function restoreSavedData() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+        setStatus('لا توجد بيانات محفوظة');
+        return;
+    }
+    document.getElementById('mainContainer').innerHTML = saved;
+    initPageControls();
+    renderAllWitnesses();
+    setStatus('✅ تم استرجاع البيانات المحفوظة');
+}
+
+function loadData() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+        setStatus('لا توجد بيانات محفوظة');
+        return;
+    }
+    showAppConfirm('استرجاع المحفوظات', 'هل تريد استرجاع البيانات المحفوظة؟ سيتم استبدال المحتوى الحالي.', () => {
+        restoreSavedData();
+    });
+}
+
+function resetAll() {
+    showAppConfirm('إعادة تعيين الملف', 'هل أنت متأكد من حذف جميع التعديلات والعودة للنموذج الأصلي؟', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    });
+}
+
+/* ============ معاينة قبل الطباعة ============ */
+let isPrintPreview = false;
+let previewZoomMode = 'fit';
+
+function applyPreviewZoom() {
+    const container = document.getElementById('mainContainer');
+    if (!container) return;
+    if (!isPrintPreview) {
+        container.style.transform = '';
+        container.style.marginBottom = '';
+        return;
+    }
+    container.style.transform = '';
+    container.style.marginBottom = '';
+    if (previewZoomMode === 'fit') {
+        const availW = Math.max(280, window.innerWidth - 24);
+        const w = container.offsetWidth || 794;
+        const h = container.offsetHeight || 1123;
+        const scale = Math.min(1, availW / w);
+        if (scale < 0.99) {
+            container.style.transform = `scale(${scale.toFixed(4)})`;
+            container.style.marginBottom = `${Math.round(-(h * (1 - scale)) + 20)}px`;
+        }
+    }
+}
+
+function setPreviewZoom(mode) {
+    previewZoomMode = mode;
+    document.getElementById('btnZoomFit')?.classList.toggle('active', mode === 'fit');
+    document.getElementById('btnZoomFull')?.classList.toggle('active', mode === 'full');
+    applyPreviewZoom();
+}
+
+function togglePrintPreview(forceState) {
+    const next = typeof forceState === 'boolean' ? forceState : !isPrintPreview;
+    isPrintPreview = next;
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    if (next) {
+        renderAllWitnesses();
+        document.body.classList.add('print-preview-mode');
+        const count = getManagedBlocks().length;
+        const counter = document.getElementById('previewPageCounter');
+        if (counter) counter.textContent = `الأقسام والصفحات: ${count}`;
+        applyPreviewZoom();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setStatus('👁️ وضع المعاينة قبل الطباعة');
+    } else {
+        document.body.classList.remove('print-preview-mode');
+        applyPreviewZoom();
+        setStatus('تمت العودة لوضع التعديل');
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (isPrintPreview) applyPreviewZoom();
+});
+
+/* ============ طباعة مباشرة ============ */
+function printDocument() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    renderAllWitnesses();
+    const container = document.getElementById('mainContainer');
+    if (container) {
+        container.style.transform = '';
+        container.style.marginBottom = '';
+    }
+    setStatus('جارٍ إرسال الملف للطباعة...');
+    setTimeout(() => {
+        try {
+            window.focus();
+            window.print();
+        } catch (e) {}
+        setTimeout(() => {
+            if (isPrintPreview) applyPreviewZoom();
+        }, 400);
+        setStatus('💡 إذا حجب المتصفح نافذة الطباعة استخدم زر "📄 تصدير PDF"');
+    }, 220);
+}
+
+/* ============ التصدير إلى PDF متعدد الصفحات A4 ============ */
+let isExportingPdf = false;
+let lastPdfBlobUrl = null;
+
+function openLastPdfBlob() {
+    if (!lastPdfBlobUrl) return;
+    const w = window.open(lastPdfBlobUrl, '_blank', 'noopener,noreferrer');
+    if (!w) {
+        const a = document.getElementById('pdfDirectDownloadLink');
+        if (a) a.click();
+    }
+}
+
+function closePdfReadyBanner() {
+    document.getElementById('pdfReadyBanner')?.classList.remove('show');
+}
+
+async function captureElementSafe(el) {
+    try {
+        return await html2canvas(el, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            width: el.offsetWidth,
+            height: el.offsetHeight,
+            windowWidth: el.scrollWidth,
+            windowHeight: el.scrollHeight,
+            scrollX: 0,
+            scrollY: 0,
+            logging: false
+        });
+    } catch (e) {
+        return await html2canvas(el, {
+            scale: 2,
+            useCORS: false,
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            width: el.offsetWidth,
+            height: el.offsetHeight,
+            scrollX: 0,
+            scrollY: 0,
+            logging: false,
+            ignoreElements: (node) => node.tagName === 'IMG' && node.src && !node.src.startsWith('data:') && !node.src.startsWith(location.origin)
+        });
+    }
+}
+
+function appendCanvasSlicedToPdf(pdf, canvas, isFirstPdfPage) {
+    const pageWmm = 210;
+    const pageHmm = 297;
+    const ratioPxPerMm = canvas.width / pageWmm;
+    const sliceMaxPxH = Math.floor(pageHmm * ratioPxPerMm);
+
+    let yPx = 0;
+    let firstSlice = true;
+    while (yPx < canvas.height) {
+        const sliceH = Math.min(sliceMaxPxH, canvas.height - yPx);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceMaxPxH;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, yPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+
+        if (!isFirstPdfPage || !firstSlice) {
+            pdf.addPage('a4', 'p');
+        }
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWmm, pageHmm, undefined, 'FAST');
+
+        yPx += sliceH;
+        firstSlice = false;
+    }
+}
+
+async function exportPDF() {
+    if (isExportingPdf) return;
+    if (!window.jspdf || !window.jspdf.jsPDF || typeof window.html2canvas !== 'function') {
+        setStatus('❌ مكتبة تصدير PDF غير محملة، جرب الطباعة المباشرة');
+        printDocument();
+        return;
+    }
+
+    isExportingPdf = true;
+    const wasPreview = isPrintPreview;
+    const overlay = document.getElementById('pdfProgressOverlay');
+    const titleEl = document.getElementById('pdfProgressTitle');
+    const subEl = document.getElementById('pdfProgressSub');
+    const fillEl = document.getElementById('pdfProgressFill');
+    const pctEl = document.getElementById('pdfProgressPct');
+    const container = document.getElementById('mainContainer');
+
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+    fmtBar.classList.remove('show');
+    closePdfReadyBanner();
+    renderAllWitnesses();
+
+    if (container) {
+        container.style.transform = '';
+        container.style.marginBottom = '';
+    }
+    document.body.classList.add('pdf-exporting');
+
+    if (overlay) overlay.classList.add('show');
+    if (titleEl) titleEl.textContent = 'جاري تجهيز ملف PDF...';
+    if (fillEl) fillEl.style.width = '5%';
+    if (pctEl) pctEl.textContent = '5%';
+
+    try {
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+        await new Promise(r => setTimeout(r, 200));
+
+        // تجميع الكتل المنطقية (دمج عنوان القسم مع التقرير الذي يليه مباشرة حتى لا يظهر عنوان قسم منفرداً)
+        const blocks = getManagedBlocks();
+        if (!blocks.length) throw new Error('لا توجد صفحات للتصدير');
+
+        const units = [];
+        for (let i = 0; i < blocks.length; i++) {
+            const blk = blocks[i];
+            if (blk.classList.contains('section-header') && blocks[i + 1] && blocks[i + 1].classList.contains('report')) {
+                units.push([blk, blocks[i + 1]]);
+                i++;
+            } else {
+                units.push([blk]);
+            }
+        }
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+        let isFirstPdfPage = true;
+
+        for (let u = 0; u < units.length; u++) {
+            const group = units[u];
+            const pct = Math.round(((u + 1) / units.length) * 95);
+            if (subEl) subEl.textContent = `جاري تحويل القسم/التقرير ${u + 1} من ${units.length}...`;
+            if (fillEl) fillEl.style.width = `${pct}%`;
+            if (pctEl) pctEl.textContent = `${pct}%`;
+            setStatus(`⏳ جاري تصدير PDF (${u + 1}/${units.length})...`);
+            await new Promise(r => setTimeout(r, 20));
+
+            let targetCanvas;
+            if (group.length === 1) {
+                targetCanvas = await captureElementSafe(group[0]);
+            } else {
+                // دمج عنوان القسم + التقرير التالي عمودياً دون تعديل DOM الأصلي
+                const c1 = await captureElementSafe(group[0]);
+                const c2 = await captureElementSafe(group[1]);
+                targetCanvas = document.createElement('canvas');
+                targetCanvas.width = Math.max(c1.width, c2.width);
+                targetCanvas.height = c1.height + c2.height;
+                const ctx = targetCanvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+                ctx.drawImage(c1, 0, 0);
+                ctx.drawImage(c2, 0, c1.height);
+            }
+
+            appendCanvasSlicedToPdf(pdf, targetCanvas, isFirstPdfPage);
+            isFirstPdfPage = false;
+        }
+
+        if (subEl) subEl.textContent = 'جاري حفظ ملف PDF...';
+        if (fillEl) fillEl.style.width = '100%';
+        if (pctEl) pctEl.textContent = '100%';
+
+        const filename = 'ملف_التقارير_والشواهد_المدرسية.pdf';
+        const pdfBlob = pdf.output('blob');
+        if (lastPdfBlobUrl) {
+            try { URL.revokeObjectURL(lastPdfBlobUrl); } catch (e) {}
+        }
+        lastPdfBlobUrl = URL.createObjectURL(pdfBlob);
+
+        const dlLink = document.getElementById('pdfDirectDownloadLink');
+        if (dlLink) {
+            dlLink.href = lastPdfBlobUrl;
+            dlLink.download = filename;
+        }
+        document.getElementById('pdfReadyBanner')?.classList.add('show');
+
+        try {
+            pdf.save(filename);
+        } catch (saveErr) {
+            if (dlLink) dlLink.click();
+        }
+        setStatus('✅ تم تصدير ملف PDF بنجاح');
+    } catch (e) {
+        setStatus('❌ تعذر إنشاء PDF: ' + (e.message || e));
+    } finally {
+        document.body.classList.remove('pdf-exporting');
+        if (overlay) overlay.classList.remove('show');
+        if (wasPreview) applyPreviewZoom();
+        isExportingPdf = false;
+    }
+}
+
+/* ============ العودة للوحة التحكم في الوضع المستقل ============ */
+function goBackToDashboard() {
+    try {
+        if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) {
+            history.back();
+            return;
+        }
+    } catch (e) {}
+    window.location.href = '/';
+}
+
+function setStatus(msg) {
+    const el = document.getElementById('statusMsg');
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = 'جاهز للتعديل المباشر'; }, 5000);
+}
+
+/* ============ حفظ تلقائي كل 30 ثانية ============ */
+setInterval(() => {
+    try {
+        localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+    } catch (e) {}
+}, 30000);
+
+/* ============ تهيئة الصفحة عند الفتح ============ */
+window.addEventListener('load', () => {
+    const isStandalone = window.self === window.top || new URLSearchParams(window.location.search).get('standalone') === '1';
+    const backBtn = document.getElementById('btnBackHome');
+    if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
+
+    initPageControls();
+    renderAllWitnesses();
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        showAppConfirm('يوجد حفظ سابق', 'يوجد تعديلات محفوظة مسبقاً في المتصفح. هل تريد استرجاعها؟', () => {
+            restoreSavedData();
+        });
+    }
+});
+</script>
+
+</body>
+</html>

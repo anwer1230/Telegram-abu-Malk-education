@@ -13859,6 +13859,20 @@ def performance_witnesses_page():
     return resp
 
 
+@app.route("/school_reports")
+@app.route("/school_reports/")
+def school_reports_page():
+    """ملف التقارير والشواهد المدرسية - الواجهة التفاعلية الكاملة"""
+    resp = make_response(
+        send_file(
+            os.path.join(app.root_path, 'templates', 'school_reports.html'),
+            mimetype='text/html; charset=utf-8',
+        )
+    )
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    return resp
+
+
 @app.route("/api/html_to_word/convert", methods=["POST"])
 def api_html_to_word_convert():
     """تصدير HTML إلى ملف DOCX أصلي وتحميله فوراً لذاكرة الجهاز"""

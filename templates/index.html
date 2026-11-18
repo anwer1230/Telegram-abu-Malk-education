@@ -1490,7 +1490,7 @@
                                     <button type="button" class="btn w-100 h-100 py-3 d-flex flex-column align-items-center justify-content-center position-relative shadow-sm" id="btnEduServicesTools" data-bs-toggle="modal" data-bs-target="#eduServicesModal" style="border:1px solid #0d9488;color:#0f766e;background:#fff;">
                                         <i class="fas fa-chalkboard-teacher fa-2x mb-2" style="color:#0d9488;"></i>
                                         <span class="small fw-bold">وظائف الخدمات التعليمية</span>
-                                        <span class="badge mt-1 text-white" style="font-size:0.58rem;background:#0d9488;">ملف الأداء الوظيفي</span>
+                                        <span class="badge mt-1 text-white" style="font-size:0.58rem;background:#0d9488;">ملف الأداء · شواهد الأداء</span>
                                     </button>
                                 </div>
                             </div>
@@ -5056,6 +5056,19 @@
                   <span class="text-muted small">تطبيق تفاعلي كامل قابل للتعديل والحفظ وتصدير PDF والطباعة</span>
                 </button>
               </div>
+              <div class="col-12 col-sm-6">
+                <button type="button" id="btnOpenPerformanceWitnesses"
+                        onclick="openPerformanceWitnesses()"
+                        class="btn bg-white w-100 h-100 p-4 rounded-3 shadow-sm border d-flex flex-column align-items-center justify-content-center text-center"
+                        style="border-color:#8b7cb5 !important;transition:transform 0.2s ease;">
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                        style="width:56px;height:56px;background:rgba(139,124,181,0.14);color:#6d5ca0;">
+                    <i class="fas fa-award fa-2x"></i>
+                  </span>
+                  <span class="fw-bold fs-6 text-dark mb-1">شواهد الأداء</span>
+                  <span class="text-muted small">سجل توثيق شواهد الأداء الوظيفي بالصور والروابط وباركود QR</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -5083,6 +5096,28 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== مودال شواهد الأداء (الواجهة الكاملة) ===== -->
+    <div class="modal fade" id="performanceWitnessesModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content" style="display:flex;flex-direction:column;">
+          <div class="modal-header text-white py-2 flex-shrink-0" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
+            <h5 class="modal-title"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+              <a href="/performance_witnesses" target="_blank" class="btn btn-sm btn-light opacity-90" title="فتح في تبويب مستقل">
+                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
+              </a>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+          </div>
+          <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
+            <iframe id="performanceWitnessesFrame" src="about:blank"
+              style="width:100%;height:100%;border:none;display:block;"
+              title="شواهد الأداء"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
       function openPerformancePortfolio() {
         const eduEl = document.getElementById('eduServicesModal');
@@ -5097,6 +5132,21 @@
         const perfEl = document.getElementById('performancePortfolioModal');
         if (perfEl && window.bootstrap) {
           bootstrap.Modal.getOrCreateInstance(perfEl).show();
+        }
+      }
+      function openPerformanceWitnesses() {
+        const eduEl = document.getElementById('eduServicesModal');
+        if (eduEl && window.bootstrap) {
+          const eduModal = bootstrap.Modal.getInstance(eduEl);
+          if (eduModal) eduModal.hide();
+        }
+        const frame = document.getElementById('performanceWitnessesFrame');
+        if (frame && (!frame.getAttribute('src') || frame.getAttribute('src') === 'about:blank')) {
+          frame.src = '/performance_witnesses';
+        }
+        const witEl = document.getElementById('performanceWitnessesModal');
+        if (witEl && window.bootstrap) {
+          bootstrap.Modal.getOrCreateInstance(witEl).show();
         }
       }
     </script>

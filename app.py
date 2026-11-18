@@ -13846,6 +13846,21 @@ def performance_portfolio_page():
     return resp
 
 
+@app.route("/performance_witnesses")
+@app.route("/performance_witnesses/")
+def performance_witnesses_page():
+    """شواهد الأداء - الواجهة التفاعلية الكاملة بدون أي تعديل"""
+    resp = make_response(
+        send_file(
+            os.path.join(app.root_path, 'templates', 'performance_witnesses.html'),
+            mimetype='text/html; charset=utf-8',
+        )
+    )
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return resp
+
+
 @app.route("/api/html_to_word/convert", methods=["POST"])
 def api_html_to_word_convert():
     """تصدير HTML إلى ملف DOCX أصلي وتحميله فوراً لذاكرة الجهاز"""

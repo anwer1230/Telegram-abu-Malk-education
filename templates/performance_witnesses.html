@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سجل توثيق شواهد الأداء الوظيفي للمعلمة - ١٤٤٨هـ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+    :root {
+        --primary: #62929e;
+        --dark: #3b6978;
+        --light: #8bb5be;
+        --accent: #c9a86a;
+        --text: #1a1a1a;
+        --border: #3b6978;
+        --check: #d9534f;
+        --purple: #8b7cb5;
+        --lavender: #b8a9d9;
+        --font-main: 'Cairo', sans-serif;
+        --font-academic: 'Amiri', serif;
+        --font-display: 'Aref Ruqaa', serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { font-family: var(--font-main); background: #dcdcdc; color: var(--text); font-weight: 700; padding-bottom: 80px; }
+
+    /* ===== شريط الأدوات ===== */
+    .toolbar {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #fff; padding: 10px 15px;
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-size: 14px;
+    }
+    .toolbar .brand { font-weight: 900; color: #ffd166; margin-left: 10px; font-size: 15px; }
+    .toolbar button {
+        background: #62929e; color: #fff; border: none; padding: 7px 14px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 13px;
+        transition: 0.2s;
+    }
+    .toolbar button:hover { background: #8bb5be; transform: translateY(-1px); }
+    .toolbar button.danger { background: #c0392b; }
+    .toolbar button.danger:hover { background: #e74c3c; }
+    .toolbar button.success { background: #27ae60; }
+    .toolbar button.success:hover { background: #2ecc71; }
+    .toolbar button.gold { background: #c9a86a; color: #2c3e50; }
+    .toolbar button.gold:hover { background: #e0c085; }
+    .toolbar .status { margin-right: auto; font-size: 12px; color: #bdc3c7; }
+
+    .pages-wrap { margin-top: 70px; }
+
+    /* ===== الصفحات ===== */
+    .page {
+        background-color: white; width: 210mm; height: 297mm; position: relative;
+        overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        page-break-after: always; display: flex; flex-direction: column;
+        margin: 0 auto 20px auto;
+    }
+    @media print {
+        .toolbar { display: none !important; }
+        body { background-color: white; padding: 0; margin: 0; }
+        .pages-wrap { margin: 0; }
+        .page { box-shadow: none; margin: 0 !important; width: 210mm; height: 297mm; page-break-after: always; }
+        @page { size: A4; margin: 0; }
+        .edit-only { display: none !important; }
+        .editable-area { background: transparent !important; outline: none !important; }
+        .table-controls { display: none !important; }
+        .row-del-btn { display: none !important; }
+        td.action-cell { display: none !important; }
+        .add-page-bar { display: none !important; }
+        .fmt-bar { display: none !important; }
+        .witness-actions { display: none !important; }
+        .witness-modal { display: none !important; }
+        .witness-thumbnails { display: none !important; }
+        .witness-qr { display: block !important; }
+        .witness-info .link-count { display: none !important; }
+    }
+
+    /* ===== العناصر القابلة للتعديل ===== */
+    .editable-area {
+        outline: none; border-radius: 4px; transition: 0.2s;
+        min-width: 20px; display: inline-block;
+    }
+    .editable-area:hover { background: rgba(201,168,106,0.15); }
+    .editable-area:focus { background: rgba(201,168,106,0.25); box-shadow: 0 0 0 2px var(--accent); }
+    .editable-block { display: block; width: 100%; }
+
+    /* ===== شريط التنسيق العائم ===== */
+    .fmt-bar {
+        display: none; position: fixed; z-index: 10000; background: #34495e; color: #fff;
+        border-radius: 8px; padding: 6px 8px; gap: 6px; align-items: center;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.35); font-size: 13px;
+    }
+    .fmt-bar.show { display: flex; }
+    .fmt-bar button {
+        background: #4a6274; color: #fff; border: none; width: 30px; height: 30px;
+        border-radius: 5px; cursor: pointer; font-weight: 900; font-size: 15px;
+    }
+    .fmt-bar button:hover { background: #62929e; }
+    .fmt-bar input[type=color] { width: 34px; height: 30px; border: none; border-radius: 5px; cursor: pointer; background: #4a6274; padding: 2px; }
+
+    /* ===== الغلاف ===== */
+    .cover-page {
+        height: 100%; display: flex; flex-direction: column; position: relative;
+        background: linear-gradient(180deg, #f7f5f0 0%, #ffffff 40%, #f7f5f0 100%);
+        overflow: hidden;
+    }
+    .cover-floral-top {
+        position: absolute; top: 0; left: 0; right: 0; height: 280px;
+        background: linear-gradient(180deg, #e8e0f0 0%, #f7f5f0 100%);
+        overflow: hidden;
+    }
+    .cover-floral-top::before, .cover-floral-top::after {
+        content: ''; position: absolute; border-radius: 50%;
+        background: radial-gradient(circle, #b8a9d9 0%, #8b7cb5 70%, transparent 100%);
+        opacity: 0.4;
+    }
+    .cover-floral-top::before { width: 200px; height: 200px; top: -50px; left: 10%; }
+    .cover-floral-top::after { width: 180px; height: 180px; top: -30px; right: 15%; }
+
+    .cover-header-ministry {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        padding: 25px 40px; position: relative; z-index: 10;
+        background: rgba(255,255,255,0.85); border-bottom: 2px solid var(--purple);
+    }
+    .ministry-logo { text-align: center; color: #009688; }
+    .ministry-logo .dots { font-size: 28px; letter-spacing: 4px; font-weight: bold; line-height: 1; }
+    .ministry-logo h3 { color: #009688; margin: 0; font-size: 20px; font-weight: 900; }
+    .ministry-logo p { font-size: 9px; color: #666; letter-spacing: 1px; margin: 0; font-weight: 700; }
+    .ministry-info { text-align: center; font-weight: 900; line-height: 1.7; font-size: 16px; color: #2c3e50; }
+    .ministry-info .country { font-size: 18px; color: #1a1a1a; }
+
+    .cover-title-block {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 20px; position: relative; z-index: 5;
+    }
+    .cover-main-title {
+        font-family: var(--font-display); font-size: 58px; font-weight: 700;
+        color: var(--purple); text-align: center; line-height: 1.3;
+        text-shadow: 2px 2px 4px rgba(139,124,181,0.2);
+        margin-bottom: 10px;
+    }
+    .cover-sub-title {
+        font-family: var(--font-academic); font-size: 30px; color: var(--dark);
+        text-align: center; margin-bottom: 30px; font-weight: 700;
+    }
+    .cover-year-badge {
+        background: linear-gradient(135deg, var(--purple), var(--lavender));
+        color: white; padding: 12px 40px; border-radius: 30px;
+        font-size: 22px; font-weight: 900; box-shadow: 0 4px 12px rgba(139,124,181,0.3);
+        margin-bottom: 40px;
+    }
+    .cover-teacher-label { font-size: 18px; color: var(--dark); margin-bottom: 5px; margin-top: 15px; font-weight: 900; }
+    .cover-teacher-name {
+        font-family: var(--font-academic); font-size: 24px; color: var(--text);
+        border-bottom: 2px dashed var(--accent); padding: 3px 20px; font-weight: 700;
+        display: inline-block;
+    }
+    .cover-floral-bottom {
+        position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+        overflow: hidden; z-index: 1;
+    }
+    .cover-floral-bottom::before {
+        content: ''; position: absolute; width: 100%; height: 100%;
+        background:
+            radial-gradient(ellipse at 15% 100%, #b8a9d9 0%, transparent 50%),
+            radial-gradient(ellipse at 35% 100%, #8b7cb5 0%, transparent 45%),
+            radial-gradient(ellipse at 55% 100%, #b8a9d9 0%, transparent 50%),
+            radial-gradient(ellipse at 75% 100%, #8b7cb5 0%, transparent 45%),
+            radial-gradient(ellipse at 95% 100%, #b8a9d9 0%, transparent 50%);
+        opacity: 0.5;
+    }
+    .butterfly-deco {
+        position: absolute; font-size: 40px; z-index: 2;
+        animation: float 4s ease-in-out infinite;
+    }
+    .butterfly-1 { top: 180px; left: 20%; }
+    .butterfly-2 { top: 220px; right: 25%; animation-delay: 1s; }
+    @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(-10deg); }
+        50% { transform: translateY(-15px) rotate(10deg); }
+    }
+
+    /* ===== صفحة المحتوى العام ===== */
+    .content-header {
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 3px solid var(--purple); padding-bottom: 12px; margin-bottom: 25px;
+    }
+    .content-header h2 {
+        color: var(--purple); font-family: var(--font-academic); font-size: 30px;
+        font-weight: 900;
+    }
+    .content-header .page-badge {
+        background: var(--purple); color: white; padding: 4px 15px;
+        border-radius: 20px; font-size: 14px; font-weight: 900;
+    }
+
+    /* ===== البسملة والمقدمة ===== */
+    .bismillah-page {
+        height: 100%; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 60px; text-align: center;
+        background: radial-gradient(circle at center, #faf8f4 0%, #ffffff 70%);
+    }
+    .bismillah-text {
+        font-family: var(--font-display); font-size: 42px; color: var(--purple);
+        margin-bottom: 40px; font-weight: 700;
+    }
+    .intro-text {
+        font-family: var(--font-academic); font-size: 24px; line-height: 2;
+        color: var(--text); max-width: 85%; font-weight: 700;
+    }
+
+    /* ===== صفحة الأهداف ===== */
+    .goals-page {
+        height: 100%; padding: 50px 60px; display: flex; flex-direction: column;
+        background: linear-gradient(180deg, #faf8f4 0%, #ffffff 100%);
+    }
+    .goals-title {
+        font-family: var(--font-display); font-size: 44px; color: var(--purple);
+        text-align: center; margin-bottom: 40px; font-weight: 700;
+    }
+    .goals-list { list-style: none; padding: 0; }
+    .goals-list li {
+        display: flex; align-items: flex-start; gap: 20px;
+        background: white; padding: 18px 25px; margin-bottom: 15px;
+        border-radius: 12px; border-right: 5px solid var(--purple);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+        font-size: 20px; font-weight: 700;
+    }
+    .goals-list li .goal-num {
+        background: var(--purple); color: white; width: 38px; height: 38px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 900; flex-shrink: 0;
+    }
+    .goals-list li .goal-text { flex: 1; padding-top: 5px; }
+
+    /* ===== الرؤية والرسالة ===== */
+    .vision-page {
+        height: 100%; padding: 50px; display: flex; flex-direction: column;
+        justify-content: center; gap: 25px;
+    }
+    .vision-card {
+        border-radius: 20px; padding: 30px 40px; position: relative;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .vision-card.vision { background: linear-gradient(135deg, #e8e0f0, #f0ecf7); border-right: 8px solid var(--purple); }
+    .vision-card.mission { background: linear-gradient(135deg, #e0f0ec, #f0f7f5); border-right: 8px solid #4a9b8a; }
+    .vision-card.values { background: linear-gradient(135deg, #f7f0e0, #faf6ec); border-right: 8px solid var(--accent); }
+    .vision-card h3 {
+        font-family: var(--font-academic); font-size: 28px; margin-bottom: 15px; font-weight: 900;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .vision-card.vision h3 { color: var(--purple); }
+    .vision-card.mission h3 { color: #4a9b8a; }
+    .vision-card.values h3 { color: var(--accent); }
+    .vision-card p { font-size: 20px; line-height: 1.8; font-weight: 700; color: var(--text); }
+
+    /* ===== السيرة الذاتية (التصميم الجديد المميز) ===== */
+    .cv-page { height: 100%; padding: 40px 50px; display: flex; flex-direction: column; overflow-y: auto; }
+    .cv-card {
+        border: 2px solid var(--purple);
+        border-radius: 15px;
+        background: white;
+        box-shadow: 0 5px 15px rgba(139,124,181,0.15);
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    .cv-header {
+        background: linear-gradient(135deg, var(--purple), var(--lavender));
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    .cv-header h2 { margin: 0; font-size: 28px; font-family: var(--font-academic); font-weight: 900; }
+    .cv-header p { margin: 5px 0 0 0; font-size: 16px; color: #f0ecf7; }
+    
+    .cv-section {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+    }
+    .cv-section:last-child { border-bottom: none; }
+    .cv-section-title {
+        color: var(--purple);
+        font-size: 18px;
+        font-weight: 900;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 2px dashed var(--lavender);
+        padding-bottom: 5px;
+        display: inline-block;
+    }
+    
+    .cv-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .cv-info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+    .cv-info-item strong { color: var(--dark); min-width: 90px; }
+    .cv-info-item .value { color: var(--text); flex: 1; outline: none; }
+    
+    .cv-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .cv-list li {
+        font-size: 15px;
+        margin-bottom: 8px;
+        padding-right: 15px;
+        position: relative;
+        line-height: 1.5;
+    }
+    .cv-list li::before {
+        content: '🔹';
+        position: absolute;
+        right: 0;
+        top: 0;
+        font-size: 12px;
+    }
+    .cv-list.dots li::before { content: '📌'; }
+    
+    .cv-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .cv-skill-tag {
+        background: #f0ecf7;
+        color: var(--purple);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        border: 1px solid var(--lavender);
+    }
+    
+    .cv-contact {
+        background: #faf8f4;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+        color: var(--dark);
+        border-top: 1px solid #ddd;
+    }
+
+    /* ===== الميثاق ===== */
+    .charter-page { height: 100%; padding: 35px 45px; display: flex; flex-direction: column; overflow-y: auto; }
+    .charter-article { margin-bottom: 20px; }
+    .charter-article h3 {
+        background: linear-gradient(135deg, var(--purple), var(--lavender));
+        color: white; padding: 10px 20px; border-radius: 8px;
+        font-family: var(--font-academic); font-size: 20px; margin-bottom: 12px;
+        font-weight: 900;
+    }
+    .charter-article p, .charter-article li {
+        font-size: 17px; line-height: 1.75; margin-bottom: 8px; text-align: justify; font-weight: 700;
+    }
+    .charter-article ul { padding-right: 25px; }
+
+    /* ===== جدول عناصر التقييم ===== */
+    .eval-table-page { height: 100%; padding: 40px 50px; display: flex; flex-direction: column; }
+    .eval-table-page table { width: 100%; border-collapse: collapse; }
+    .eval-table-page th {
+        background: var(--purple); color: white; padding: 15px;
+        font-family: var(--font-academic); font-size: 20px; font-weight: 900;
+    }
+    .eval-table-page td {
+        border: 1px solid var(--border); padding: 12px 15px;
+        text-align: center; font-size: 17px; font-weight: 700;
+    }
+    .eval-table-page td:first-child { width: 60px; background: #f0ecf7; font-weight: 900; }
+    .eval-table-page td:last-child { width: 130px; background: #faf8f4; font-weight: 900; color: var(--purple); }
+    .eval-table-page tbody tr:nth-child(even) { background: #faf8f4; }
+
+    /* ===== الفهرس ===== */
+    .toc-page {
+        padding: 40px 50px; height: 100%; display: flex; flex-direction: column;
+        background: white;
+    }
+    .toc-frame {
+        border: 3px solid var(--purple); border-radius: 20px; padding: 30px 40px;
+        height: 100%; display: flex; flex-direction: column;
+        box-shadow: inset 0 0 0 8px white, inset 0 0 0 10px var(--lavender);
+    }
+    .toc-title {
+        text-align: center; color: var(--purple); font-family: var(--font-display);
+        font-size: 40px; font-weight: 700; margin-bottom: 25px;
+        border-bottom: 2px solid var(--lavender); padding-bottom: 15px;
+    }
+    .toc-list { list-style: none; padding: 0; flex: 1; overflow-y: auto; }
+    .toc-list li {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 15px; margin-bottom: 4px; border-bottom: 1px dashed #ddd;
+        font-size: 15px; font-weight: 700; color: var(--text);
+    }
+    .toc-list li .num {
+        background: var(--purple); color: white; width: 28px; height: 28px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 900; margin-left: 12px; flex-shrink: 0;
+    }
+    .toc-list li .text { flex: 1; text-align: right; }
+    .toc-list li .page-num { color: var(--purple); font-weight: 900; font-size: 13px; }
+
+    /* ===== جداول الشواهد ===== */
+    .witness-page { height: 100%; padding: 30px 40px; display: flex; flex-direction: column; }
+    .witness-title {
+        background: linear-gradient(135deg, var(--purple), var(--lavender));
+        color: white; padding: 12px 20px; border-radius: 8px;
+        font-family: var(--font-academic); font-size: 22px; font-weight: 900;
+        margin-bottom: 8px; text-align: center;
+    }
+    .witness-weight {
+        text-align: center; color: var(--purple); font-weight: 900;
+        font-size: 16px; margin-bottom: 15px;
+    }
+    .witness-table { width: 100%; border-collapse: collapse; }
+    .witness-table th {
+        background: var(--purple); color: white; padding: 10px;
+        font-size: 16px; font-weight: 900; font-family: var(--font-academic);
+    }
+    .witness-table td {
+        border: 1px solid var(--border); padding: 10px; text-align: center;
+        font-size: 15px; font-weight: 700; vertical-align: middle;
+    }
+    .witness-table td.col-witness { text-align: right; }
+    .witness-table tr { transition: height 0.3s ease; }
+    .witness-table .cell-content {
+        outline: none; min-height: 24px; font-size: 15px; color: var(--text);
+        padding: 4px; border-radius: 3px;
+    }
+    .witness-table .cell-content:focus { background: #fff3cd; box-shadow: 0 0 0 1px var(--accent); }
+
+    /* ===== عمود الشواهد ===== */
+    .witness-evidence-cell {
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        padding: 5px; width: 100%;
+    }
+    .witness-actions {
+        display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;
+    }
+    .witness-actions button {
+        background: var(--purple); color: white; border: none;
+        width: 32px; height: 32px; border-radius: 5px;
+        cursor: pointer; font-size: 16px; transition: 0.15s;
+    }
+    .witness-actions button:hover { background: var(--dark); transform: scale(1.1); }
+
+    .witness-info {
+        display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+        margin-top: 3px;
+    }
+    .witness-thumbnails {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        width: 100%;
+        justify-items: center;
+    }
+    .witness-thumb {
+        position: relative; width: 100%; aspect-ratio: 1;
+        border-radius: 5px; overflow: hidden;
+        border: 1.5px solid var(--purple); cursor: pointer;
+        max-width: 70px;
+    }
+    .witness-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .witness-thumb .remove-thumb {
+        position: absolute; top: 1px; right: 1px;
+        background: #c0392b; color: white; border: none;
+        width: 16px; height: 16px; border-radius: 50%;
+        font-size: 10px; cursor: pointer; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .link-count {
+        background: #3498db; color: white; padding: 2px 8px;
+        border-radius: 10px; font-size: 11px; font-weight: 900;
+    }
+    .witness-qr {
+        display: none; margin-top: 5px;
+    }
+    .witness-qr canvas, .witness-qr img {
+        width: 60px !important; height: 60px !important;
+        border: 1px solid #ddd; border-radius: 4px;
+    }
+    .witness-qr .qr-url {
+        font-size: 7px; color: #666; word-break: break-all;
+        max-width: 90px; margin-top: 2px; text-align: center; line-height: 1.2;
+    }
+
+    /* ===== نافذة الشواهد المنبثقة ===== */
+    .witness-modal {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6); z-index: 99999;
+        align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .witness-modal.show { display: flex; }
+    .witness-modal-content {
+        background: white; border-radius: 15px; padding: 25px;
+        width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .witness-modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--purple);
+    }
+    .witness-modal-header h3 {
+        color: var(--purple); font-family: var(--font-academic); font-size: 22px; font-weight: 900;
+    }
+    .witness-modal-close {
+        background: #c0392b; color: white; border: none;
+        width: 32px; height: 32px; border-radius: 50%;
+        font-size: 18px; cursor: pointer; font-weight: 900;
+    }
+    .witness-modal-section {
+        margin-bottom: 20px; padding: 15px;
+        border: 1px solid #ddd; border-radius: 10px;
+        background: #faf8f4;
+    }
+    .witness-modal-section h4 {
+        color: var(--dark); margin-bottom: 10px; font-size: 16px;
+    }
+    .witness-modal-section input[type=file] {
+        width: 100%; padding: 8px; border: 1px solid #ccc;
+        border-radius: 6px; background: white; font-family: inherit;
+    }
+    .witness-modal-section input[type=url], .witness-modal-section input[type=text] {
+        width: 100%; padding: 8px 12px; border: 1px solid #ccc;
+        border-radius: 6px; font-family: inherit; margin-bottom: 8px;
+    }
+    .witness-modal-section .add-link-btn {
+        background: #3498db; color: white; border: none;
+        padding: 8px 16px; border-radius: 6px; cursor: pointer;
+        font-family: inherit; font-weight: 700; font-size: 13px;
+    }
+    .witness-modal-section .add-link-btn:hover { background: #2980b9; }
+    .link-list { margin-top: 10px; }
+    .link-item {
+        display: flex; align-items: center; gap: 10px;
+        background: white; padding: 8px 12px; border-radius: 6px;
+        margin-bottom: 6px; border: 1px solid #ddd;
+    }
+    .link-item a {
+        flex: 1; color: #3498db; text-decoration: none;
+        font-size: 13px; word-break: break-all;
+    }
+    .link-item .del-link {
+        background: #c0392b; color: white; border: none;
+        width: 24px; height: 24px; border-radius: 50%;
+        cursor: pointer; font-size: 12px; font-weight: 900;
+    }
+    .image-preview-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px; margin-top: 10px;
+    }
+    .image-preview-item {
+        position: relative; aspect-ratio: 1; border-radius: 8px;
+        overflow: hidden; border: 2px solid var(--purple);
+    }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .image-preview-item .remove-img {
+        position: absolute; top: 3px; right: 3px;
+        background: #c0392b; color: white; border: none;
+        width: 20px; height: 20px; border-radius: 50%;
+        cursor: pointer; font-size: 12px; font-weight: 900;
+    }
+
+    /* ===== الخاتمة ===== */
+    .conclusion-page {
+        height: 100%; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 60px; text-align: center;
+        background: radial-gradient(circle at center, #faf8f4 0%, #ffffff 70%);
+    }
+    .conclusion-title {
+        font-family: var(--font-display); font-size: 48px; color: var(--purple);
+        margin-bottom: 40px; font-weight: 700;
+    }
+    .conclusion-text {
+        font-family: var(--font-academic); font-size: 24px; line-height: 2;
+        max-width: 85%; font-weight: 700;
+    }
+    .conclusion-signature {
+        margin-top: 60px; font-family: var(--font-academic);
+        font-size: 22px; color: var(--dark);
+    }
+
+    /* ===== صفحة جديدة ===== */
+    .new-page-content { padding: 40px; height: 100%; display: flex; flex-direction: column; }
+    .new-page-content h2 {
+        color: var(--purple); font-family: var(--font-academic);
+        margin-bottom: 20px; font-size: 28px;
+    }
+    .new-page-content .editable-block {
+        min-height: 30px; font-size: 18px; line-height: 1.8;
+        border: 1px dashed #ccc; padding: 15px; border-radius: 8px;
+    }
+
+    /* ===== شريط إضافة صفحة ===== */
+    .add-page-bar { text-align: center; margin: 20px auto; }
+    .add-page-bar button {
+        background: linear-gradient(135deg, #27ae60, #2ecc71); color: white;
+        border: none; padding: 12px 30px; border-radius: 10px;
+        cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 700;
+        box-shadow: 0 4px 10px rgba(39,174,96,0.3);
+    }
+    .add-page-bar button:hover { transform: translateY(-2px); }
+
+    /* ===== أزرار التحكم في الجداول ===== */
+    .table-controls { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; justify-content: flex-start; }
+    .table-controls button {
+        background: var(--purple); color: white; border: none;
+        padding: 5px 12px; border-radius: 5px; cursor: pointer;
+        font-family: inherit; font-size: 12px; font-weight: 700;
+    }
+    .table-controls button:hover { background: var(--dark); }
+</style>
+</head>
+<body>
+
+<!-- ===== شريط الأدوات ===== -->
+<div class="toolbar">
+    <span class="brand">📋 سجل شواهد الأداء الوظيفي</span>
+    <button onclick="saveData()" class="success">💾 حفظ</button>
+    <button onclick="exportPDF()" class="gold">📄 تصدير PDF</button>
+    <button onclick="loadData()">🔄 استرجاع</button>
+    <button onclick="addNewPage()">➕ صفحة جديدة</button>
+    <button onclick="window.print()">🖨️ طباعة</button>
+    <button onclick="resetAll()" class="danger">🗑️ إعادة تعيين</button>
+    <span class="status" id="statusMsg">جاهز للتعديل</span>
+</div>
+
+<!-- ===== شريط التنسيق العائم ===== -->
+<div class="fmt-bar" id="fmtBar">
+    <button onclick="execCmd('bold')" title="عريض"><b>B</b></button>
+    <button onclick="execCmd('italic')" title="مائل"><i>I</i></button>
+    <button onclick="execCmd('underline')" title="تحته خط"><u>U</u></button>
+    <button onclick="changeSize(2)" title="تكبير">A+</button>
+    <button onclick="changeSize(-2)" title="تصغير">A−</button>
+    <input type="color" onchange="execCmd('foreColor', this.value)" title="لون النص" value="#1a1a1a">
+    <input type="color" onchange="execCmd('hiliteColor', this.value)" title="لون الخلفية" value="#ffff00">
+    <button onclick="execCmd('removeFormat')" title="إزالة التنسيق">✕</button>
+</div>
+
+<!-- ===== نافذة الشواهد المنبثقة ===== -->
+<div class="witness-modal" id="witnessModal">
+    <div class="witness-modal-content">
+        <div class="witness-modal-header">
+            <h3 id="witnessModalTitle">إضافة شاهد</h3>
+            <button class="witness-modal-close" onclick="closeWitnessModal()">✕</button>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>📷 إضافة صور كشواهد</h4>
+            <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+            <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>🔗 إضافة رابط كشاهد (سيتم تحويله إلى باركود QR)</h4>
+            <input type="url" id="linkInput" placeholder="https://example.com/witness" dir="ltr">
+            <input type="text" id="linkTitleInput" placeholder="عنوان الرابط (اختياري)">
+            <button class="add-link-btn" onclick="addLink()">➕ إضافة الرابط</button>
+            <div class="link-list" id="linkList"></div>
+        </div>
+
+        <div style="text-align:center;margin-top:20px;">
+            <button onclick="saveWitness()" style="background:#27ae60;color:white;border:none;padding:10px 30px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;">💾 حفظ الشواهد</button>
+            <button onclick="closeWitnessModal()" style="background:#95a5a6;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;margin-right:8px;">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<div class="pages-wrap" id="pagesWrap">
+
+<!-- ================= صفحة 1: الغلاف ================= -->
+<div class="page">
+    <div class="cover-page">
+        <div class="cover-floral-top"></div>
+        <div class="cover-header-ministry">
+            <div class="ministry-logo">
+                <div class="dots">••• •••<br>••• •••</div>
+                <h3>وزارة التعليم</h3>
+                <p>Ministry of Education</p>
+            </div>
+            <div class="ministry-info">
+                <div class="country">المملكة العربية السعودية</div>
+                <div>وزارة التعليم</div>
+                <div>إدارة التعليم بمنطقة <span class="editable-area" contenteditable="true">نجران</span></div>
+                <div>مكتب تعليم <span class="editable-area" contenteditable="true">نجران</span></div>
+                <div>مدرسة <span class="editable-area" contenteditable="true">أمنة بنت عفان</span></div>
+            </div>
+        </div>
+        <div class="cover-title-block">
+            <div class="cover-main-title">سجل توثيق شواهد</div>
+            <div class="cover-main-title" style="font-size:52px;">الأداء الوظيفي</div>
+            <div class="cover-sub-title">للمعلمة</div>
+            <div class="cover-year-badge">للعام الدراسي ١٤٤٨ هـ</div>
+            <div class="cover-teacher-label">إعداد المعلمة:</div>
+            <div class="cover-teacher-name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div>
+            <div class="cover-teacher-label" style="margin-top:20px;">مدير المدرسة:</div>
+            <div class="cover-teacher-name editable-area" contenteditable="true">أ. البتول ال دويس</div>
+        </div>
+        <div class="cover-floral-bottom"></div>
+        <div class="butterfly-deco butterfly-1">🦋</div>
+        <div class="butterfly-deco butterfly-2">🦋</div>
+    </div>
+</div>
+
+<!-- ================= صفحة 2: البسملة والمقدمة ================= -->
+<div class="page">
+    <div class="bismillah-page">
+        <div class="bismillah-text">بسم الله الرحمن الرحيم</div>
+        <div class="intro-text editable-area editable-block" contenteditable="true" style="text-align:center;">
+            بسم الله أبتدئ وبكتابه أهتدي وبسنة رسوله أقتدي، الحمد لله ذي الفضل والمن والعطاء الذي خلق وبرأ وأعطى فأبدع وأبهر وأكرم وأجزل.<br><br>
+            أما بعد..<br><br>
+            تحية طيبة لمن يقرأ ملفي الذي خصصته ليكون مرجعاً لأعمالي، حيث دونت وجمعت ونسقت جميع إنجازاتي بداخله.
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة 3: أهداف الملف ================= -->
+<div class="page">
+    <div class="goals-page">
+        <div class="goals-title">أهداف الملف</div>
+        <ul class="goals-list">
+            <li><span class="goal-num">١</span><span class="goal-text editable-area editable-block" contenteditable="true">إبراز شخصيتي المهنية والأكاديمية للآخرين.</span></li>
+            <li><span class="goal-num">٢</span><span class="goal-text editable-area editable-block" contenteditable="true">تنظيم أعمالي وتوثيقها.</span></li>
+            <li><span class="goal-num">٣</span><span class="goal-text editable-area editable-block" contenteditable="true">تقييم أعمالي ذاتياً لتحسينها ومعالجة القصور.</span></li>
+            <li><span class="goal-num">٤</span><span class="goal-text editable-area editable-block" contenteditable="true">توظيف الأساليب والاستراتيجيات الحديثة.</span></li>
+            <li><span class="goal-num">٥</span><span class="goal-text editable-area editable-block" contenteditable="true">أن يكون مرجعاً للتطور الذاتي.</span></li>
+        </ul>
+    </div>
+</div>
+
+<!-- ================= صفحة 4: الرؤية والرسالة ================= -->
+<div class="page">
+    <div class="vision-page">
+        <div class="vision-card vision">
+            <h3>👁️ الرؤية</h3>
+            <p class="editable-area editable-block" contenteditable="true">جيل مبدع معتز بدينه ومحب لوطنه، محقق لرؤية ٢٠٣٠م.</p>
+        </div>
+        <div class="vision-card mission">
+            <h3>💬 الرسالة</h3>
+            <p class="editable-area editable-block" contenteditable="true">بناء مواطن صالح ينفع نفسه ووطنه، ومحقق لرؤية ٢٠٣٠م.</p>
+        </div>
+        <div class="vision-card values">
+            <h3>⭐ القيم</h3>
+            <p class="editable-area editable-block" contenteditable="true">الانتماء – العمل بروح الفريق الواحد – تحمل المسؤولية – الدافعية الذاتية – التميز – الشفافية والعدالة.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة 5: السيرة الذاتية (التصميم الجديد) ================= -->
+<div class="page">
+    <div class="cv-page">
+        <div class="content-header">
+            <h2>السيرة الذاتية</h2>
+            <div class="page-badge">صفحة ٥</div>
+        </div>
+        
+        <div class="cv-card">
+            <div class="cv-header">
+                <h2 class="editable-area" contenteditable="true">أسماء ياسين الخيري</h2>
+                <p class="editable-area" contenteditable="true">معلمة لغة عربية ومنسقة تطوع</p>
+            </div>
+            
+            <div class="cv-section">
+                <div class="cv-section-title">👤 البيانات الشخصية</div>
+                <div class="cv-info-grid">
+                    <div class="cv-info-item"><strong>الاسم:</strong> <span class="value editable-area" contenteditable="true">أسماء ياسين الخيري</span></div>
+                    <div class="cv-info-item"><strong>العنوان:</strong> <span class="value editable-area" contenteditable="true">الطائف</span></div>
+                    <div class="cv-info-item"><strong>البريد الإلكتروني:</strong> <span class="value editable-area" contenteditable="true">ertwaa66654@gmail.com</span></div>
+                    <div class="cv-info-item"><strong>رقم الجوال:</strong> <span class="value editable-area" contenteditable="true">0506712213</span></div>
+                </div>
+            </div>
+
+            <div class="cv-section">
+                <div class="cv-section-title">🎓 المؤهل الدراسي</div>
+                <ul class="cv-list">
+                    <li class="editable-area editable-block" contenteditable="true">حاصلة على شهادة جامعة أم القرى لدرجة البكالوريوس.</li>
+                    <li class="editable-area editable-block" contenteditable="true">التخصص: لغة عربية.</li>
+                    <li class="editable-area editable-block" contenteditable="true">درجة الرخصة المهنية: 85.</li>
+                    <li class="editable-area editable-block" contenteditable="true">اللغة الإنجليزية: جيدة.</li>
+                </ul>
+            </div>
+
+            <div class="cv-section">
+                <div class="cv-section-title">💼 الخبرات المهنية</div>
+                <ul class="cv-list dots">
+                    <li class="editable-area editable-block" contenteditable="true">خبرة سنة في مدارس الكون العالمية.</li>
+                    <li class="editable-area editable-block" contenteditable="true">خبرة سنة في مدارس البحر الأحمر العالمية.</li>
+                </ul>
+            </div>
+
+            <div class="cv-section">
+                <div class="cv-section-title">📜 الدورات العلمية</div>
+                <ul class="cv-list">
+                    <li class="editable-area editable-block" contenteditable="true">كيف تكوني قائدة صفك.</li>
+                    <li class="editable-area editable-block" contenteditable="true">التعليم المصغر.</li>
+                    <li class="editable-area editable-block" contenteditable="true">درس تطبيقي فالتواصل الكتابي.</li>
+                </ul>
+            </div>
+
+            <div class="cv-section">
+                <div class="cv-section-title">🛠️ المهارات الشخصية</div>
+                <div class="cv-skills">
+                    <span class="cv-skill-tag editable-area" contenteditable="true">إجادة استخدام الحاسب الآلي</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">المايكروسوفت أوفيس</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">الأعمال المكتبية</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">إعداد التقارير</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">التخطيط والتنظيم</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">التكيف التام للعمل ضمن فريق</span>
+                    <span class="cv-skill-tag editable-area" contenteditable="true">اللباقة وحسن التصرف</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة 6: الميثاق ================= -->
+<div class="page">
+    <div class="charter-page">
+        <div class="content-header">
+            <h2>ميثاق أخلاقيات مهنة التعليم</h2>
+            <div class="page-badge">صفحة ٦</div>
+        </div>
+        <div class="charter-article">
+            <h3>المادة الأولى: التعريفات</h3>
+            <p>يقصد بالمصطلحات الآتية المعاني الموضحة قرين كل منها:</p>
+            <ul>
+                <li><strong>أخلاقيات مهنة التعليم:</strong> السجايا الحميدة والسلوكيات الفاضلة التي يتعين أن يتحلى بها العاملون في حقل التعليم العام فكراً وسلوكاً أمام الله ثم أمام ولاة الأمر وأمام أنفسهم والآخرين، وترتب عليها واجبات أخلاقية.</li>
+                <li><strong>المعلم:</strong> المعلم والمعلمة والقائمون والقائمات على العملية التربوية من مشرفين ومشرفات ومديرين ومديرات ومرشدين ومرشدات ونحوهم.</li>
+                <li><strong>الطالب:</strong> الطالب والطالبة في مدارس التعليم العام وما في مستواها.</li>
+            </ul>
+        </div>
+        <div class="charter-article">
+            <h3>المادة الثانية: أهداف الميثاق</h3>
+            <p>يهدف الميثاق إلى تعزيز انتماء المعلم لرسالته ومهنته والارتقاء بها والإسهام في تطوير المجتمع الذي يعيش فيه، وذلك من خلال:</p>
+            <ul>
+                <li>تنمية وعي المعلم بأهمية المهنة ودورها في بناء مستقبل وطنه.</li>
+                <li>الإسهام في تعزيز مكانة المعلم العلمية والاجتماعية.</li>
+                <li>حرص المعلم على أن يتمثل قيم مهنته وأخلاقها سلوكاً في حياته.</li>
+            </ul>
+        </div>
+        <div class="charter-article">
+            <h3>المادة الثالثة: رسالة التعليم</h3>
+            <p>التعليم رسالة تستمد أخلاقياتها من هدي شريعتنا ومبادئ حضارتنا، وتوجب على القائمين بها أداء حق الانتماء إليها إخلاصاً في العمل وصدقاً مع النفس والناس وعطاءً مستمراً لنشر العلم وفضائله.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة 7: عناصر التقييم ================= -->
+<div class="page">
+    <div class="eval-table-page">
+        <div class="content-header">
+            <h2>عناصر تقييم الأداء الوظيفي للمعلمة</h2>
+            <div class="page-badge">صفحة ٧</div>
+        </div>
+        <table style="margin-top:15px;">
+            <thead>
+                <tr><th>م</th><th>عناصر التقييم</th><th>الوزن النسبي</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>١</td><td>أداء الواجبات الوظيفية</td><td>١٠٪</td></tr>
+                <tr><td>٢</td><td>التفاعل مع المجتمع المهني</td><td>١٠٪</td></tr>
+                <tr><td>٣</td><td>التفاعل مع أولياء الأمور</td><td>١٠٪</td></tr>
+                <tr><td>٤</td><td>التنويع في استراتيجيات التدريس</td><td>١٠٪</td></tr>
+                <tr><td>٥</td><td>تحسين نتائج المتعلمين</td><td>١٠٪</td></tr>
+                <tr><td>٦</td><td>إعداد وتنفيذ خطة التعلم</td><td>١٠٪</td></tr>
+                <tr><td>٧</td><td>توظيف تقنيات ووسائل التعلم المناسبة</td><td>١٠٪</td></tr>
+                <tr><td>٨</td><td>تهيئة البيئة التعليمية</td><td>٥٪</td></tr>
+                <tr><td>٩</td><td>الإدارة الصفية</td><td>٥٪</td></tr>
+                <tr><td>١٠</td><td>تحليل نتائج المتعلمين وتشخيص مستوياتهم</td><td>١٠٪</td></tr>
+                <tr><td>١١</td><td>تنوع أساليب التقويم</td><td>١٠٪</td></tr>
+                <tr style="background:#e8e0f0;"><td>١٢</td><td>الأنشطة والفعاليات المدرسية</td><td>٥٪ (إضافي)</td></tr>
+                <tr style="background:#e8e0f0;"><td>١٣</td><td>استراتيجيات التعليم المستخدمة</td><td>مدمج مع ٤</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 8: الفهرس ================= -->
+<div class="page">
+    <div class="toc-page">
+        <div class="toc-frame">
+            <div class="toc-title">فهرس المحتويات</div>
+            <ul class="toc-list">
+                <li><span class="num">١</span><span class="text">الهدف من الملف</span><span class="page-num">ص ٣</span></li>
+                <li><span class="num">٢</span><span class="text">الرؤية والرسالة والقيم</span><span class="page-num">ص ٤</span></li>
+                <li><span class="num">٣</span><span class="text">السيرة الذاتية</span><span class="page-num">ص ٥</span></li>
+                <li><span class="num">٤</span><span class="text">ميثاق أخلاقيات مهنة التعليم</span><span class="page-num">ص ٦</span></li>
+                <li><span class="num">٥</span><span class="text">عناصر تقييم أداء المعلمة</span><span class="page-num">ص ٧</span></li>
+                <li><span class="num">٦</span><span class="text">أداء الواجبات الوظيفية</span><span class="page-num">ص ٩</span></li>
+                <li><span class="num">٧</span><span class="text">التفاعل مع المجتمع المهني</span><span class="page-num">ص ١٠</span></li>
+                <li><span class="num">٨</span><span class="text">التفاعل مع أولياء الأمور</span><span class="page-num">ص ١١</span></li>
+                <li><span class="num">٩</span><span class="text">التنويع في استراتيجيات التدريس</span><span class="page-num">ص ١٢</span></li>
+                <li><span class="num">١٠</span><span class="text">تحسين نتائج المتعلمين</span><span class="page-num">ص ١٣</span></li>
+                <li><span class="num">١١</span><span class="text">إعداد وتنفيذ خطة التعلم</span><span class="page-num">ص ١٤</span></li>
+                <li><span class="num">١٢</span><span class="text">توظيف تقنيات ووسائل التعلم</span><span class="page-num">ص ١٥</span></li>
+                <li><span class="num">١٣</span><span class="text">تهيئة البيئة التعليمية</span><span class="page-num">ص ١٦</span></li>
+                <li><span class="num">١٤</span><span class="text">الإدارة الصفية</span><span class="page-num">ص ١٧</span></li>
+                <li><span class="num">١٥</span><span class="text">تحليل نتائج المتعلمين</span><span class="page-num">ص ١٨</span></li>
+                <li><span class="num">١٦</span><span class="text">تنوع أساليب التقويم</span><span class="page-num">ص ١٩</span></li>
+                <li><span class="num">١٧</span><span class="text">الأنشطة والفعاليات المدرسية</span><span class="page-num">ص ٢٠</span></li>
+                <li><span class="num">١٨</span><span class="text">استراتيجيات التعليم المستخدمة</span><span class="page-num">ص ٢١</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- ================= صفحة 9: أداء الواجبات الوظيفية ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">١- أداء الواجبات الوظيفية</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">التقييد بالدوام الرسمي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تأدية الحصص الدراسية وفق الجدول الدراسي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">المشاركة في الإشراف والمناسبات وحصص الانتظار</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">إعداد ومتابعة الدروس والواجبات والاختبارات</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 10: التفاعل مع المجتمع المهني ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٢- التفاعل مع المجتمع المهني</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">حضور المؤتمرات والندوات التعليمية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">المشاركة في ورش العمل التدريبية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تقديم استشارات تربوية للمعلمين الجدد</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">إطلاق مبادرات تعليمية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">الالتحاق ببرامج تدريبية حديثة</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">الحصول على شهادات مهنية معتمدة</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تبادل الخبرات مع المعلمين</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 11: التفاعل مع أولياء الأمور ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٣- التفاعل مع أولياء الأمور</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تنظيم اجتماعات دورية مع أولياء الأمور</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">إرسال تقارير منتظمة عن أداء الطلاب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استخدام وسائل التواصل الحديثة</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">الاستماع لملاحظات أولياء الأمور</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 12: استراتيجيات التدريس ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٤- التنويع في استراتيجيات التدريس</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تقرير تنفيذ استراتيجية تعليمية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">شهادة شكر حول تفعيل الاستراتيجية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من أوراق العمل والأنشطة</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 13: تحسين نتائج المتعلمين ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٥- تحسين نتائج المتعلمين</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">خطط علاجية للطلاب الضعاف</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">خطط إثرائية للطلاب المتميزين</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تكريم الطلاب المتفوقين</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">اختبار قبلي واختبار بعدي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 14: خطة التعلم ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٦- إعداد وتنفيذ خطة التعلم</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">خطة توزيع المنهج</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">إعداد الدروس اليومية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من الواجبات والاختبارات</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 15: التقنيات ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٧- توظيف تقنيات ووسائل التعلم</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">صور من التقنية في التعليم</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من عروض الدروس</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">صور من الوسائل التعليمية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من الاختبارات الإلكترونية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 16: البيئة التعليمية ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٨- تهيئة البيئة التعليمية</div>
+        <div class="witness-weight">الوزن النسبي: ٥٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تصنيف الطلاب حسب الأنماط التعليمية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">توفير متطلبات الدرس</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">التفريق المادي والمعنوي بين الطلاب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 17: الإدارة الصفية ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">٩- الإدارة الصفية</div>
+        <div class="witness-weight">الوزن النسبي: ٥٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">القوانين الصفية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">كشف المتابعة اليومي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 18: تحليل النتائج ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">١٠- تحليل نتائج المتعلمين</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تحليل نتائج الاختبارات</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">معالجة الفاقد التعليمي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">تشخيص مستويات الطلاب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 19: تنوع أساليب التقويم ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">١١- تنوع أساليب التقويم</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من الاختبارات الورقية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">نماذج من الاختبارات الإلكترونية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">ملفات إنجاز الطالب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">المهام الأدائية والمشاريع</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 20: الأنشطة والفعاليات ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">١٢- الأنشطة والفعاليات المدرسية</div>
+        <div class="witness-weight">الوزن النسبي: ٥٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">الأسبوع التمهيدي لاستقبال الطالبات المستجدات</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">يوم المعلم (الاحتفاء بالمعلمات وتكريمهن)</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">أسبوع الفضاء العالمي</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">اليوم الوطني للمملكة العربية السعودية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">اليوم العالمي للغة العربية</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">اليوم الخليجي للمرأة</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 21: استراتيجيات التعليم ================= -->
+<div class="page">
+    <div class="witness-page">
+        <div class="witness-title">١٣- استراتيجيات التعليم المستخدمة</div>
+        <div class="witness-weight">الوزن النسبي: ١٠٪</div>
+        <div class="table-controls edit-only">
+            <button onclick="addRow(this)">➕ إضافة صف</button>
+        </div>
+        <table class="witness-table">
+            <thead>
+                <tr><th style="width:65%;">الفقرة</th><th style="width:35%;">الشاهد</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية التعلم التعاوني</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية العصف الذهني</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية التعلم النشط</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية خرائط المفاهيم</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية لعب الأدوار</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية التعلم باللعب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية حل المشكلات</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية التعلم بالاستقصاء</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية التعلم القائم على المشاريع</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+                <tr>
+                    <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true">استراتيجية الفصل المقلوب</div></td>
+                    <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= صفحة 22: الخاتمة ================= -->
+<div class="page">
+    <div class="conclusion-page">
+        <div class="conclusion-title">— الخاتمة —</div>
+        <div class="conclusion-text editable-area editable-block" contenteditable="true">
+            هكذا فإن لكل بداية نهاية، وخير العمل ما حسن آخره.<br><br>
+            وخير الكلام ما قل ودل، وبعد هذا الجهد المتواضع أتمنى أن أكون موفقاً فيما قدمت، فما هذا إلا جهد مقل ولا ندعي فيه الكمال، ولكن عذرنا أننا بذلنا فيه قصارى جهدنا، فإن أصبنا فذاك مرادنا وإن أخطأنا فلنا شرف المحاولة والتعلم.<br><br>
+            وصل اللهم وسلم على سيدنا وحبيبنا محمد وعلى آله وصحبه أجمعين.
+        </div>
+        <div class="conclusion-signature">
+            المعلمة: <span class="editable-area" contenteditable="true" style="border-bottom:2px dashed var(--accent);padding:0 15px;">أ/ أسماء ياسين الخيري</span>
+        </div>
+    </div>
+</div>
+
+</div><!-- /pages-wrap -->
+
+<!-- ===== شريط إضافة صفحة ===== -->
+<div class="add-page-bar edit-only">
+    <button onclick="addNewPage()">➕ إضافة صفحة جديدة</button>
+</div>
+
+<script>
+/* ============ الحالة العامة ============ */
+let currentWitnessCell = null;
+let currentImages = [];
+let currentLinks = [];
+
+/* ============ أدوات التنسيق ============ */
+const fmtBar = document.getElementById('fmtBar');
+let activeEditable = null;
+
+document.addEventListener('focusin', function(e) {
+    if (e.target.isContentEditable) {
+        activeEditable = e.target;
+        const rect = e.target.getBoundingClientRect();
+        fmtBar.classList.add('show');
+        let top = rect.top - 50;
+        if (top < 70) top = rect.bottom + 10;
+        fmtBar.style.top = top + 'px';
+        fmtBar.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+    }
+});
+
+document.addEventListener('focusout', function(e) {
+    setTimeout(() => {
+        if (!fmtBar.contains(document.activeElement) && !document.activeElement.isContentEditable) {
+            fmtBar.classList.remove('show');
+        }
+    }, 150);
+});
+
+function execCmd(cmd, val) {
+    document.execCommand(cmd, false, val || null);
+    if (activeEditable) activeEditable.focus();
+}
+
+function changeSize(delta) {
+    if (!activeEditable) return;
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) {
+        const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+        activeEditable.style.fontSize = (current + delta) + 'px';
+    } else {
+        document.execCommand('fontSize', false, '7');
+        const fonts = activeEditable.querySelectorAll('font[size="7"]');
+        const last = fonts[fonts.length - 1];
+        if (last) {
+            const current = parseFloat(window.getComputedStyle(activeEditable).fontSize);
+            const span = document.createElement('span');
+            span.style.fontSize = (current + delta) + 'px';
+            span.innerHTML = last.innerHTML;
+            last.replaceWith(span);
+        }
+    }
+}
+
+/* ============ إدارة الصفوف ============ */
+function addRow(btn) {
+    const table = btn.closest('.witness-page').querySelector('table');
+    const tbody = table.querySelector('tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="col-witness" style="width:65%;"><div class="cell-content" contenteditable="true"></div></td>
+        <td class="col-evidence" style="width:35%;"><div class="witness-evidence-cell"></div></td>
+    `;
+    tbody.appendChild(tr);
+    const firstInput = tr.querySelector('.col-witness .cell-content');
+    if (firstInput) firstInput.focus();
+    initWitnessCells();
+}
+
+/* ============ نظام الشواهد ============ */
+function openWitnessModal(evidenceCell) {
+    currentWitnessCell = evidenceCell;
+    currentImages = [];
+    currentLinks = [];
+    document.getElementById('imagePreviewGrid').innerHTML = '';
+    document.getElementById('linkList').innerHTML = '';
+    document.getElementById('imageInput').value = '';
+    document.getElementById('linkInput').value = '';
+    document.getElementById('linkTitleInput').value = '';
+
+    const existing = evidenceCell.dataset.witness;
+    if (existing) {
+        try {
+            const data = JSON.parse(existing);
+            currentImages = data.images || [];
+            currentLinks = data.links || [];
+            renderImagePreviews();
+            renderLinkList();
+        } catch(e) {}
+    }
+
+    document.getElementById('witnessModalTitle').textContent = 'إضافة شواهد';
+    document.getElementById('witnessModal').classList.add('show');
+}
+
+function closeWitnessModal() {
+    document.getElementById('witnessModal').classList.remove('show');
+    currentWitnessCell = null;
+    currentImages = [];
+    currentLinks = [];
+}
+
+function handleImageUpload(event) {
+    const files = Array.from(event.target.files);
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentImages.push(e.target.result);
+            renderImagePreviews();
+        };
+        reader.readAsDataURL(file);
+    });
+    event.target.value = '';
+}
+
+function renderImagePreviews() {
+    const grid = document.getElementById('imagePreviewGrid');
+    grid.innerHTML = '';
+    currentImages.forEach((img, idx) => {
+        const item = document.createElement('div');
+        item.className = 'image-preview-item';
+        item.innerHTML = `
+            <img src="${img}" alt="شاهد">
+            <button class="remove-img" onclick="removeImage(${idx})">✕</button>
+        `;
+        grid.appendChild(item);
+    });
+}
+
+function removeImage(idx) {
+    currentImages.splice(idx, 1);
+    renderImagePreviews();
+}
+
+function addLink() {
+    const url = document.getElementById('linkInput').value.trim();
+    const title = document.getElementById('linkTitleInput').value.trim();
+    if (!url) { alert('أدخل رابطاً صحيحاً'); return; }
+    if (!/^https?:\/\//.test(url)) { alert('الرابط يجب أن يبدأ بـ http:// أو https://'); return; }
+    currentLinks.push({ url, title: title || url });
+    document.getElementById('linkInput').value = '';
+    document.getElementById('linkTitleInput').value = '';
+    renderLinkList();
+}
+
+function renderLinkList() {
+    const list = document.getElementById('linkList');
+    list.innerHTML = '';
+    currentLinks.forEach((link, idx) => {
+        const item = document.createElement('div');
+        item.className = 'link-item';
+        item.innerHTML = `
+            <a href="${link.url}" target="_blank">${link.title}</a>
+            <button class="del-link" onclick="removeLink(${idx})">✕</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function removeLink(idx) {
+    currentLinks.splice(idx, 1);
+    renderLinkList();
+}
+
+function saveWitness() {
+    if (!currentWitnessCell) return;
+    const data = { images: currentImages, links: currentLinks };
+    currentWitnessCell.dataset.witness = JSON.stringify(data);
+    renderWitnessCell(currentWitnessCell);
+    closeWitnessModal();
+    setStatus('✅ تم حفظ الشواهد');
+}
+
+function renderWitnessCell(cell) {
+    const data = JSON.parse(cell.dataset.witness || '{"images":[],"links":[]}');
+    const hasImages = data.images && data.images.length > 0;
+    const hasLinks = data.links && data.links.length > 0;
+
+    let html = '<div class="witness-evidence-cell">';
+
+    html += `<div class="witness-actions edit-only">
+        <button onclick="openWitnessModal(this.closest('td'))" title="إضافة/تعديل الشواهد">📎</button>
+    </div>`;
+
+    if (hasImages) {
+        html += '<div class="witness-thumbnails">';
+        data.images.slice(0, 3).forEach((img, idx) => {
+            html += `<div class="witness-thumb" onclick="viewImage('${img}')">
+                <img src="${img}" alt="شاهد">
+                <button class="remove-thumb edit-only" onclick="event.stopPropagation();removeImageFromCell(this, ${idx})">✕</button>
+            </div>`;
+        });
+        if (data.images.length > 3) {
+            html += `<div class="witness-thumb" style="background:#eee;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;">+${data.images.length - 3}</div>`;
+        }
+        html += '</div>';
+    }
+
+    if (hasLinks) {
+        html += `<div class="witness-info"><span class="link-count">🔗 ${data.links.length} رابط</span></div>`;
+    }
+
+    if (hasLinks) {
+        html += '<div class="witness-qr">';
+        data.links.forEach((link) => {
+            html += `<div class="qr-container" data-url="${link.url}" style="margin:3px auto;"></div>`;
+            html += `<div class="qr-url">${link.url.substring(0, 30)}...</div>`;
+        });
+        html += '</div>';
+    }
+
+    if (!hasImages && !hasLinks) {
+        html += '<span style="font-size:11px;color:#999;" class="edit-only">اضغط 📎 لإضافة شاهد</span>';
+    }
+
+    html += '</div>';
+    cell.innerHTML = html;
+
+    if (hasLinks) {
+        cell.querySelectorAll('.qr-container').forEach(el => {
+            const url = el.dataset.url;
+            el.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(el, {
+                    text: url,
+                    width: 60,
+                    height: 60,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            }
+        });
+    }
+}
+
+function viewImage(src) {
+    const w = window.open('');
+    w.document.write(`<html><head><title>عرض الشاهد</title></head><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${src}" style="max-width:100%;max-height:100%;"></body></html>`);
+}
+
+function removeImageFromCell(btn, idx) {
+    const cell = btn.closest('td');
+    const data = JSON.parse(cell.dataset.witness || '{"images":[],"links":[]}');
+    data.images.splice(idx, 1);
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnessCell(cell);
+}
+
+function initWitnessCells() {
+    document.querySelectorAll('.col-evidence .witness-evidence-cell').forEach(cell => {
+        const td = cell.parentElement;
+        if (td.dataset.witness) {
+            renderWitnessCell(td);
+        } else if (!cell.innerHTML.trim() || !cell.querySelector('.witness-actions')) {
+            renderWitnessCell(td);
+        }
+    });
+}
+
+/* ============ إضافة صفحة جديدة ============ */
+function addNewPage() {
+    const wrap = document.getElementById('pagesWrap');
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.innerHTML = `
+        <div class="new-page-content">
+            <h2 class="editable-area" contenteditable="true">عنوان الصفحة الجديدة</h2>
+            <div class="editable-area editable-block" contenteditable="true">اكتب المحتوى هنا...</div>
+        </div>
+    `;
+    const lastPage = wrap.lastElementChild;
+    wrap.insertBefore(page, lastPage);
+    page.scrollIntoView({behavior:'smooth', block:'start'});
+    setStatus('تمت إضافة صفحة جديدة');
+}
+
+/* ============ الحفظ والاسترجاع ============ */
+function getState() {
+    return {
+        pagesHTML: document.getElementById('pagesWrap').innerHTML,
+        timestamp: new Date().toISOString()
+    };
+}
+
+function saveData() {
+    try {
+        localStorage.setItem('perf_form_v5', JSON.stringify(getState()));
+        setStatus('✅ تم الحفظ - ' + new Date().toLocaleTimeString('ar-SA'));
+    } catch(e) {
+        setStatus('❌ فشل الحفظ: ' + e.message);
+    }
+}
+
+function loadData() {
+    const raw = localStorage.getItem('perf_form_v5');
+    if (!raw) { setStatus('لا توجد بيانات محفوظة'); return; }
+    try {
+        const state = JSON.parse(raw);
+        document.getElementById('pagesWrap').innerHTML = state.pagesHTML;
+        initWitnessCells();
+        setStatus('✅ تم استرجاع البيانات');
+    } catch(e) {
+        setStatus('❌ خطأ: ' + e.message);
+    }
+}
+
+function resetAll() {
+    if (confirm('هل أنت متأكد من حذف كل التعديلات والعودة للنموذج الأصلي؟')) {
+        localStorage.removeItem('perf_form_v5');
+        location.reload();
+    }
+}
+
+/* ============ التصدير PDF ============ */
+function exportPDF() {
+    setStatus('جارٍ تحضير الطباعة...');
+    document.querySelectorAll('.col-evidence').forEach(cell => {
+        if (cell.dataset.witness) renderWitnessCell(cell);
+    });
+    setTimeout(() => {
+        window.print();
+        setStatus('اختر "حفظ كـ PDF"');
+    }, 500);
+}
+
+function setStatus(msg) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
+}
+
+/* ============ حفظ تلقائي ============ */
+setInterval(() => {
+    try { localStorage.setItem('perf_form_v5', JSON.stringify(getState())); } catch(e) {}
+}, 30000);
+
+window.addEventListener('load', () => {
+    initWitnessCells();
+    const raw = localStorage.getItem('perf_form_v5');
+    if (raw) {
+        if (confirm('يوجد حفظ سابق. هل تريد استرجاعه؟')) loadData();
+    }
+});
+</script>
+
+</body>
+</html>

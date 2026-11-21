@@ -1925,6 +1925,7 @@ def record_sanitization_event(
     extra_actions=None,
     risk_assessment="low",
     source="send",
+    strategy_used=None,
 ):
     """تسجيل عملية تنقية واستبدال كلمات محظورة وبثها لحظياً للوحة المراقبة."""
     uid = str(user_id or 'user_1')
@@ -1936,7 +1937,7 @@ def record_sanitization_event(
         if a and not str(a).startswith("🔤")
     ]
 
-    if not repl_list and orig_txt == clean_txt and not non_kw_actions:
+    if not repl_list and orig_txt == clean_txt and not non_kw_actions and not strategy_used:
         return None
 
     now_dt = datetime.now()
@@ -1952,6 +1953,7 @@ def record_sanitization_event(
         "replacements": repl_list,
         "extra_actions": non_kw_actions[:4],
         "source": source,
+        "strategy": strategy_used or source,
     }
 
     with SANITIZATION_LOGS_LOCK:
@@ -5779,6 +5781,188 @@ class TelegramManager:
 
         return True, False, None, {"type": "ready"}
 
+    def _get_private_notification_targets(self, user_id):
+        """استرجاع وجهات الإشعار للحساب الخاص للمستخدم (Saved Messages / alert_target_user)."""
+        try:
+            s = load_settings(user_id) or {}
+            custom_target = (s.get('alert_target_user') or s.get('alert_target') or '').strip()
+            targets = []
+            if custom_target and custom_target.lower() != 'me':
+                targets.append(custom_target)
+            targets.append('me')
+            return targets
+        except Exception:
+            return ['me']
+
+    def notify_private_send_failure(
+        self,
+        user_id,
+        client_manager,
+        group_label,
+        stage,
+        reason,
+        index=None,
+        total=None,
+        entity_obj=None,
+    ):
+        """إرسال رسالة إشعار فورية إلى الحساب الخاص للمستخدم بتيليجرام عند فشل الإرسال لأي مجموعة مع ذكر السبب."""
+        try:
+            if not client_manager or not getattr(client_manager, 'client', None):
+                return False
+            loop = getattr(client_manager, 'loop', None)
+            if not loop or not loop.is_running():
+                return False
+
+            group_title = getattr(entity_obj, 'title', None) or getattr(entity_obj, 'name', None) or str(group_label)
+            uname = getattr(entity_obj, 'username', None)
+            group_ref = f"https://t.me/{uname}" if uname else str(group_label)
+            pos_str = f" [{index}/{total}]" if (index is not None and total is not None) else ""
+            now_str = time.strftime('%Y-%m-%d %I:%M:%S %p')
+
+            notif_text = (
+                f"❌ إشعار تعذّر/فشل الإرسال لمجموعة{pos_str}\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"👥 المجموعة: {group_title}\n"
+                f"🔗 المعرف/الرابط: {group_ref}\n"
+                f"⚙️ المرحلة: {stage}\n"
+                f"📝 السبب: {reason}\n"
+                f"🕐 الوقت: {now_str}"
+            )
+            targets = self._get_private_notification_targets(user_id)
+
+            async def _dispatch():
+                for dest in targets:
+                    try:
+                        if dest != 'me' and hasattr(client_manager, '_resolve_tg_destination'):
+                            dest_ent = await client_manager._resolve_tg_destination(dest)
+                        else:
+                            dest_ent = dest
+                        await client_manager.client.send_message(dest_ent, notif_text, link_preview=False)
+                    except Exception as send_ex:
+                        logger.debug(f"Private failure alert dispatch to {dest} failed: {send_ex}")
+
+            asyncio.run_coroutine_threadsafe(_dispatch(), loop)
+            return True
+        except Exception as exc:
+            logger.debug(f"notify_private_send_failure error: {exc}")
+            return False
+
+    def notify_private_batch_summary(self, user_id, client_manager, total, successful, failed, skipped, failed_items):
+        """إرسال ملخص ختامي إلى الحساب الخاص للمستخدم عند انتهاء الدفعة في حال وجود أي فشل."""
+        try:
+            if not failed_items:
+                return False
+            if not client_manager or not getattr(client_manager, 'client', None):
+                return False
+            loop = getattr(client_manager, 'loop', None)
+            if not loop or not loop.is_running():
+                return False
+
+            lines = [
+                f"📊 تقرير نتائج دفعة الإرسال ({successful} نجح | {failed} فشل | {skipped} تعذر من أصل {total})",
+                "━━━━━━━━━━━━━━━━━━",
+                "📋 المجموعات التي لم تكتمل وأسبابها:"
+            ]
+            for idx_item, (grp, rsn) in enumerate(failed_items[:25], 1):
+                lines.append(f"{idx_item}. {grp}\n   ↳ السبب: {rsn}")
+            if len(failed_items) > 25:
+                lines.append(f"... وعدد {len(failed_items) - 25} مجموعة أخرى.")
+            summary_text = "\n".join(lines)
+            targets = self._get_private_notification_targets(user_id)
+
+            async def _dispatch_sum():
+                for dest in targets:
+                    try:
+                        dest_ent = await client_manager._resolve_tg_destination(dest) if (dest != 'me' and hasattr(client_manager, '_resolve_tg_destination')) else dest
+                        await client_manager.client.send_message(dest_ent, summary_text, link_preview=False)
+                    except Exception:
+                        pass
+
+            asyncio.run_coroutine_threadsafe(_dispatch_sum(), loop)
+            return True
+        except Exception:
+            return False
+
+    def resolve_group_send_strategy(self, report, settings=None, pre_scan_action=None, force_salam=False):
+        """
+        مصنّف حتمي (غير عشوائي) يحدد الطريقة المناسبة فعلياً لكل مجموعة بناءً على تقرير حمايتها الفعلي:
+        - salam_then_edit: مجموعات ببوتات حماية تحذف الإعلانات الفورية أو تفرض السلام أولاً ثم التعديل
+        - strip_numbers_and_replace_words: مجموعات تحظر الأرقام/الروابط والكلمات المحظورة معاً
+        - strip_numbers_and_links: مجموعات تحظر أرقام الهواتف أو الروابط فقط
+        - replace_forbidden_words: مجموعات تحظر كلمات محددة فقط (بدون منع الأرقام)
+        - direct_send: مجموعات مفتوحة بدون قيود
+        - skip: مجموعات مغلقة بالكامل أو اختار المستخدم تخطيها
+        """
+        settings = settings or {}
+        mode = (settings.get('sanitize_mode') or 'salam').lower()
+
+        if pre_scan_action == 'skip':
+            return 'skip', 'بناءً على اختيار المستخدم بالتخطي'
+
+        if force_salam or pre_scan_action == 'salam':
+            return 'salam_then_edit', 'تطبيق وضع السلام عليكم ثم التعديل بعد استيفاء الشروط'
+
+        if mode == 'off':
+            return 'direct_send', 'وضع الحماية معطّل في الإعدادات'
+
+        report = report or {}
+        prohibited = set(report.get('prohibited_actions') or [])
+        causes_text = " ".join(
+            list(report.get('causes') or [])
+            + list(report.get('mistakes_by_others') or [])
+            + list(report.get('pinned_rules') or [])
+        ).lower()
+        bots = [str(b).lower() for b in (report.get('protection_bots') or [])]
+        is_prot = bool(report.get('is_protected') or bots)
+
+        if 'skip_group' in prohibited and not report.get('can_send_messages', True):
+            return 'skip', 'المجموعة مقفلة أو الحساب محظور فيها'
+
+        if mode == 'skip' and is_prot:
+            return 'skip', 'تخطي المجموعة المحمية حسب إعدادات المستخدم'
+
+        has_no_phones = (
+            'no_phones' in prohibited
+            or any(k in causes_text for k in ['رقم', 'ارقام', 'أرقام', 'هاتف', 'جوال', 'phone'])
+        )
+        has_no_links = (
+            'no_links' in prohibited
+            or not report.get('can_embed_links', True)
+            or any(k in causes_text for k in ['رابط', 'روابط', 'link', 't.me'])
+        )
+        keywords_list = report.get('keywords_to_avoid') or []
+        has_forbidden_words = (
+            bool(keywords_list)
+            or 'keyword_filter' in prohibited
+            or 'no_ads' in prohibited
+            or any(k in causes_text for k in ['كلمات', 'محظور', 'محضور', 'ممنوع'])
+        )
+
+        strict_bot_hints = ('rose', 'missrose', 'grouphelp', 'combot', 'shield', 'antispam', 'watchdog', 'guard', 'protector')
+        has_strict_bot = any(any(h in b for h in strict_bot_hints) for b in bots)
+        punished_count = int(report.get('punished_count') or 0)
+        blocks_ads = bool(report.get('blocks_ads'))
+        requires_smart = bool(report.get('requires_smart_send'))
+
+        # 1. مجموعات الحماية الصارمة (حذف الإعلانات الفورية / بوتات الحماية الصارمة) -> السلام عليكم ثم التعديل
+        if requires_smart or blocks_ads or (is_prot and (has_strict_bot or punished_count >= 1) and ('no_ads' in prohibited or report.get('risk_assessment') in ('high', 'critical'))):
+            return 'salam_then_edit', 'رُصدت حماية صارمة ضد الإعلانات المباشرة -> السلام عليكم ثم التعديل'
+
+        # 2. مجموعات تحظر الأرقام/الروابط والكلمات معاً
+        if (has_no_phones or has_no_links) and has_forbidden_words:
+            return 'strip_numbers_and_replace_words', 'رُصد حظر للأرقام/الروابط والكلمات المحظورة معاً'
+
+        # 3. مجموعات تحظر الأرقام أو الروابط فقط
+        if has_no_phones or has_no_links:
+            return 'strip_numbers_and_links', 'رُصد حظر للأرقام أو الروابط في هذه المجموعة -> حذفها فعلياً'
+
+        # 4. مجموعات تحظر كلمات محددة فقط (مع السماح ببقية النص والأرقام)
+        if has_forbidden_words or (is_prot and mode in ('smart', 'always')):
+            return 'replace_forbidden_words', 'رُصد حظر كلمات محددة -> استبدال الكلمات المحظورة فقط'
+
+        # 5. مجموعة مفتوحة بدون قيود
+        return 'direct_send', 'مجموعة مفتوحة بدون قيود حماية مرصودة'
+
     def send_message_async(
         self,
         user_id,
@@ -5792,11 +5976,12 @@ class TelegramManager:
         pre_actions=None,
         pre_risk=None,
         log_source="send",
+        already_adapted=False,
+        strategy_used=None,
     ):
         """
-        إرسال رسالة مع دعم الإجراء المختار مسبقاً من نافذة الفحص الاستباقي.
-        forced_action: 'skip' | 'sanitize' | 'salam' | 'send' | None
-          None  → استخدم الإعدادات الافتراضية للمستخدم
+        إرسال رسالة مع دعم الإستراتيجية المحددة حتمياً لكل مجموعة:
+        salam_then_edit | strip_numbers_and_links | replace_forbidden_words | strip_numbers_and_replace_words | direct_send | skip
         """
         try:
             with USERS_LOCK:
@@ -5836,53 +6021,68 @@ class TelegramManager:
                 socketio.emit('log_update', {
                     "message": f"⏭️ تم تخطي {entity}: {pre_reason}"
                 }, to=user_id)
-                return {"success": False, "skipped": True, "message": f"تم تخطي {entity}: {pre_reason}"}
+                return {"success": False, "skipped": True, "message": pre_reason}
 
-            # ── 1. جلب التقرير من قاعدة البيانات الخارجية (Firestore) أو فحصه وحفظه إن كانت جديدة ──
+            # ── 1. جلب التقرير من قاعدة البيانات الخارجية (Firestore) أو فحصه وحفظه ──
             report, is_new = self.get_or_create_group_safety_report(
                 user_id, client_manager, entity_obj, entity, sample_message=message
             )
 
-            # ── 2. تكييف الرسالة وتغيير أو حذف الكلمات والعبارات التي تستدعي الحظر ──
-            final_message, _, safety_actions, adapt_replacements = self.adapt_message_to_group_report_detailed(
-                message, report, has_media=False
-            )
+            settings = load_settings(user_id)
+            if forced_action in ('skip', 'salam', 'salam_then_edit', 'strip_numbers_and_links', 'replace_forbidden_words', 'strip_numbers_and_replace_words', 'direct_send', 'send', 'sanitize'):
+                if forced_action == 'salam':
+                    resolved_strategy = 'salam_then_edit'
+                elif forced_action == 'send':
+                    resolved_strategy = 'direct_send'
+                elif forced_action == 'sanitize':
+                    resolved_strategy = 'strip_numbers_and_replace_words'
+                else:
+                    resolved_strategy = forced_action
+            else:
+                resolved_strategy, _ = self.resolve_group_send_strategy(report, settings=settings, pre_scan_action=forced_action)
+
+            if strategy_used:
+                resolved_strategy = strategy_used
+
+            if resolved_strategy == 'skip':
+                skip_reason = report.get('summary_ar') or "المجموعة مغلقة أو تم اختيار تخطيها"
+                socketio.emit('log_update', {
+                    "message": f"⏭️ تم تخطي {entity}: {skip_reason}"
+                }, to=user_id)
+                return {"success": False, "skipped": True, "message": skip_reason}
+
+            # ── 2. تكييف الرسالة حسب الإستراتيجية المختارة لهذه المجموعة (مرة واحدة بدون تكرار مزدوج) ──
+            if already_adapted:
+                final_message = message
+                safety_actions = []
+                adapt_replacements = []
+            else:
+                final_message, _, safety_actions, adapt_replacements = self.adapt_message_to_group_report_detailed(
+                    message, report, has_media=False, strategy=resolved_strategy
+                )
+
             merged_replacements = _merge_replacements_unique(pre_replacements, adapt_replacements)
             merged_actions = list(pre_actions or []) + list(safety_actions or [])
             effective_risk = pre_risk or report.get('risk_assessment', 'low')
             raw_source_msg = original_message_for_log if original_message_for_log is not None else message
-            if safety_actions:
+
+            if not already_adapted and safety_actions:
                 socketio.emit('log_update', {
-                    "message": f"🛡️ [{entity}] تطبيق إجراءات الأمان للرسالة: {', '.join(safety_actions[:2])}"
+                    "message": f"🛡️ [{entity}] تطبيق الحماية ({resolved_strategy}): {', '.join(safety_actions[:2])}"
                 }, to=user_id)
 
-            # ── 3. فحص هل المجموعة تمنع الإعلانات بشكل كلي وتحتوي على بوتات حماية -> إرسال ذكي ──
-            needs_smart = bool(
-                report.get('requires_smart_send') or 
-                (report.get('is_protected') and report.get('blocks_ads'))
-            )
+            if not final_message or not str(final_message).strip():
+                empty_reason = "أصبحت الرسالة فارغة بعد حذف الأرقام/الروابط المحظورة في هذه المجموعة"
+                socketio.emit('log_update', {"message": f"⏭️ تعذر الإرسال إلى {entity}: {empty_reason}"}, to=user_id)
+                return {"success": False, "skipped": True, "message": empty_reason}
 
-            # ── تحديد الإجراء: من الفحص المسبق أو الإعدادات أو تقرير المجموعة ──────────
-            if forced_action is not None:
-                action = forced_action
-                if action == 'skip':
-                    socketio.emit('log_update', {
-                        "message": f"⏭️ تم تخطي {entity} (قرار الفحص الاستباقي)"
-                    }, to=user_id)
-                    return {"success": False, "skipped": True,
-                            "message": f"تم تخطي المجموعة: {entity}"}
-            elif needs_smart:
-                action = 'salam'
-            else:
-                action, _ = self._check_group_protection(user_id, client_manager, entity_obj, entity)
-
-            # ── الإرسال الذكي للمجموعات التي بها بوتات حماية وتمنع الإعلانات كلياً (وضع salam) ──
-            # نتحقق من عدم إجبار التنقية المباشرة (sanitize) في وضع الإرسال الجماعي
-            if action == 'salam' or (needs_smart and forced_action not in ('sanitize', 'send')):
+            # ── 3. تنفيذ مسار الإرسال الذكي (السلام عليكم -> مراقبة الشروط -> تعديل) ──
+            if resolved_strategy == 'salam_then_edit':
                 record_sanitization_event(
                     user_id, entity, raw_source_msg, final_message,
                     replacements=merged_replacements, extra_actions=merged_actions,
                     risk_assessment=effective_risk, source="smart_salam",
+                    strategy_used="salam_then_edit",
                 )
                 group_id = getattr(entity_obj, 'id', None) or hash(str(entity))
                 key = f"{user_id}_{group_id}"
@@ -5893,44 +6093,45 @@ class TelegramManager:
                 t = _OSThread(
                     target=self._run_smart_protected_send,
                     args=(user_id, client_manager, entity_obj, entity, final_message, key, cancel_event),
+                    kwargs={"max_cycles": 1},
                     daemon=True,
                     name=f"SmartSend-{key}"
                 )
                 t.start()
                 if wait_for_completion:
-                    # في وضع الإرسال الجماعي (Batch)، ننتظر حتى ينتهي الإرسال الذكي بحد أقصى آمن
-                    t.join(timeout=90)
+                    t.join(timeout=95)
                     return {"success": True, "smart": True,
                             "message": f"🧠 اكتملت معالجة الإرسال الذكي لـ {entity}"}
                 else:
                     return {"success": True, "smart": True,
-                            "message": f"🧠 بدأ الإرسال الذكي لـ {entity} (أُرسلت 'السلام عليكم' وجارٍ استيفاء الشروط للتعديل تلقائياً)"}
+                            "message": f"🧠 بدأ الإرسال الذكي لـ {entity} (أُرسلت 'السلام عليكم' وتُراقب الشروط بالخلفية)"}
 
-            # نمرر action مباشرة لتجنب استدعاء _check_group_protection مرة ثانية
-            cleaned_message, sanitize_replacements = self._maybe_sanitize_detailed(
-                user_id, client_manager, entity_obj, entity, final_message,
-                forced_action=action
-            )
-            if cleaned_message is None:
-                return {"success": False, "skipped": True,
-                        "message": "تم تخطي الإرسال: المجموعة محمية أو الرسالة فارغة بعد التنقية"}
-
-            all_replacements = _merge_replacements_unique(merged_replacements, sanitize_replacements)
+            cleaned_message = final_message
             record_sanitization_event(
                 user_id, entity, raw_source_msg, cleaned_message,
-                replacements=all_replacements, extra_actions=merged_actions,
+                replacements=merged_replacements, extra_actions=merged_actions,
                 risk_assessment=effective_risk, source=log_source,
+                strategy_used=resolved_strategy,
             )
 
             try:
-                result = client_manager.run_coroutine(
-                    client_manager.client.send_message(entity_obj, cleaned_message, parse_mode='md')
-                )
+                try:
+                    result = client_manager.run_coroutine(
+                        client_manager.client.send_message(entity_obj, cleaned_message, parse_mode='md')
+                    )
+                except Exception as md_err:
+                    err_l = str(md_err).lower()
+                    if any(k in err_l for k in ("parse", "entities", "can't parse", "markdown")):
+                        result = client_manager.run_coroutine(
+                            client_manager.client.send_message(entity_obj, cleaned_message, parse_mode=None)
+                        )
+                    else:
+                        raise md_err
             except FloodWaitError as fwe:
                 set_user_flood_wait(user_id, fwe.seconds)
-                fw_msg = f"⏳ تيليجرام يطلب الانتظار {fwe.seconds} ثانية (FloodWait) - تم تسجيل الحظر المؤقت وتخطي الإرسال لـ {entity}"
-                logger.warning(fw_msg)
-                socketio.emit('log_update', {"message": fw_msg}, to=user_id)
+                fw_msg = f"تيليجرام فرض انتظار مؤقت (FloodWait {fwe.seconds} ثانية)"
+                logger.warning(f"⏳ {fw_msg} لـ {entity}")
+                socketio.emit('log_update', {"message": f"⏳ {fw_msg} لـ {entity}"}, to=user_id)
                 return {"success": False, "skipped": True, "flood_wait": fwe.seconds, "message": fw_msg}
             except Exception as _send_err:
                 _err_str = str(_send_err).lower()
@@ -6027,13 +6228,11 @@ class TelegramManager:
     def get_or_create_group_safety_report(self, user_id, client_manager, entity_obj, entity_label, sample_message=None):
         """
         التحقق من نتائج فحص المجموعة في قاعدة البيانات الخارجية (Firestore):
-        1. إذا كانت المجموعة مفحوصة ومسجلة مسبقاً في قاعدة البيانات:
-           - يتم الرجوع إليها واستخدام نتائجها فورياً والالتزام بها دون إعادة الفحص.
-        2. إذا كانت مجموعة جديدة غير متوفرة في قاعدة البيانات:
-           - تقوم الوظيفة بتحليلها وفحصها بالذكاء الاصطناعي لكشف بوتات الحماية والقيود وأخطاء الآخرين.
-           - حفظ تقريرها ونتائجها بشكل ثابت ودائم في قاعدة البيانات الخارجية.
+        1. إذا كانت المجموعة مفحوصة ومسجلة مسبقاً بالإصدار الحديث: يتم استرجاع تقريرها والالتزام به.
+        2. إذا كانت جديدة أو تقريرها قديم (قبل ترقية المصنف الحتمي): يتم فحص البوتات والقوانين المثبتة وآخر 50 رسالة وحفظ النتائج.
         """
         import firestore_sync
+        SAFETY_REPORT_VERSION = 2
         chat_id = getattr(entity_obj, 'id', None)
         username = getattr(entity_obj, 'username', None)
         title = getattr(entity_obj, 'title', None) or getattr(entity_obj, 'name', None) or str(entity_label)
@@ -6044,14 +6243,15 @@ class TelegramManager:
             alt_key=str(chat_id) if chat_id else (username or None)
         )
 
-        if saved_report and not saved_report.get('error'):
-            logger.info(f"📋 Found existing group report in external DB for {entity_label}")
+        if saved_report and not saved_report.get('error') and int(saved_report.get('report_version') or 1) >= SAFETY_REPORT_VERSION:
+            logger.info(f"📋 Found existing v2 group report in external DB for {entity_label}")
             try:
                 from group_ai_analyzer import extract_forbidden_keywords_from_texts
                 src_texts = (
                     list(saved_report.get('causes', []))
                     + list(saved_report.get('mistakes_by_others', []))
                     + list(saved_report.get('details_of_punishments', []))
+                    + list(saved_report.get('pinned_rules', []))
                     + ([saved_report.get('summary_ar', '')] if saved_report.get('summary_ar') else [])
                 )
                 if (saved_report.get('is_protected') or saved_report.get('blocks_ads') or saved_report.get('punished_count', 0) > 0) and sample_message:
@@ -6065,17 +6265,18 @@ class TelegramManager:
             except Exception:
                 pass
             socketio.emit('log_update', {
-                "message": f"📋 [قاعدة البيانات] تم استرجاع نتائج فحص {entity_label} المحفوظة مسبقاً (مستوى الأمان: {saved_report.get('risk_assessment', 'عادي')})"
+                "message": f"📋 [قاعدة البيانات] تم استرجاع ملف الحماية لـ {entity_label} (الإستراتيجية: {saved_report.get('recommended_strategy', saved_report.get('recommended_action', 'تلقائي'))})"
             }, to=user_id)
             return saved_report, False
 
-        # 2. مجموعة جديدة غير متوفرة في قاعدة البيانات -> فحص وتحليل كامل بالذكاء
-        logger.info(f"🆕 Group {entity_label} is new. Scanning and persisting to external DB...")
+        # 2. مجموعة جديدة أو تحتاج ترقية التقرير -> فحص وتحليل كامل
+        is_upgrade = bool(saved_report and not saved_report.get('error'))
+        logger.info(f"🆕 Scanning group {entity_label} (upgrade={is_upgrade}) and persisting v2 report...")
         socketio.emit('log_update', {
-            "message": f"🆕 [مجموعة جديدة] {entity_label} غير مسجلة في قاعدة البيانات — جارٍ الفحص والتحليل بالذكاء وحفظ النتائج في قاعدة البيانات..."
+            "message": f"🔍 [{'تحديث الفحص' if is_upgrade else 'مجموعة جديدة'}] {entity_label} — جارٍ فحص البوتات والقوانين المثبتة وآخر 50 رسالة..."
         }, to=user_id)
 
-        # أ) فحص بوتات الحماية
+        # أ) فحص بوتات الحماية وصلاحيات المجموعة المباشرة
         is_prot = False
         prot_reason = None
         bots = []
@@ -6086,70 +6287,103 @@ class TelegramManager:
         except Exception as _pe:
             logger.debug(f"Protection details error for {entity_label}: {_pe}")
 
-        # ب) فحص الذكاء الاصطناعي لآخر 50 محادثة
+        default_banned = getattr(entity_obj, 'default_banned_rights', None)
+        can_embed_links = not bool(default_banned and getattr(default_banned, 'embed_links', False))
+        can_send_messages = not bool(default_banned and getattr(default_banned, 'send_messages', False))
+
+        # ب) فحص الذكاء الاصطناعي لآخر 50 محادثة + القوانين المثبتة
         ai_res = self.scan_and_analyze_group_with_ai(
             user_id, client_manager, entity_obj, entity_label,
             sample_message=sample_message, send_report_to_me=True
         )
 
-        # ج) تحديد إذا كانت المجموعة تمنع الإعلانات بشكل كلي
+        # ج) تصنيف القيود الفعلي لكل مجموعة (حماية صارمة vs حذف أرقام/روابط vs استبدال كلمات vs مفتوحة)
+        merged_bots = list(dict.fromkeys((bots or []) + (ai_res.get('detected_bots') or [])))
         prohibited = set(ai_res.get('prohibited_actions', []))
-        causes_str = " ".join(ai_res.get('causes', []) + ai_res.get('mistakes_by_others', [])).lower()
+        if not can_embed_links:
+            prohibited.add('no_links')
+        causes_str = " ".join(
+            list(ai_res.get('causes', []))
+            + list(ai_res.get('mistakes_by_others', []))
+            + list(ai_res.get('pinned_rules', []))
+        ).lower()
 
-        blocks_ads = False
-        requires_smart_send = False
+        strict_bot_hints = ('rose', 'missrose', 'grouphelp', 'combot', 'shield', 'antispam', 'watchdog', 'guard', 'protector')
+        has_strict_bot = any(any(h in str(b).lower() for h in strict_bot_hints) for b in merged_bots)
+        punished_count = int(ai_res.get('punished_count') or 0)
+        has_ad_punishments = any(kw in causes_str for kw in ['إعلان', 'اعلان', 'ترويج', 'تسويق', 'سبام', 'spam', 'ads'])
+        has_phone_ban = ('no_phones' in prohibited) or any(kw in causes_str for kw in ['رقم', 'ارقام', 'أرقام', 'هاتف', 'جوال', 'phone'])
+        has_link_ban = ('no_links' in prohibited) or (not can_embed_links) or any(kw in causes_str for kw in ['رابط', 'روابط', 'link'])
+        has_kw_ban = bool(ai_res.get('keywords_to_avoid')) or ('keyword_filter' in prohibited) or ('no_ads' in prohibited)
 
-        if is_prot or ai_res.get('protected') or len(bots) > 0:
-            if ('no_links' in prohibited or 'no_phones' in prohibited or 'skip_group' in prohibited 
-                or any(kw in causes_str for kw in ['إعلان', 'نشر', 'رابط', 'روابط', 'ترويج', 'تسويق', 'spam', 'ads', 'link'])):
-                blocks_ads = True
-                requires_smart_send = True
-
-        if ai_res.get('risk_assessment') in ('high', 'critical') and (is_prot or len(bots) > 0):
-            blocks_ads = True
-            requires_smart_send = True
+        blocks_ads = bool(
+            (is_prot or len(merged_bots) > 0)
+            and (has_strict_bot or punished_count >= 1)
+            and (has_ad_punishments or ai_res.get('risk_assessment') in ('high', 'critical'))
+        )
+        requires_smart_send = bool(blocks_ads or (ai_res.get('risk_assessment') in ('high', 'critical') and (is_prot or len(merged_bots) > 0)))
 
         new_report = {
+            "report_version": SAFETY_REPORT_VERSION,
             "group_key": str(entity_label),
             "group_id": str(chat_id) if chat_id else "",
             "group_title": str(title),
             "username": str(username) if username else "",
-            "is_protected": bool(is_prot or ai_res.get('protected')),
+            "is_protected": bool(is_prot or ai_res.get('protected') or len(merged_bots) > 0 or bool(prohibited)),
             "blocks_ads": bool(blocks_ads),
             "requires_smart_send": bool(requires_smart_send),
-            "protection_bots": bots or [],
+            "protection_bots": merged_bots,
+            "pinned_rules": ai_res.get('pinned_rules', []),
+            "can_send_messages": bool(can_send_messages),
+            "can_embed_links": bool(can_embed_links),
             "risk_assessment": ai_res.get('risk_assessment', 'low'),
-            "punished_count": ai_res.get('punished_count', 0),
+            "punished_count": punished_count,
+            "details_of_punishments": ai_res.get('details_of_punishments', []),
             "causes": ai_res.get('causes', []),
             "mistakes_by_others": ai_res.get('mistakes_by_others', []),
             "prohibited_actions": list(prohibited),
             "keywords_to_avoid": ai_res.get('keywords_to_avoid', []),
             "actions_taken": ai_res.get('actions_taken', []),
             "summary_ar": ai_res.get('summary_ar', ''),
-            "recommended_action": 'salam' if requires_smart_send else ('sanitize' if is_prot else 'send'),
             "can_send_media": bool(ai_res.get('can_send_media', True) and 'no_media' not in prohibited),
             "analyzed_at": time.strftime('%Y-%m-%d %H:%M:%S')
         }
+        rec_strategy, _ = self.resolve_group_send_strategy(new_report)
+        new_report["recommended_strategy"] = rec_strategy
+        new_report["recommended_action"] = 'salam' if rec_strategy == 'salam_then_edit' else ('sanitize' if rec_strategy != 'direct_send' else 'send')
 
         # د) حفظ دائم وثابت في قاعدة البيانات الخارجية
         try:
             firestore_sync.save_group_safety_report_to_db(new_report)
             socketio.emit('log_update', {
-                "message": f"💾 [حفظ دائم] تم حفظ نتائج فحص {entity_label} في قاعدة البيانات الخارجية (Firestore) بنجاح"
+                "message": f"💾 [حفظ دائم] تم حفظ ملف الحماية لـ {entity_label} (الإستراتيجية المناسبة: {rec_strategy})"
             }, to=user_id)
         except Exception as _se:
             logger.error(f"Failed to save group safety report to DB for {entity_label}: {_se}")
 
         return new_report, True
 
-    def adapt_message_to_group_report_detailed(self, message, report, has_media=False):
+    def adapt_message_to_group_report_detailed(self, message, report, has_media=False, strategy=None):
         """
-        تكييف الرسالة وإرجاع (النص_المعدل, صلاحية_الوسائط, الإجراءات, قائمة_استبدال_الكلمات_المحظورة)
+        تكييف الرسالة بدقة حسب الإستراتيجية المناسبة للمجموعة:
+        - direct_send: بدون تعديل
+        - replace_forbidden_words: استبدال الكلمات المحظورة فقط مع الحفاظ على الأرقام والروابط المسموحة
+        - strip_numbers_and_links: حذف فعلي للأرقام والروابط المحظورة فقط
+        - strip_numbers_and_replace_words / salam_then_edit: حذف الأرقام/الروابط المحظورة + استبدال الكلمات المحظورة (حسب قيود المجموعة)
+        تُرجع (النص_المعدل, صلاحية_الوسائط, الإجراءات, قائمة_استبدال_الكلمات_المحظورة)
         """
         if not message:
             return message, has_media, [], []
 
-        import re as _re
+        report = report or {}
+        can_media = has_media and report.get('can_send_media', True)
+
+        if strategy == 'direct_send':
+            actions = ["✅ إرسال مباشر بدون تعديل (مجموعة مفتوحة)"]
+            if has_media and not can_media:
+                actions.append("إلغاء الصور/الوسائط لأن المجموعة تحظرها")
+            return str(message), can_media, actions, []
+
         adapted = str(message)
         actions = []
         replacements = []
@@ -6157,72 +6391,93 @@ class TelegramManager:
         keywords_avoid = report.get('keywords_to_avoid', [])
         causes = report.get('causes', [])
         mistakes = report.get('mistakes_by_others', [])
-        all_reasons = " ".join(causes + mistakes).lower()
+        pinned_rules = report.get('pinned_rules', [])
+        all_reasons = " ".join(list(causes) + list(mistakes) + list(pinned_rules)).lower()
 
-        # 1. تحويل الكلمات المحظورة المكتشفة إلى الإنجليزية (مثل skalive) أو مباعدة أحرفها (مثل س ك...ال...يف)
-        try:
-            from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_detailed
-            extra_texts = (
-                list(causes)
-                + list(mistakes)
-                + list(report.get('details_of_punishments', []))
-                + ([report.get('summary_ar', '')] if report.get('summary_ar') else [])
+        need_strip_phones = (
+            strategy == 'strip_numbers_and_links'
+            or (
+                strategy in ('strip_numbers_and_replace_words', 'salam_then_edit', None)
+                and ('no_phones' in prohibited or any(k in all_reasons for k in ['رقم', 'ارقام', 'أرقام', 'هاتف', 'جوال', 'phone']))
             )
-            discovered_keywords = extract_forbidden_keywords_from_texts(
-                extra_texts, extra_keywords=keywords_avoid
+        )
+        need_strip_links = (
+            strategy == 'strip_numbers_and_links'
+            or (
+                strategy in ('strip_numbers_and_replace_words', 'salam_then_edit', None)
+                and ('no_links' in prohibited or not report.get('can_embed_links', True) or any(k in all_reasons for k in ['رابط', 'روابط', 'link', 't.me']))
             )
-        except Exception:
-            discovered_keywords = list(keywords_avoid or [])
-
-        has_ad_or_kw_restriction = (
-            bool(discovered_keywords)
-            or bool(report.get('is_protected'))
-            or bool(report.get('blocks_ads'))
-            or "no_ads" in prohibited
-            or any(t in all_reasons for t in ["إعلان", "اعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سبام", "spam", "ads"])
         )
 
-        if discovered_keywords or has_ad_or_kw_restriction:
+        # إذا اختيرت إستراتيجية strip_numbers_and_links، حدد بالضبط ما هو محظور في المجموعة (أرقام أم روابط أم كلاهما)
+        if strategy == 'strip_numbers_and_links':
+            has_ph_rule = 'no_phones' in prohibited or any(k in all_reasons for k in ['رقم', 'ارقام', 'أرقام', 'هاتف', 'جوال', 'phone'])
+            has_lk_rule = 'no_links' in prohibited or not report.get('can_embed_links', True) or any(k in all_reasons for k in ['رابط', 'روابط', 'link', 't.me'])
+            if has_ph_rule or has_lk_rule:
+                need_strip_phones = has_ph_rule
+                need_strip_links = has_lk_rule
+
+        # 1. الحذف الفعلي للأرقام والروابط إذا كانت المجموعة تمنعها
+        if need_strip_phones or need_strip_links:
             try:
-                from group_ai_analyzer import obfuscate_forbidden_words_detailed
-                adapted, kw_actions, replacements = obfuscate_forbidden_words_detailed(
+                from group_ai_analyzer import strip_phone_numbers_and_links
+                adapted, strip_acts = strip_phone_numbers_and_links(
                     adapted,
-                    keywords_to_avoid=discovered_keywords,
-                    include_common_ads=has_ad_or_kw_restriction,
-                    mode="auto",
+                    strip_phones=need_strip_phones,
+                    strip_links=need_strip_links,
                 )
-                actions.extend(kw_actions)
-            except Exception as _kw_err:
-                logger.warning(f"Keyword obfuscation fallback error: {_kw_err}")
+                actions.extend(strip_acts)
+            except Exception as _st_err:
+                logger.warning(f"Strip numbers/links fallback error: {_st_err}")
 
-        # 2. تنقية أو تعديل الروابط
-        if 'no_links' in prohibited or 'رابط' in all_reasons or 'link' in all_reasons:
-            wa_match = _re.search(r'(?:https?://)?(?:wa\.me|api\.whatsapp\.com/send\?phone=)/?(\+?\d+)', adapted)
-            if wa_match:
-                phone_num = wa_match.group(1)
-                adapted = _re.sub(r'https?://(?:wa\.me|api\.whatsapp\.com/send\?phone=)[^\s]+', f'واتساب: {phone_num}', adapted)
-                actions.append("تحويل رابط واتساب إلى نص مباشر تجنباً للحظر")
+        # 2. استبدال الكلمات المحظورة فقط إذا كانت الإستراتيجية تتطلب ذلك
+        should_replace_words = strategy in ('replace_forbidden_words', 'strip_numbers_and_replace_words', None) or (
+            strategy == 'salam_then_edit' and (
+                bool(keywords_avoid)
+                or 'keyword_filter' in prohibited
+                or 'no_ads' in prohibited
+                or any(t in all_reasons for t in ["كلمات", "محظور", "محضور", "ممنوع"])
+            )
+        )
+        if should_replace_words and adapted:
+            try:
+                from group_ai_analyzer import extract_forbidden_keywords_from_texts, obfuscate_forbidden_words_detailed
+                extra_texts = (
+                    list(causes)
+                    + list(mistakes)
+                    + list(pinned_rules)
+                    + list(report.get('details_of_punishments', []))
+                    + ([report.get('summary_ar', '')] if report.get('summary_ar') else [])
+                )
+                discovered_keywords = extract_forbidden_keywords_from_texts(
+                    extra_texts, extra_keywords=keywords_avoid
+                )
+            except Exception:
+                discovered_keywords = list(keywords_avoid or [])
 
-            if _re.search(r'https?://[^\s]+', adapted):
-                adapted = _re.sub(r'https?://[^\s]+', '', adapted).strip()
-                actions.append("إزالة الروابط الخارجية لتفادي البوتات")
+            has_ad_or_kw_restriction = (
+                bool(discovered_keywords)
+                or strategy == 'replace_forbidden_words'
+                or "no_ads" in prohibited
+                or "keyword_filter" in prohibited
+                or any(t in all_reasons for t in ["إعلان", "اعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سبام", "spam", "ads"])
+            )
+            if discovered_keywords or has_ad_or_kw_restriction:
+                try:
+                    from group_ai_analyzer import obfuscate_forbidden_words_detailed
+                    adapted, kw_actions, replacements = obfuscate_forbidden_words_detailed(
+                        adapted,
+                        keywords_to_avoid=discovered_keywords,
+                        include_common_ads=has_ad_or_kw_restriction,
+                        mode="auto",
+                    )
+                    actions.extend(kw_actions)
+                except Exception as _kw_err:
+                    logger.warning(f"Keyword obfuscation fallback error: {_kw_err}")
 
-            if _re.search(r't\.me/[^\s]+', adapted):
-                adapted = _re.sub(r't\.me/[^\s]+', '', adapted).strip()
-                actions.append("إزالة روابط تليجرام")
-
-        # 3. تمويه أرقام الهواتف إذا سببت حظراً في نتائج المجموعة
-        if 'no_phones' in prohibited or 'رقم' in all_reasons or 'phone' in all_reasons:
-            def _mask_num(m):
-                n = m.group(0)
-                return " ".join(list(n.replace(" ", "")))
-            adapted = _re.sub(r'\+?\d{8,15}', _mask_num, adapted)
-            actions.append("تمويه أرقام الهواتف")
-
-        # 4. صلاحية الوسائط
-        can_media = has_media and report.get('can_send_media', True)
+        # 3. صلاحية الوسائط
         if has_media and not can_media:
-            actions.append("إلغاء الصور/الوسائط لأن المجموعة تحظرها")
+            actions.append("🖼️ إلغاء الصور/الوسائط لأن المجموعة تحظرها")
 
         return adapted, can_media, actions, replacements
 
@@ -6352,11 +6607,13 @@ class TelegramManager:
                 "mistakes_by_others": analysis.get("mistakes_by_others", []),
                 "prohibited_actions": analysis.get("prohibited_actions", []),
                 "keywords_to_avoid": analysis.get("keywords_to_avoid", []),
+                "detected_bots": analysis.get("detected_bots", group_data.get("detected_bots", [])),
+                "pinned_rules": analysis.get("pinned_rules", group_data.get("pinned_rules", [])),
                 "actions_taken": adaptation.get("actions_taken", []),
                 "should_skip": adaptation.get("should_skip", False),
                 "skip_reason": adaptation.get("skip_reason", ""),
                 "adapted_message": adaptation.get("adapted_message", ""),
-                "delay_seconds": adaptation.get("delay_seconds", 3),
+                "delay_seconds": adaptation.get("delay_seconds", 7),
                 "summary_ar": analysis.get("summary_ar", ""),
                 "recommended_action": analysis.get("recommended_action", ""),
                 "error": False
@@ -6425,37 +6682,41 @@ class TelegramManager:
         except Exception as e:
             logger.error(f"Failed to send protection warning: {e}")
 
-    def _run_smart_protected_send(self, user_id, client_manager, entity_obj, entity_label, final_message, key, cancel_event=None):
+    def _run_smart_protected_send(self, user_id, client_manager, entity_obj, entity_label, final_message, key, cancel_event=None, max_cycles=1):
         """
-        تُنفذ في خيط منفصل (لا تحجب حلقة الإرسال الرئيسية):
-        1. ترسل "السلام عليكم" كرسالة أولية ثابتة.
-        2. تنتظر فترة زمنية محددة (تؤخذ من interval_seconds في الإعدادات).
-        3. تتحقق من عدد الرسائل التي أُرسلت بعدها.
-        4. إذا كان أكثر من required_messages، تعدّل الرسالة إلى final_message.
-        5. إذا لم يكن أكثر من required_messages، تحذف الرسالة وتنتظر الدورة التالية.
-        6. تتكرر العملية بشكل دوري غير محدود حتى يتم إيقافها يدوياً.
+        تُنفذ في خيط منفصل (لا تحجب حلقة الـ 7 ثوانٍ الرئيسية بين المجموعات):
+        1. ترسل "السلام عليكم" أولاً.
+        2. تراقب المجموعة حتى تستقبل required_messages رسالة حقيقية جديدة بعد السلام (مع التأكد من عدم حذف البوت للرسالة).
+        3. فور استيفاء الشروط الفعلية تعدّل رسالة السلام إلى final_message.
+        4. تتحقق بعد 5 ثوانٍ من بقاء الرسالة المعدلة، وإذا حُذفت أو لم تكتمل الشروط ترسل سبب الفشل لحساب المستخدم الخاص.
         """
         try:
             if not client_manager or not client_manager.client:
+                err_msg = "العميل غير متصل"
                 socketio.emit('log_update', {
-                    "message": f"❌ فشل الإرسال الذكي لـ {entity_label}: العميل غير متصل"
+                    "message": f"❌ فشل الإرسال الذكي لـ {entity_label}: {err_msg}"
                 }, to=user_id)
+                self.notify_private_send_failure(
+                    user_id, client_manager, entity_label,
+                    "الإرسال الذكي (السلام عليكم)", err_msg, entity_obj=entity_obj
+                )
                 return
 
-            # ── قراءة الإعدادات من المستخدم ──
             settings = load_settings(user_id)
-            required_messages = int(settings.get('smart_required_messages', 3))
-            interval_seconds = int(settings.get('interval_seconds', 3600))
-            cycle_duration = max(60, interval_seconds)
+            required_messages = max(1, int(settings.get('smart_required_messages', 3) or 3))
+            salam_wait_cap = max(25, min(int(getattr(_cfg, 'SMART_SALAM_WAIT_SECONDS', 90) or 90), 180))
 
             socketio.emit('log_update', {
-                "message": f"🧠 بدء الدورة الذكية لـ {entity_label} — المدة: {cycle_duration}ث، العدد المطلوب: {required_messages}"
+                "message": f"🧠 بدء الإرسال الذكي لـ {entity_label} — مهلة الانتظار: {salam_wait_cap}ث، الشرط المطلوب: {required_messages} رسائل بعد السلام"
             }, to=user_id)
 
-            # ── الحلقة الرئيسية (دورية لا نهائية) ──
-            while True:
+            cycles_done = 0
+            while cycles_done < max(1, int(max_cycles or 1)):
+                cycles_done += 1
                 if not self._smart_running or key not in self._smart_running:
                     logger.info(f"[Smart] توقفت الدورة الذكية لـ {entity_label} (key={key})")
+                    break
+                if cancel_event and cancel_event.is_set():
                     break
 
                 # ── 1. إرسال "السلام عليكم" ──
@@ -6463,23 +6724,29 @@ class TelegramManager:
                     msg = client_manager.run_coroutine(
                         client_manager.client.send_message(entity_obj, "السلام عليكم")
                     )
-                    logger.info(f"[Smart] أُرسلت 'السلام عليكم' إلى {entity_label}")
+                    logger.info(f"[Smart] أُرسلت 'السلام عليكم' إلى {entity_label} (id={msg.id})")
                     socketio.emit('log_update', {
-                        "message": f"🧠 [Smart] أُرسلت 'السلام عليكم' إلى {entity_label} — في انتظار {cycle_duration}ث..."
+                        "message": f"👋 [Smart] أُرسلت 'السلام عليكم' إلى {entity_label} — في انتظار وصول {required_messages} رسائل لتعديلها..."
                     }, to=user_id)
                 except Exception as send_err:
+                    err_txt = str(send_err)[:140]
                     logger.error(f"[Smart] فشل إرسال 'السلام عليكم' إلى {entity_label}: {send_err}")
-                    time.sleep(10)
-                    continue
+                    socketio.emit('log_update', {
+                        "message": f"❌ [Smart] فشل إرسال 'السلام عليكم' إلى {entity_label}: {err_txt}"
+                    }, to=user_id)
+                    self.notify_private_send_failure(
+                        user_id, client_manager, entity_label,
+                        "الإرسال الذكي (إرسال السلام عليكم)", f"تعذر إرسال رسالة السلام الأولى: {err_txt}", entity_obj=entity_obj
+                    )
+                    break
 
-                # ── 2. انتظار المدة المحددة مع مراقبة الرسائل وبوتات الحماية (P0) ──
+                # ── 2. مراقبة استيفاء الشروط (عدد الرسائل وبقاء رسالة السلام سليمة) ──
                 start_time = time.time()
                 last_id = msg.id
                 messages_after = 0
-                salam_env_wait = _cfg.SMART_SALAM_WAIT_SECONDS
-                max_cycle_wait = min(cycle_duration, salam_env_wait)
+                deleted_by_bot = False
 
-                while (time.time() - start_time) < max_cycle_wait:
+                while (time.time() - start_time) < salam_wait_cap:
                     if cancel_event and cancel_event.is_set():
                         logger.info(f"[Smart] إلغاء الإرسال الذكي لـ {entity_label} بطلب من المستخدم")
                         break
@@ -6488,20 +6755,21 @@ class TelegramManager:
                     time.sleep(2)
                     try:
                         new_msgs = client_manager.run_coroutine(
-                            client_manager.client.get_messages(entity_obj, limit=10, min_id=last_id)
+                            client_manager.client.get_messages(entity_obj, limit=15, min_id=last_id)
                         )
-                        others = [m for m in new_msgs if m.id > last_id and not getattr(m, 'out', False)]
+                        others = [
+                            m for m in (new_msgs or [])
+                            if m.id > last_id
+                            and not getattr(m, 'out', False)
+                            and not getattr(m, 'action', None)
+                        ]
                         if others:
                             messages_after += len(others)
                             last_id = max(m.id for m in others)
-                            logger.info(f"[Smart] {entity_label}: {len(others)} رسالة جديدة (المجموع: {messages_after})")
+                            logger.info(f"[Smart] {entity_label}: {len(others)} رسالة جديدة (المجموع: {messages_after}/{required_messages})")
                             socketio.emit('log_update', {
-                                "message": f"🧠 [Smart] {entity_label}: استقبل {messages_after}/{required_messages} رسالة"
+                                "message": f"🧠 [Smart] {entity_label}: وصل {messages_after}/{required_messages} رسالة بعد السلام"
                             }, to=user_id)
-                            # استيفاء الشرط مبكراً فور وصول الرسائل المطلوبة
-                            if messages_after >= required_messages:
-                                logger.info(f"[Smart] استوفت الشروط مبكراً ({messages_after}/{required_messages}) لـ {entity_label}")
-                                break
                     except Exception as poll_err:
                         logger.error(f"[Smart] خطأ في جلب الرسائل من {entity_label}: {poll_err}")
                         break
@@ -6512,53 +6780,85 @@ class TelegramManager:
                             client_manager.client.get_messages(entity_obj, ids=msg.id)
                         )
                         if not chk_msg or getattr(chk_msg, 'action', None) or not getattr(chk_msg, 'message', None):
-                            logger.warning(f"[Smart] تم حذف رسالة السلام في {entity_label} بواسطة بوت حماية")
-                            socketio.emit('log_update', {
-                                "message": f"⚠️ [Smart] تم حذف رسالة 'السلام عليكم' في {entity_label} بواسطة بوت حماية"
-                            }, to=user_id)
+                            deleted_by_bot = True
                             break
                     except Exception:
                         pass
 
-                    # في المجموعات الهادئة، إذا مر 35 ثانية مع رسالة واحدة أخرى على الأقل وبقيت رسالة السلام سالمة
-                    if (time.time() - start_time) >= 35 and messages_after >= 1:
-                        logger.info(f"[Smart] استوفت الشروط الزمنية الآمنة لـ {entity_label}")
+                    if messages_after >= required_messages and (time.time() - start_time) >= 6:
+                        logger.info(f"[Smart] تحققت الشروط الفعلية ({messages_after}/{required_messages}) لـ {entity_label}")
                         break
 
-                # ── 3. اتخاذ القرار وتعديل الرسالة إلى النص الأصلي ──
-                # التحقق هل الرسالة لا تزال موجودة
-                is_alive = True
-                try:
-                    chk2 = client_manager.run_coroutine(
-                        client_manager.client.get_messages(entity_obj, ids=msg.id)
-                    )
-                    if not chk2 or getattr(chk2, 'action', None) or not getattr(chk2, 'message', None):
-                        is_alive = False
-                except Exception:
-                    pass
+                if cancel_event and cancel_event.is_set():
+                    break
+
+                # ── 3. التحقق النهائي من بقاء الرسالة قبل التعديل ──
+                is_alive = not deleted_by_bot
+                if is_alive:
+                    try:
+                        chk2 = client_manager.run_coroutine(
+                            client_manager.client.get_messages(entity_obj, ids=msg.id)
+                        )
+                        if not chk2 or getattr(chk2, 'action', None) or not getattr(chk2, 'message', None):
+                            is_alive = False
+                    except Exception:
+                        pass
 
                 if not is_alive:
-                    fail_msg = f"❌ [Smart] تعذر التعديل في {entity_label}: بوت حماية قام بحذف الرسالة فورياً"
+                    reason = "قام بوت الحماية بحذف رسالة 'السلام عليكم' فورياً قبل تحقق الشروط"
+                    fail_msg = f"❌ [Smart] فشل في {entity_label}: {reason}"
                     socketio.emit('log_update', {"message": fail_msg}, to=user_id)
                     socketio.emit('send_progress', {
                         "group": entity_label,
                         "status": "error",
-                        "error_type": "حُذفت الرسالة بواسطة بوت حماية",
+                        "error_type": reason,
                         "message": fail_msg
                     }, to=user_id)
+                    self.notify_private_send_failure(
+                        user_id, client_manager, entity_label,
+                        "الإرسال الذكي (مراقبة السلام)", reason, entity_obj=entity_obj
+                    )
                     break
 
-                if messages_after >= required_messages or (time.time() - start_time >= 35 and is_alive):
-                    # ✅ تعديل الرسالة إلى النص النهائي (الأصلي)
+                if messages_after >= required_messages:
+                    # ✅ تحققت الشروط الفعلية -> تعديل الرسالة إلى النص المكيّف النهائي
                     try:
-                        client_manager.run_coroutine(
-                            client_manager.client.edit_message(entity_obj, msg.id, final_message, parse_mode='md')
-                        )
-                        logger.info(f"[Smart] تم تعديل الرسالة في {entity_label} بنجاح إلى النص الأصلي")
-                        success_edit_msg = f"✅ [Smart] تم تعديل الرسالة في {entity_label} بنجاح إلى النص الأصلي بعد استيفاء الشروط"
-                        socketio.emit('log_update', {
-                            "message": success_edit_msg
-                        }, to=user_id)
+                        try:
+                            client_manager.run_coroutine(
+                                client_manager.client.edit_message(entity_obj, msg.id, final_message, parse_mode='md')
+                            )
+                        except Exception as md_edit_err:
+                            if any(k in str(md_edit_err).lower() for k in ("parse", "entities", "markdown")):
+                                client_manager.run_coroutine(
+                                    client_manager.client.edit_message(entity_obj, msg.id, final_message, parse_mode=None)
+                                )
+                            else:
+                                raise md_edit_err
+
+                        # تحقق بعد التعديل بـ 5 ثوانٍ للتأكد أن البوت لم يحذف الرسالة المعدلة
+                        time.sleep(5)
+                        post_alive = True
+                        try:
+                            chk_post = client_manager.run_coroutine(
+                                client_manager.client.get_messages(entity_obj, ids=msg.id)
+                            )
+                            if not chk_post or getattr(chk_post, 'action', None) or not getattr(chk_post, 'message', None):
+                                post_alive = False
+                        except Exception:
+                            pass
+
+                        if not post_alive:
+                            post_reason = "قام بوت الحماية بحذف الرسالة بعد تعديلها من 'السلام عليكم' إلى نص الإعلان"
+                            socketio.emit('log_update', {"message": f"❌ [Smart] {entity_label}: {post_reason}"}, to=user_id)
+                            self.notify_private_send_failure(
+                                user_id, client_manager, entity_label,
+                                "التحقق بعد التعديل الذكي", post_reason, entity_obj=entity_obj
+                            )
+                            break
+
+                        logger.info(f"[Smart] تم تعديل الرسالة والتحقق من بقائها في {entity_label}")
+                        success_edit_msg = f"✅ [Smart] تم تعديل الرسالة في {entity_label} بنجاح بعد وصول {messages_after} رسائل والتحقق من ثباتها"
+                        socketio.emit('log_update', {"message": success_edit_msg}, to=user_id)
                         socketio.emit('send_progress', {
                             "group": entity_label,
                             "status": "success",
@@ -6570,47 +6870,45 @@ class TelegramManager:
                             "waited": messages_after,
                             "message": success_edit_msg
                         }, to=user_id)
-                        # ── إيقاف الدورة بعد نجاح الإرسال — منع إرسال "السلام عليكم" مجدداً
                         break
                     except Exception as edit_err:
-                        logger.error(f"[Smart] فشل تعديل الرسالة في {entity_label}: {edit_err}")
-                        socketio.emit('log_update', {
-                            "message": f"❌ [Smart] فشل تعديل الرسالة في {entity_label}: {str(edit_err)[:80]}"
-                        }, to=user_id)
+                        edit_reason = f"فشل تعديل رسالة السلام إلى الرسالة النهائية ({str(edit_err)[:110]})"
+                        logger.error(f"[Smart] {entity_label}: {edit_reason}")
+                        socketio.emit('log_update', {"message": f"❌ [Smart] {entity_label}: {edit_reason}"}, to=user_id)
+                        self.notify_private_send_failure(
+                            user_id, client_manager, entity_label,
+                            "الإرسال الذكي (تعديل الرسالة)", edit_reason, entity_obj=entity_obj
+                        )
                         break
                 else:
-                    # ❌ لم نصل إلى العدد المطلوب — احذف رسالة السلام
-                    logger.info(f"[Smart] لم يتم تعديل الرسالة في {entity_label} (عدد الرسائل: {messages_after} < {required_messages})")
-                    socketio.emit('log_update', {
-                        "message": f"⏭️ [Smart] لم يتم تعديل الرسالة في {entity_label} (استقبل {messages_after} فقط)"
-                    }, to=user_id)
+                    # ❌ لم تتحقق الشروط خلال المهلة -> حذف رسالة السلام وإبلاغ المستخدم بالسبب
                     try:
                         client_manager.run_coroutine(
                             client_manager.client.delete_messages(entity_obj, [msg.id])
                         )
-                        logger.info(f"[Smart] تم حذف رسالة 'السلام عليكم' غير المعدلة من {entity_label}")
-                    except Exception as del_err:
-                        logger.warning(f"[Smart] فشل حذف رسالة 'السلام عليكم' من {entity_label}: {del_err}")
-
-                # ── 4. انتظار الدورة التالية ──
-                if self._smart_running and key in self._smart_running:
-                    socketio.emit('log_update', {
-                        "message": f"⏳ [Smart] انتظار {cycle_duration // 60} دقيقة قبل الدورة التالية لـ {entity_label}"
-                    }, to=user_id)
-                    for _ in range(cycle_duration // 10):
-                        if not self._smart_running or key not in self._smart_running:
-                            break
-                        time.sleep(10)
+                    except Exception:
+                        pass
+                    cond_reason = f"لم تتحقق شروط التعديل خلال {salam_wait_cap}ث (وصلت {messages_after} رسائل فقط من أصل {required_messages} مطلوبة) وتم حذف رسالة 'السلام عليكم'"
+                    logger.info(f"[Smart] {entity_label}: {cond_reason}")
+                    socketio.emit('log_update', {"message": f"⏭️ [Smart] {entity_label}: {cond_reason}"}, to=user_id)
+                    self.notify_private_send_failure(
+                        user_id, client_manager, entity_label,
+                        "الإرسال الذكي (استيفاء الشروط)", cond_reason, entity_obj=entity_obj
+                    )
+                    break
 
         except Exception as e:
+            err_msg = f"خطأ في الإرسال الذكي: {str(e)[:120]}"
             logger.error(f"[Smart] خطأ عام في الإرسال الذكي لـ {entity_label}: {e}")
-            socketio.emit('log_update', {
-                "message": f"❌ [Smart] فشل في {entity_label}: {str(e)[:100]}"
-            }, to=user_id)
+            socketio.emit('log_update', {"message": f"❌ [Smart] فشل في {entity_label}: {err_msg}"}, to=user_id)
+            self.notify_private_send_failure(
+                user_id, client_manager, entity_label,
+                "الإرسال الذكي", err_msg, entity_obj=entity_obj
+            )
         finally:
             self._smart_running.discard(key)
             socketio.emit('log_update', {
-                "message": f"⏹ [Smart] توقفت الدورة الذكية لـ {entity_label}"
+                "message": f"⏹ [Smart] انتهت معالجة الإرسال الذكي لـ {entity_label}"
             }, to=user_id)
 
     def _maybe_sanitize_detailed(self, user_id, client_manager, entity_obj, entity_label, message, forced_action=None):
@@ -6719,6 +7017,8 @@ class TelegramManager:
         pre_actions=None,
         pre_risk=None,
         log_source="media",
+        already_adapted=False,
+        strategy_used=None,
     ):
         try:
             with USERS_LOCK:
@@ -6743,28 +7043,30 @@ class TelegramManager:
                 adapt_repls = []
                 adapt_actions = []
                 effective_risk = pre_risk or "low"
-                try:
-                    _rep, _ = self.get_or_create_group_safety_report(
-                        user_id, client_manager, entity_obj, entity, sample_message=message
-                    )
-                    effective_risk = pre_risk or _rep.get('risk_assessment', 'low')
-                    _adapted_msg, _, adapt_actions, adapt_repls = self.adapt_message_to_group_report_detailed(
-                        message, _rep, has_media=True
-                    )
-                    message = _adapted_msg
-                except Exception:
-                    pass
-                _cleaned, _san_repls = self._maybe_sanitize_detailed(user_id, client_manager, entity_obj, entity, message)
-                if _cleaned is None:
+                if not already_adapted:
+                    try:
+                        _rep, _ = self.get_or_create_group_safety_report(
+                            user_id, client_manager, entity_obj, entity, sample_message=message
+                        )
+                        effective_risk = pre_risk or _rep.get('risk_assessment', 'low')
+                        resolved_st, _ = self.resolve_group_send_strategy(_rep, settings=load_settings(user_id))
+                        strategy_used = strategy_used or resolved_st
+                        _adapted_msg, _, adapt_actions, adapt_repls = self.adapt_message_to_group_report_detailed(
+                            message, _rep, has_media=True, strategy=strategy_used
+                        )
+                        message = _adapted_msg
+                    except Exception:
+                        pass
+                if not message or not str(message).strip():
                     return {"success": False, "skipped": True,
-                            "message": "تم تخطي الإرسال: الرسالة بعد التنقية أصبحت فارغة"}
-                message = _cleaned
+                            "message": "الرسالة أصبحت فارغة بعد حذف الأرقام/الروابط المحظورة"}
                 record_sanitization_event(
                     user_id, entity, raw_source_msg, message,
-                    replacements=_merge_replacements_unique(pre_replacements, _merge_replacements_unique(adapt_repls, _san_repls)),
+                    replacements=_merge_replacements_unique(pre_replacements, adapt_repls),
                     extra_actions=list(pre_actions or []) + list(adapt_actions or []),
                     risk_assessment=effective_risk,
                     source=log_source,
+                    strategy_used=strategy_used or log_source,
                 )
 
             results = []
@@ -7292,76 +7594,145 @@ def execute_scheduled_messages(user_id, settings):
         return
 
     try:
+        inter_delay = float(getattr(_cfg, 'BATCH_SEND_INTERVAL_SECONDS', 7) or 7)
         socketio.emit('log_update', {
-            "message": f"📅 تنفيذ الإرسال المجدول إلى {len(groups)} مجموعة"
+            "message": f"📅 تنفيذ الإرسال المجدول إلى {len(groups)} مجموعة (فاصل {inter_delay:.0f} ثوانٍ بين كل مجموعة)"
         }, to=user_id)
 
         successful = 0
         failed = 0
+        failed_items = []
+        last_cm = None
 
         for i, group in enumerate(groups, 1):
             try:
-                curr_message = message
-                try:
-                    with USERS_LOCK:
-                        cm = USERS.get(user_id, {}).get('client_manager')
-                    if cm and cm.client:
-                        ent_obj = telegram_manager._resolve_entity(cm, group)
-                        ai_check = telegram_manager.scan_and_analyze_group_with_ai(
-                            user_id, cm, ent_obj, group, sample_message=message, send_report_to_me=True
-                        )
-                        if ai_check.get('should_skip'):
-                            socketio.emit('log_update', {
-                                "message": f"⏭️ [{i}/{len(groups)}] تخطي آلي لـ {group}: {ai_check.get('skip_reason', 'رُصد حظر قطعي للأعضاء')}"
-                            }, to=user_id)
-                            continue
-                        if ai_check.get('adapted_message'):
-                            curr_message = ai_check.get('adapted_message')
-                        if ai_check.get('actions_taken'):
-                            socketio.emit('log_update', {
-                                "message": f"🛡️ [{i}/{len(groups)}] تلافي أخطاء الآخرين في {group}: {', '.join(ai_check['actions_taken'][:2])}"
-                            }, to=user_id)
-                except Exception as _ai_ex:
-                    logger.debug(f"AI inspection fallback in scheduled send: {_ai_ex}")
+                with USERS_LOCK:
+                    cm = USERS.get(user_id, {}).get('client_manager')
+                last_cm = cm
+                if not cm or not cm.client:
+                    raise Exception("عميل تيليجرام غير متصل")
 
-                result = telegram_manager.send_message_async(user_id, group, curr_message)
-
-                if isinstance(result, dict) and result.get('skipped'):
+                ent_obj = telegram_manager._resolve_entity(cm, group)
+                can_send, _, pre_reason, _ = telegram_manager.preflight_check_target(cm, ent_obj, group)
+                if not can_send:
                     socketio.emit('log_update', {
-                        "message": f"⏭️ [{i}/{len(groups)}] تم تخطي: {group} (الرسالة لم تُرسَل)"
+                        "message": f"⏭️ [{i}/{len(groups)}] تعذر الإرسال إلى {group}: {pre_reason}"
                     }, to=user_id)
                     failed += 1
+                    failed_items.append((group, pre_reason))
+                    telegram_manager.notify_private_send_failure(
+                        user_id, cm, group, "فحص صلاحيات المجموعة (مجدول)", pre_reason,
+                        index=i, total=len(groups), entity_obj=ent_obj
+                    )
                     with USERS_LOCK:
                         if user_id in USERS:
                             USERS[user_id]['stats']['errors'] += 1
                 else:
-                    socketio.emit('log_update', {
-                        "message": f"✅ [{i}/{len(groups)}] إرسال مجدول نجح إلى: {group}"
-                    }, to=user_id)
-                    successful += 1
-                    with USERS_LOCK:
-                        if user_id in USERS:
-                            USERS[user_id]['stats']['sent'] += 1
+                    report, _ = telegram_manager.get_or_create_group_safety_report(
+                        user_id, cm, ent_obj, group, sample_message=message
+                    )
+                    strategy, strategy_reason = telegram_manager.resolve_group_send_strategy(report, settings=settings)
+                    if strategy == 'skip':
+                        skip_rsn = strategy_reason or "المجموعة مقفلة أو محظورة"
+                        socketio.emit('log_update', {
+                            "message": f"⏭️ [{i}/{len(groups)}] تخطي {group}: {skip_rsn}"
+                        }, to=user_id)
+                        failed += 1
+                        failed_items.append((group, skip_rsn))
+                        telegram_manager.notify_private_send_failure(
+                            user_id, cm, group, "تقييم حماية المجموعة (مجدول)", skip_rsn,
+                            index=i, total=len(groups), entity_obj=ent_obj
+                        )
+                        with USERS_LOCK:
+                            if user_id in USERS:
+                                USERS[user_id]['stats']['errors'] += 1
+                    else:
+                        curr_message, _, safety_actions, kw_replacements = telegram_manager.adapt_message_to_group_report_detailed(
+                            message, report, has_media=False, strategy=strategy
+                        )
+                        if not curr_message or not str(curr_message).strip():
+                            empty_rsn = "أصبحت الرسالة فارغة بعد حذف الأرقام/الروابط المحظورة"
+                            failed += 1
+                            failed_items.append((group, empty_rsn))
+                            telegram_manager.notify_private_send_failure(
+                                user_id, cm, group, "تكييف الرسالة (مجدول)", empty_rsn,
+                                index=i, total=len(groups), entity_obj=ent_obj
+                            )
+                            with USERS_LOCK:
+                                if user_id in USERS:
+                                    USERS[user_id]['stats']['errors'] += 1
+                        else:
+                            if safety_actions:
+                                socketio.emit('log_update', {
+                                    "message": f"🛡️ [{i}/{len(groups)}] حماية ({strategy}) لـ {group}: {', '.join(safety_actions[:2])}"
+                                }, to=user_id)
+                            result = telegram_manager.send_message_async(
+                                user_id,
+                                group,
+                                curr_message,
+                                forced_action=strategy,
+                                wait_for_completion=False,
+                                original_message_for_log=message,
+                                pre_replacements=kw_replacements,
+                                pre_actions=safety_actions,
+                                pre_risk=report.get('risk_assessment', 'low'),
+                                log_source="scheduled",
+                                already_adapted=True,
+                                strategy_used=strategy,
+                            )
 
-                if i < len(groups):
-                    time.sleep(3)
+                            if isinstance(result, dict) and result.get('skipped'):
+                                skip_msg = result.get('message') or "تعذر الإرسال إلى المجموعة"
+                                socketio.emit('log_update', {
+                                    "message": f"⏭️ [{i}/{len(groups)}] تعذر الإرسال: {group} — {skip_msg}"
+                                }, to=user_id)
+                                failed += 1
+                                failed_items.append((group, skip_msg))
+                                telegram_manager.notify_private_send_failure(
+                                    user_id, cm, group, "الإرسال المجدول", skip_msg,
+                                    index=i, total=len(groups), entity_obj=ent_obj
+                                )
+                                with USERS_LOCK:
+                                    if user_id in USERS:
+                                        USERS[user_id]['stats']['errors'] += 1
+                            else:
+                                socketio.emit('log_update', {
+                                    "message": f"✅ [{i}/{len(groups)}] إرسال مجدول نجح إلى: {group}"
+                                }, to=user_id)
+                                successful += 1
+                                with USERS_LOCK:
+                                    if user_id in USERS:
+                                        USERS[user_id]['stats']['sent'] += 1
 
             except Exception as e:
-                error_msg = str(e)
+                error_msg = str(e)[:140]
                 logger.error(f"Scheduled send error to {group}: {error_msg}")
 
                 socketio.emit('log_update', {
-                    "message": f"❌ [{i}/{len(groups)}] إرسال مجدول فشل إلى {group}"
+                    "message": f"❌ [{i}/{len(groups)}] إرسال مجدول فشل إلى {group}: {error_msg}"
                 }, to=user_id)
 
                 failed += 1
+                failed_items.append((group, error_msg))
                 with USERS_LOCK:
+                    cm_err = USERS.get(user_id, {}).get('client_manager')
                     if user_id in USERS:
                         USERS[user_id]['stats']['errors'] += 1
+                telegram_manager.notify_private_send_failure(
+                    user_id, cm_err, group, "الإرسال المجدول", error_msg,
+                    index=i, total=len(groups)
+                )
+
+            if i < len(groups):
+                time.sleep(inter_delay)
 
         socketio.emit('log_update', {
             "message": f"📊 انتهى الإرسال المجدول: ✅ {successful} نجح | ❌ {failed} فشل"
         }, to=user_id)
+        if failed_items and last_cm:
+            telegram_manager.notify_private_batch_summary(
+                user_id, last_cm, len(groups), successful, failed, 0, failed_items
+            )
 
     except Exception as e:
         logger.error(f"Scheduled messages error: {str(e)}")
@@ -9634,7 +10005,7 @@ def _emit_batch_paused(user_id, state, paused_idx, total, msg=None):
 
 
 def _execute_batch_send(user_id, state, is_resume=False):
-    """محرك الإرسال الفوري للمجموعات مع الدعم الكامل للإيقاف الفوري والاستئناف والحماية"""
+    """محرك الإرسال الفوري للمجموعات مع فاصل 7 ثوانٍ ثابت وإشعار الفشل للحساب الخاص وحماية حتمية لكل مجموعة"""
     groups_list = state['groups_list']
     cancel_event = state['cancel_event']
     message = state['message']
@@ -9644,9 +10015,11 @@ def _execute_batch_send(user_id, state, is_resume=False):
     force_salam = state['force_salam']
     batch_entries = state['batch_entries']
     batch_id = state['batch_id']
+    failed_items = state.setdefault('failed_items', [])
     total = len(groups_list)
     start_i = state['current_index'] if is_resume else 0
-    is_batch = total > 1
+    exact_delay = float(batch_interval if (batch_interval and int(batch_interval) > 0) else (_cfg.BATCH_SEND_INTERVAL_SECONDS or 7))
+    last_cm = None
 
     try:
         for idx in range(start_i, total):
@@ -9658,6 +10031,8 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 _emit_batch_paused(user_id, state, idx, total)
                 return
 
+            cm = None
+            entity_obj = None
             try:
                 curr_message = message
                 curr_images = image_files
@@ -9665,6 +10040,7 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 # 1. جلب عميل المستخدم وحل المجموعة
                 with USERS_LOCK:
                     cm = USERS.get(user_id, {}).get('client_manager')
+                last_cm = cm
                 if not cm or not cm.client:
                     raise Exception("العميل غير متصل - يرجى تسجيل الدخول للحساب")
 
@@ -9682,12 +10058,16 @@ def _execute_batch_send(user_id, state, is_resume=False):
                     is_member = False
 
                 join_success = False
+                join_aborted_reason = None
+                join_aborted_status = "skipped"
+                join_aborted_emoji = "⏭️"
+
                 if not is_member:
                     if cancel_event.is_set():
                         _emit_batch_paused(user_id, state, idx, total)
                         return
                     socketio.emit('log_update', {
-                        "message": f"🔗 [{i}/{total}] الحساب ليس عضواً في {group} — جاري الانضمام التلقائي المنظم..."
+                        "message": f"🔗 [{i}/{total}] الحساب ليس عضواً في {group} — جاري الانضمام التلقائي..."
                     }, to=user_id)
                     join_limiter.acquire_sync()
                     if cancel_event.is_set():
@@ -9714,47 +10094,18 @@ def _execute_batch_send(user_id, state, is_resume=False):
                         join_success = True
                         is_member = True
                     except InviteRequestSentError:
-                        skip_msg = f"⏳ [{i}/{total}] تم طلب الانضمام لـ {group} وبانتظار موافقة المشرفين"
-                        logger.info(skip_msg)
-                        socketio.emit('log_update', {"message": skip_msg}, to=user_id)
-                        socketio.emit('send_progress', {
-                            "group": group, "index": i, "total": total,
-                            "status": "waiting_approval",
-                            "reason": "تم التخطي: بانتظار موافقة المشرف",
-                            "emoji": "⏳", "message": skip_msg
-                        }, to=user_id)
-                        state['skipped_count'] += 1
-                        state['current_index'] = i
-                        continue
+                        join_aborted_reason = "تم إرسال طلب الانضمام وبانتظار موافقة المشرفين"
+                        join_aborted_status = "waiting_approval"
+                        join_aborted_emoji = "⏳"
                     except ChannelPrivateError:
-                        skip_msg = f"🚫 [{i}/{total}] تم التخطي: الحساب محظور من {group} أو القناة خاصة"
-                        logger.warning(skip_msg)
-                        socketio.emit('log_update', {"message": skip_msg}, to=user_id)
-                        socketio.emit('send_progress', {
-                            "group": group, "index": i, "total": total,
-                            "status": "banned",
-                            "reason": "تم التخطي: الحساب محظور من المجموعة",
-                            "emoji": "🚫", "message": skip_msg
-                        }, to=user_id)
-                        state['skipped_count'] += 1
-                        state['current_index'] = i
-                        continue
-                    except (InviteHashExpiredError, InviteHashInvalidError, UsernameInvalidError, UsernameNotOccupiedError) as link_err:
-                        skip_msg = f"⏭️ [{i}/{total}] تم التخطي: رابط غير صالح أو منتهي الصلاحية ({group})"
-                        logger.warning(skip_msg)
-                        socketio.emit('log_update', {"message": skip_msg}, to=user_id)
-                        socketio.emit('send_progress', {
-                            "group": group, "index": i, "total": total,
-                            "status": "skipped",
-                            "reason": "تم التخطي: رابط غير صالح",
-                            "emoji": "⏭️", "message": skip_msg
-                        }, to=user_id)
-                        state['skipped_count'] += 1
-                        state['current_index'] = i
-                        continue
+                        join_aborted_reason = "الحساب محظور من المجموعة أو المجموعة خاصة"
+                        join_aborted_status = "banned"
+                        join_aborted_emoji = "🚫"
+                    except (InviteHashExpiredError, InviteHashInvalidError, UsernameInvalidError, UsernameNotOccupiedError):
+                        join_aborted_reason = "رابط الدعوة غير صالح أو منتهي الصلاحية"
                     except FloodWaitError as fwe:
                         set_user_flood_wait(user_id, fwe.seconds)
-                        wait_secs = fwe.seconds + random.uniform(3, 8)
+                        wait_secs = fwe.seconds + random.uniform(3, 6)
                         logger.warning(f"⚠️ FloodWait أثناء الانضمام لـ {group}: انتظار {wait_secs:.0f} ثانية")
                         socketio.emit('log_update', {
                             "message": f"⏳ [{i}/{total}] قيد FloodWait أثناء الانضمام لـ {group}: انتظار {wait_secs:.0f}ث..."
@@ -9773,197 +10124,244 @@ def _execute_batch_send(user_id, state, is_resume=False):
                                 _emit_batch_paused(user_id, state, idx, total)
                                 return
                         except Exception as fwe_retry:
-                            fail_msg = f"❌ [{i}/{total}] فشل الانضمام لـ {group} بعد انتظار FloodWait: {fwe_retry}"
-                            logger.error(fail_msg)
-                            socketio.emit('log_update', {"message": fail_msg}, to=user_id)
-                            socketio.emit('send_progress', {
-                                "group": group, "index": i, "total": total,
-                                "status": "error", "reason": f"فشل: FloodWait ({fwe.seconds}s)",
-                                "emoji": "❌", "message": fail_msg
-                            }, to=user_id)
-                            state['failed'] += 1
-                            state['current_index'] = i
-                            continue
+                            join_aborted_reason = f"فشل الانضمام بعد انتظار FloodWait ({fwe.seconds}s): {str(fwe_retry)[:80]}"
+                            join_aborted_status = "error"
+                            join_aborted_emoji = "❌"
                     except Exception as join_err:
                         err_str = str(join_err)
                         if any(k in err_str.lower() for k in ["auth_key_unregistered", "session_revoked", "user_deactivated"]):
                             handle_session_revoked(user_id, "تم رصد إلغاء الجلسة أثناء الانضمام")
                             state['status'] = 'cancelled'
                             return
-                        reason = "تم التخطي: الحساب وصل للحد الأقصى (500 مجموعة)" if ("too much" in err_str.lower() or "500" in err_str) else f"تعذر الانضمام ({err_str[:60]})"
-                        skip_msg = f"⏭️ [{i}/{total}] {reason} لـ {group}"
-                        logger.warning(skip_msg)
-                        socketio.emit('log_update', {"message": skip_msg}, to=user_id)
-                        socketio.emit('send_progress', {
-                            "group": group, "index": i, "total": total,
-                            "status": "skipped", "reason": reason,
-                            "emoji": "⏭️", "message": skip_msg
-                        }, to=user_id)
-                        state['skipped_count'] += 1
-                        state['current_index'] = i
-                        continue
+                        join_aborted_reason = (
+                            "الحساب وصل للحد الأقصى من القنوات والمجموعات (500)"
+                            if ("too much" in err_str.lower() or "500" in err_str)
+                            else f"تعذر الانضمام للمجموعة ({err_str[:80]})"
+                        )
 
-                if cancel_event.is_set():
-                    _emit_batch_paused(user_id, state, idx, total)
-                    return
-
-                # 3. التحقق من تقرير الأمان وتكييف الرسالة
-                report, is_new = telegram_manager.get_or_create_group_safety_report(
-                    user_id, cm, entity_obj, group, sample_message=message
-                )
-                curr_message, can_media, safety_actions, kw_replacements = telegram_manager.adapt_message_to_group_report_detailed(
-                    message, report, has_media=bool(image_files)
-                )
-                curr_images = image_files if can_media else []
-                if safety_actions:
-                    socketio.emit('log_update', {
-                        "message": f"🛡️ [{i}/{total}] تلافي مسببات الحظر في {group}: {', '.join(safety_actions[:2])}"
-                    }, to=user_id)
-
-                if pre_scan_action == 'skip':
-                    skip_msg = f"⏭️ [{i}/{total}] تم تخطي {group} (بناءً على اختيارك)"
-                    socketio.emit('log_update', {"message": skip_msg}, to=user_id)
+                if join_aborted_reason:
+                    fail_log = f"{join_aborted_emoji} [{i}/{total}] تعذر الإرسال لـ {group}: {join_aborted_reason}"
+                    logger.warning(fail_log)
+                    socketio.emit('log_update', {"message": fail_log}, to=user_id)
                     socketio.emit('send_progress', {
                         "group": group, "index": i, "total": total,
-                        "status": "skipped", "reason": "تم التخطي: بناءً على اختيار المستخدم",
-                        "emoji": "⏭️", "message": skip_msg
+                        "status": join_aborted_status,
+                        "reason": join_aborted_reason,
+                        "emoji": join_aborted_emoji, "message": fail_log
                     }, to=user_id)
-                    state['skipped_count'] += 1
+                    if join_aborted_status == "error":
+                        state['failed'] += 1
+                    else:
+                        state['skipped_count'] += 1
                     state['current_index'] = i
-                    continue
-
-                if cancel_event.is_set():
-                    _emit_batch_paused(user_id, state, idx, total)
-                    return
-
-                # 4. تحديد الإجراء ومنع تعليق العميل بسبب وضع salam
-                needs_smart = bool(
-                    report.get('requires_smart_send') or 
-                    (report.get('is_protected') and report.get('blocks_ads'))
-                )
-                settings_mode = (load_settings(user_id).get('sanitize_mode') or 'salam').lower()
-                if is_batch and not force_salam:
-                    if settings_mode == 'off':
-                        action_to_use = 'send'
-                    elif needs_smart or pre_scan_action == 'salam' or report.get('is_protected') or report.get('blocks_ads') or settings_mode == 'always':
-                        action_to_use = 'sanitize'
-                        if needs_smart or pre_scan_action == 'salam':
-                            logger.info(f"ℹ️ Batch mode: تخطي salam للمجموعة {group}، استخدام sanitize لتسريع الإرسال ومنع التعليق.")
-                            socketio.emit('log_update', {
-                                "message": f"ℹ️ [{i}/{total}] وضع الإرسال الجماعي: استخدام نمط التنقية المباشرة (sanitize) لتفادي تعليق المجموعات في {group}"
-                            }, to=user_id)
-                    else:
-                        action_to_use = 'send'
+                    failed_items.append((group, join_aborted_reason))
+                    telegram_manager.notify_private_send_failure(
+                        user_id, cm, group, "الانضمام للمجموعة", join_aborted_reason,
+                        index=i, total=total, entity_obj=entity_obj
+                    )
                 else:
-                    if needs_smart or pre_scan_action == 'salam' or force_salam:
-                        action_to_use = 'salam'
-                    else:
-                        action_to_use = 'send'
-
-                # 5. محاولة الإرسال الفعلي
-                send_attempts = 0
-                max_send_attempts = 2
-                result = None
-                while send_attempts < max_send_attempts:
                     if cancel_event.is_set():
                         _emit_batch_paused(user_id, state, idx, total)
                         return
-                    send_attempts += 1
-                    try:
-                        if action_to_use == 'salam':
-                            socketio.emit('log_update', {
-                                "message": f"🤖 [{i}/{total}] جاري الإرسال بوضع salam لـ {group}..."
+
+                    # ── 3. فحص تقرير الحماية الفعلي وتحديد الطريقة المناسبة لهذه المجموعة حتمياً ──
+                    can_send_pre, _, pre_reason, _ = telegram_manager.preflight_check_target(cm, entity_obj, group)
+                    if not can_send_pre:
+                        pre_msg = f"🚫 [{i}/{total}] تعذر الإرسال إلى {group}: {pre_reason}"
+                        socketio.emit('log_update', {"message": pre_msg}, to=user_id)
+                        socketio.emit('send_progress', {
+                            "group": group, "index": i, "total": total,
+                            "status": "skipped", "reason": pre_reason,
+                            "emoji": "🚫", "message": pre_msg
+                        }, to=user_id)
+                        state['skipped_count'] += 1
+                        state['current_index'] = i
+                        failed_items.append((group, pre_reason))
+                        telegram_manager.notify_private_send_failure(
+                            user_id, cm, group, "فحص صلاحيات المجموعة", pre_reason,
+                            index=i, total=total, entity_obj=entity_obj
+                        )
+                    else:
+                        report, is_new = telegram_manager.get_or_create_group_safety_report(
+                            user_id, cm, entity_obj, group, sample_message=message
+                        )
+                        user_settings = load_settings(user_id)
+                        strategy, strategy_reason = telegram_manager.resolve_group_send_strategy(
+                            report,
+                            settings=user_settings,
+                            pre_scan_action=pre_scan_action,
+                            force_salam=force_salam,
+                        )
+
+                        if strategy == 'skip':
+                            skip_rsn = strategy_reason or "تم تخطي المجموعة المحمية"
+                            skip_msg = f"⏭️ [{i}/{total}] تعذر الإرسال لـ {group}: {skip_rsn}"
+                            socketio.emit('log_update', {"message": skip_msg}, to=user_id)
+                            socketio.emit('send_progress', {
+                                "group": group, "index": i, "total": total,
+                                "status": "skipped", "reason": skip_rsn,
+                                "emoji": "⏭️", "message": skip_msg
                             }, to=user_id)
-                            result = telegram_manager.send_message_async(
-                                user_id, group, curr_message, forced_action='salam',
-                                wait_for_completion=is_batch, cancel_event=cancel_event,
-                                original_message_for_log=message,
-                                pre_replacements=kw_replacements,
-                                pre_actions=safety_actions,
-                                pre_risk=report.get('risk_assessment', 'low'),
-                                log_source="batch_salam",
-                            )
-                        elif curr_images and curr_message:
-                            result = telegram_manager.send_message_with_media_async(
-                                user_id, group, curr_message, curr_images,
-                                original_message_for_log=message,
-                                pre_replacements=kw_replacements,
-                                pre_actions=safety_actions,
-                                pre_risk=report.get('risk_assessment', 'low'),
-                                log_source="batch_media",
-                            )
-                        elif curr_images:
-                            result = telegram_manager.send_media_async(
-                                user_id, group, curr_images
+                            state['skipped_count'] += 1
+                            state['current_index'] = i
+                            failed_items.append((group, skip_rsn))
+                            telegram_manager.notify_private_send_failure(
+                                user_id, cm, group, "تقييم الحماية", skip_rsn,
+                                index=i, total=total, entity_obj=entity_obj
                             )
                         else:
-                            result = telegram_manager.send_message_async(
-                                user_id, group, curr_message, forced_action=action_to_use,
-                                original_message_for_log=message,
-                                pre_replacements=kw_replacements,
-                                pre_actions=safety_actions,
-                                pre_risk=report.get('risk_assessment', 'low'),
-                                log_source="batch",
+                            curr_message, can_media, safety_actions, kw_replacements = telegram_manager.adapt_message_to_group_report_detailed(
+                                message, report, has_media=bool(image_files), strategy=strategy
                             )
-                        break
-                    except FloodWaitError as fwe:
-                        set_user_flood_wait(user_id, fwe.seconds)
-                        if send_attempts < max_send_attempts:
-                            wait_s = fwe.seconds + random.uniform(3, 8)
-                            logger.warning(f"⚠️ FloodWait: انتظار {wait_s:.0f}s قبل إعادة محاولة الإرسال لـ {group}")
+                            curr_images = image_files if can_media else []
+
+                            strategy_labels = {
+                                "salam_then_edit": "👋 السلام عليكم ثم التعديل بعد استيفاء الشروط",
+                                "strip_numbers_and_links": "📵 حذف الأرقام/الروابط المحظورة",
+                                "replace_forbidden_words": "🔤 استبدال الكلمات المحظورة فقط",
+                                "strip_numbers_and_replace_words": "🛡️ حذف الأرقام/الروابط واستبدال الكلمات المحظورة",
+                                "direct_send": "✅ إرسال مباشر",
+                            }
                             socketio.emit('log_update', {
-                                "message": f"⏳ [{i}/{total}] FloodWait: انتظار {wait_s:.0f} ثانية قبل إعادة محاولة الإرسال لـ {group}..."
+                                "message": f"🛡️ [{i}/{total}] {group}: {strategy_labels.get(strategy, strategy)} ({strategy_reason})"
                             }, to=user_id)
-                            if cancel_event.wait(wait_s):
-                                _emit_batch_paused(user_id, state, idx, total)
-                                return
-                        else:
-                            raise fwe
 
-                # 6. تحليل نتيجة الإرسال وتحديث الواجهة
-                if isinstance(result, dict) and result.get('skipped'):
-                    reason = result.get('message', 'محمية')
-                    skip_msg = f"⏭️ [{i}/{total}] تم تخطي {group}: {reason}"
-                    socketio.emit('log_update', {"message": skip_msg}, to=user_id)
-                    socketio.emit('send_progress', {
-                        "group": group,
-                        "index": i,
-                        "total": total,
-                        "status": "skipped",
-                        "reason": f"تم التخطي: {reason}",
-                        "emoji": "⏭️",
-                        "message": skip_msg
-                    }, to=user_id)
-                    state['skipped_count'] += 1
-                else:
-                    status_type = "joined_then_sent" if join_success else "success"
-                    reason = "تم الانضمام ثم الإرسال بنجاح" if join_success else "تم الإرسال بنجاح"
-                    emoji_icon = "✅"
-                    success_msg = f"{emoji_icon} [{i}/{total}] {reason} إلى: {group}"
-                    logger.info(success_msg)
-                    socketio.emit('log_update', {"message": success_msg}, to=user_id)
-                    socketio.emit('send_progress', {
-                        "group": group,
-                        "index": i,
-                        "total": total,
-                        "status": status_type,
-                        "reason": reason,
-                        "emoji": emoji_icon,
-                        "message": success_msg
-                    }, to=user_id)
-                    state['successful'] += 1
-                    msg_id = None
-                    if isinstance(result, dict):
-                        msg_id = result.get('message_id') or (result.get('message_ids') or [None])[0]
-                    if msg_id:
-                        batch_entries.append({"group": group, "msg_id": msg_id})
-                    with USERS_LOCK:
-                        if user_id in USERS:
-                            st_dict = USERS[user_id].setdefault('stats', {'sent': 0, 'errors': 0, 'replies': 0})
-                            st_dict['sent'] = st_dict.get('sent', 0) + 1
-                            socketio.emit('stats_update', st_dict, to=user_id)
+                            if message and (not curr_message or not str(curr_message).strip()) and not curr_images:
+                                empty_rsn = "أصبحت الرسالة فارغة بعد حذف الأرقام/الروابط المحظورة في هذه المجموعة"
+                                empty_log = f"⏭️ [{i}/{total}] تعذر الإرسال لـ {group}: {empty_rsn}"
+                                socketio.emit('log_update', {"message": empty_log}, to=user_id)
+                                socketio.emit('send_progress', {
+                                    "group": group, "index": i, "total": total,
+                                    "status": "skipped", "reason": empty_rsn,
+                                    "emoji": "⏭️", "message": empty_log
+                                }, to=user_id)
+                                state['skipped_count'] += 1
+                                state['current_index'] = i
+                                failed_items.append((group, empty_rsn))
+                                telegram_manager.notify_private_send_failure(
+                                    user_id, cm, group, "تكييف الرسالة", empty_rsn,
+                                    index=i, total=total, entity_obj=entity_obj
+                                )
+                            else:
+                                # ── 5. محاولة الإرسال الفعلي بالإستراتيجية المخصصة دون حجب فاصل الـ 7 ثوانٍ ──
+                                send_attempts = 0
+                                max_send_attempts = 2
+                                result = None
+                                while send_attempts < max_send_attempts:
+                                    if cancel_event.is_set():
+                                        _emit_batch_paused(user_id, state, idx, total)
+                                        return
+                                    send_attempts += 1
+                                    try:
+                                        if strategy == 'salam_then_edit':
+                                            result = telegram_manager.send_message_async(
+                                                user_id, group, curr_message,
+                                                forced_action='salam_then_edit',
+                                                wait_for_completion=False,
+                                                cancel_event=cancel_event,
+                                                original_message_for_log=message,
+                                                pre_replacements=kw_replacements,
+                                                pre_actions=safety_actions,
+                                                pre_risk=report.get('risk_assessment', 'low'),
+                                                log_source="batch_salam",
+                                                already_adapted=True,
+                                                strategy_used="salam_then_edit",
+                                            )
+                                        elif curr_images and curr_message:
+                                            result = telegram_manager.send_message_with_media_async(
+                                                user_id, group, curr_message, curr_images,
+                                                original_message_for_log=message,
+                                                pre_replacements=kw_replacements,
+                                                pre_actions=safety_actions,
+                                                pre_risk=report.get('risk_assessment', 'low'),
+                                                log_source="batch_media",
+                                                already_adapted=True,
+                                                strategy_used=strategy,
+                                            )
+                                        elif curr_images:
+                                            result = telegram_manager.send_media_async(
+                                                user_id, group, curr_images
+                                            )
+                                        else:
+                                            result = telegram_manager.send_message_async(
+                                                user_id, group, curr_message,
+                                                forced_action=strategy,
+                                                wait_for_completion=False,
+                                                original_message_for_log=message,
+                                                pre_replacements=kw_replacements,
+                                                pre_actions=safety_actions,
+                                                pre_risk=report.get('risk_assessment', 'low'),
+                                                log_source="batch",
+                                                already_adapted=True,
+                                                strategy_used=strategy,
+                                            )
+                                        break
+                                    except FloodWaitError as fwe:
+                                        set_user_flood_wait(user_id, fwe.seconds)
+                                        if send_attempts < max_send_attempts:
+                                            wait_s = fwe.seconds + random.uniform(2, 5)
+                                            logger.warning(f"⚠️ FloodWait: انتظار {wait_s:.0f}s قبل إعادة محاولة الإرسال لـ {group}")
+                                            socketio.emit('log_update', {
+                                                "message": f"⏳ [{i}/{total}] FloodWait: انتظار {wait_s:.0f} ثانية قبل إعادة محاولة الإرسال لـ {group}..."
+                                            }, to=user_id)
+                                            if cancel_event.wait(wait_s):
+                                                _emit_batch_paused(user_id, state, idx, total)
+                                                return
+                                        else:
+                                            raise fwe
 
-                state['current_index'] = i
+                                # ── 6. تحليل نتيجة الإرسال وتحديث الواجهة + إشعار الحساب الخاص عند الفشل ──
+                                if isinstance(result, dict) and result.get('skipped'):
+                                    reason = result.get('message', 'تعذر الإرسال للمجموعة')
+                                    skip_msg = f"⏭️ [{i}/{total}] تعذر الإرسال إلى {group}: {reason}"
+                                    socketio.emit('log_update', {"message": skip_msg}, to=user_id)
+                                    socketio.emit('send_progress', {
+                                        "group": group,
+                                        "index": i,
+                                        "total": total,
+                                        "status": "skipped",
+                                        "reason": reason,
+                                        "emoji": "⏭️",
+                                        "message": skip_msg
+                                    }, to=user_id)
+                                    state['skipped_count'] += 1
+                                    failed_items.append((group, reason))
+                                    telegram_manager.notify_private_send_failure(
+                                        user_id, cm, group, "الإرسال للمجموعة", reason,
+                                        index=i, total=total, entity_obj=entity_obj
+                                    )
+                                else:
+                                    status_type = "joined_then_sent" if join_success else "success"
+                                    if strategy == 'salam_then_edit':
+                                        reason = "أُرسلت 'السلام عليكم' وتُراقب الشروط للتعديل تلقائياً"
+                                    else:
+                                        reason = "تم الانضمام ثم الإرسال بنجاح" if join_success else "تم الإرسال بنجاح"
+                                    emoji_icon = "✅"
+                                    success_msg = f"{emoji_icon} [{i}/{total}] {reason} إلى: {group}"
+                                    logger.info(success_msg)
+                                    socketio.emit('log_update', {"message": success_msg}, to=user_id)
+                                    socketio.emit('send_progress', {
+                                        "group": group,
+                                        "index": i,
+                                        "total": total,
+                                        "status": status_type,
+                                        "reason": reason,
+                                        "emoji": emoji_icon,
+                                        "message": success_msg
+                                    }, to=user_id)
+                                    state['successful'] += 1
+                                    msg_id = None
+                                    if isinstance(result, dict):
+                                        msg_id = result.get('message_id') or (result.get('message_ids') or [None])[0]
+                                    if msg_id:
+                                        batch_entries.append({"group": group, "msg_id": msg_id})
+                                    with USERS_LOCK:
+                                        if user_id in USERS:
+                                            st_dict = USERS[user_id].setdefault('stats', {'sent': 0, 'errors': 0, 'replies': 0})
+                                            st_dict['sent'] = st_dict.get('sent', 0) + 1
+                                            socketio.emit('stats_update', st_dict, to=user_id)
+
+                                state['current_index'] = i
 
             except Exception as e_grp:
                 err_str = str(e_grp)
@@ -10024,11 +10422,19 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 }, to=user_id)
                 state['failed'] += 1
                 state['current_index'] = i
+                failed_items.append((group, error_type))
                 with USERS_LOCK:
                     if user_id in USERS:
+                        cm_err = USERS[user_id].get('client_manager') or cm
                         st_dict = USERS[user_id].setdefault('stats', {'sent': 0, 'errors': 0, 'replies': 0})
                         st_dict['errors'] = st_dict.get('errors', 0) + 1
                         socketio.emit('stats_update', st_dict, to=user_id)
+                    else:
+                        cm_err = cm
+                telegram_manager.notify_private_send_failure(
+                    user_id, cm_err, group, "محاولة الإرسال", error_type,
+                    index=i, total=total, entity_obj=entity_obj
+                )
 
             # ── فحص فوري بعد إنهاء المجموعة الحالية ──
             if cancel_event.is_set() or state.get('status') == 'paused':
@@ -10038,12 +10444,13 @@ def _execute_batch_send(user_id, state, is_resume=False):
                 )
                 return
 
-            # ── فاصل زمني ديناميكي آمن مع فحص إيقاف فوري (cancel_event.wait يستيقظ في 0ms) ──
+            # ── فترة الانتظار الثابتة بين كل مجموعة وأخرى: 7 ثوانٍ فقط ──
             if i < total:
-                user_interval = max(5, min(60, batch_interval))
-                dynamic_delay = random.uniform(user_interval, user_interval + 3.0)
-                logger.info(f"⏳ فاصل زمني ديناميكي: انتظار {dynamic_delay:.1f} ثانية قبل المجموعة التالية...")
-                if cancel_event.wait(dynamic_delay):
+                logger.info(f"⏳ فاصل زمني ثابت: انتظار {exact_delay:.0f} ثوانٍ قبل المجموعة التالية...")
+                socketio.emit('log_update', {
+                    "message": f"⏳ انتظار {exact_delay:.0f} ثوانٍ قبل المجموعة التالية [{i + 1}/{total}]..."
+                }, to=user_id)
+                if cancel_event.wait(exact_delay):
                     _emit_batch_paused(
                         user_id, state, i, total,
                         f"⏸️ تم إيقاف الإرسال فوراً عند المجموعة {i} من {total} (متبقي {max(0, total - i)})"
@@ -10064,6 +10471,10 @@ def _execute_batch_send(user_id, state, is_resume=False):
             "failed": state['failed'],
             "message": summary_msg
         }, to=user_id)
+        if failed_items and last_cm:
+            telegram_manager.notify_private_batch_summary(
+                user_id, last_cm, total, state['successful'], state['failed'], state['skipped_count'], failed_items
+            )
 
         # حفظ الدفعة في "رسائلي"
         if batch_entries:
@@ -10134,7 +10545,15 @@ def api_send_now():
     send_to_all = bool(data.get('send_to_all', False))
     pre_scan_action = data.get('action', None)
     force_salam = bool(data.get('force_salam', False))
-    batch_interval = int(data.get('interval') or _cfg.BATCH_SEND_INTERVAL_SECONDS)
+    batch_interval = 7
+    try:
+        req_interval = data.get('interval')
+        if req_interval is not None and int(req_interval) > 0:
+            batch_interval = int(req_interval)
+        else:
+            batch_interval = int(getattr(_cfg, 'BATCH_SEND_INTERVAL_SECONDS', 7) or 7)
+    except Exception:
+        batch_interval = 7
 
     if not message and not images:
         return jsonify({
@@ -15248,6 +15667,148 @@ def api_pptx_canva_apply_template():
 
 def applied_name_safe(tid: str) -> str:
     return f"عرض_{re.sub(r'[^a-zA-Z0-9_]', '', tid or 'canva')}"
+
+
+@app.route('/api/edu/canva/browse', methods=['GET', 'POST'])
+def api_edu_canva_browse():
+    """تصفح وجلب قوالب كانفا داخل واجهة الخدمات التعليمية دون فتح كانفا خارجياً."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة', 'templates': [], 'fetched': []}), 500
+    try:
+        if request.method == 'POST':
+            body = request.get_json(silent=True) or {}
+            q = (body.get('q') or '').strip()
+            cat = (body.get('category') or 'all').strip()
+            src = (body.get('source') or 'all').strip()
+            token = (body.get('canva_token') or '').strip()
+        else:
+            q = (request.args.get('q') or '').strip()
+            cat = (request.args.get('category') or 'all').strip()
+            src = (request.args.get('source') or 'all').strip()
+            token = (request.args.get('canva_token') or '').strip()
+        res = _pptx_dimp.browse_edu_canva(query=q, category=cat, source=src, canva_token=token)
+        return jsonify({'success': True, **res})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/import_urls', methods=['POST'])
+def api_edu_canva_import_urls():
+    """استيراد رابط أو عدة روابط قوالب من كانفا إلى معرض التحديد الداخلي."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        urls_raw = body.get('urls') or body.get('url') or ''
+        category = (body.get('category') or 'تصاميمي المجلوبة').strip()
+        custom_name = (body.get('name') or '').strip()
+        if isinstance(urls_raw, str):
+            url_list = [u.strip() for u in re.split(r'[\n,\s]+', urls_raw) if u.strip()]
+        elif isinstance(urls_raw, list):
+            url_list = [str(u).strip() for u in urls_raw if str(u).strip()]
+        else:
+            url_list = []
+        if not url_list:
+            return jsonify({'success': False, 'error': 'يرجى لصق رابط قالب كانفا واحد على الأقل'}), 400
+        imported = []
+        for idx, u in enumerate(url_list[:15]):
+            nm = custom_name if (custom_name and len(url_list) == 1) else (f"{custom_name} ({idx+1})" if custom_name else "")
+            tpl = _pptx_dimp.import_canva_url(url=u, custom_name=nm, category=category)
+            imported.append(tpl)
+        return jsonify({'success': True, 'templates': imported, 'count': len(imported)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/fetch_selected', methods=['POST'])
+def api_edu_canva_fetch_selected():
+    """جلب القوالب التي حددها المستخدم من متصفح كانفا الداخلي وتجهيزها للتطبيق والمعاينة."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        selected = body.get('templates') or []
+        token = (body.get('canva_token') or '').strip()
+        fetched = _pptx_dimp.fetch_selected_edu_canva(selected, canva_token=token)
+        all_fetched = _pptx_dimp.get_fetched_edu_canva()
+        return jsonify({'success': True, 'fetched_now': fetched, 'fetched': all_fetched, 'count': len(fetched)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/fetched', methods=['GET'])
+def api_edu_canva_fetched_list():
+    if not _pptx_dimp:
+        return jsonify({'success': True, 'fetched': []})
+    return jsonify({'success': True, 'fetched': _pptx_dimp.get_fetched_edu_canva()})
+
+
+@app.route('/api/edu/canva/fetched/<tid>', methods=['DELETE'])
+def api_edu_canva_fetched_delete(tid):
+    if not _pptx_dimp:
+        return jsonify({'success': True, 'fetched': []})
+    rem = _pptx_dimp.remove_fetched_edu_canva(tid)
+    return jsonify({'success': True, 'fetched': rem})
+
+
+@app.route('/api/edu/canva/proxy_img', methods=['GET'])
+def api_edu_canva_proxy_img():
+    """بروكسي آمن لصور قوالب كانفا لتفادي أخطاء CORS عند التصوير والتصدير إلى PDF."""
+    import urllib.parse
+    img_url = (request.args.get('url') or '').strip()
+    if not img_url.startswith(('https://', 'http://')):
+        return '', 400
+    parsed = urllib.parse.urlparse(img_url)
+    host = (parsed.hostname or '').lower()
+    allowed = (
+        host.endswith('canva.com')
+        or host.endswith('canva-static.com')
+        or host.endswith('googleusercontent.com')
+        or (host.endswith('web.archive.org') and 'im_' in (parsed.path or ''))
+    )
+    if not allowed:
+        return '', 403
+    try:
+        r = requests.get(
+            img_url,
+            timeout=8,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+            },
+        )
+        ctype = r.headers.get('Content-Type', '')
+        if not r.ok or not ctype.startswith('image/') or len(r.content) > 5_000_000:
+            return '', 404
+        resp = make_response(r.content)
+        resp.headers['Content-Type'] = ctype.split(';')[0]
+        resp.headers['Cache-Control'] = 'public, max-age=86400'
+        return resp
+    except Exception:
+        return '', 404
+
+
+@app.route('/api/edu/canva/import_file', methods=['POST'])
+def api_edu_canva_import_file():
+    """استيراد تصميم كانفا من ملف صورة أو PowerPoint مصدّر من كانفا وتوليد قالب جاهز داخلياً."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'يرجى اختيار ملف تصميم من كانفا (صورة أو PPTX)'}), 400
+    f = request.files['file']
+    name = (request.form.get('name') or '').strip()
+    category = (request.form.get('category') or 'تصاميمي المجلوبة').strip()
+    try:
+        tpl = _pptx_dimp.import_canva_uploaded_file(
+            filename=f.filename or 'canva_design',
+            raw_bytes=f.read(),
+            custom_name=name,
+            category=category,
+        )
+        return jsonify({'success': True, 'template': tpl})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 
 
 @app.route('/api/pptx/analyze_pptx', methods=['POST'])

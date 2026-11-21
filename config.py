@@ -473,8 +473,8 @@ VAPID_CLAIMS = {"sub": _env_str("VAPID_CLAIMS_SUB", "mailto:admin@abumalik.app")
 # ==============================================================================
 # 8. معاملات الأتمتة والتحكم الآلي (Automation Rate Limits & Intervals)
 # ==============================================================================
-SMART_SALAM_WAIT_SECONDS = _env_int("SMART_SALAM_WAIT_SECONDS", 60, minimum=1)
-BATCH_SEND_INTERVAL_SECONDS = _env_int("BATCH_SEND_INTERVAL_SECONDS", 5, minimum=1)
+SMART_SALAM_WAIT_SECONDS = _env_int("SMART_SALAM_WAIT_SECONDS", 90, minimum=15)
+BATCH_SEND_INTERVAL_SECONDS = _env_int("BATCH_SEND_INTERVAL_SECONDS", 7, minimum=1)
 JOIN_MIN_DELAY_SECONDS = _env_float("JOIN_MIN_DELAY_SECONDS", 3.0, minimum=0.5)
 JOIN_MAX_DELAY_SECONDS = _env_float("JOIN_MAX_DELAY_SECONDS", 10.0, minimum=1.0)
 JOIN_MAX_PER_MINUTE = _env_int("JOIN_MAX_PER_MINUTE", 15, minimum=1)

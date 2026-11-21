@@ -1676,18 +1676,17 @@
                                     وضع الإرسال عند المجموعات المحمية
                                 </label>
                                 <select class="form-select" id="sanitizeMode">
-                                    <option value="salam"  {{ 'selected' if (settings.sanitize_mode or 'salam') == 'salam'  else '' }}>🤖 ذكي (salam) — أرسل "السلام عليكم" ثم عدّل عند النشاط ✅ افتراضي</option>
+                                    <option value="salam"  {{ 'selected' if (settings.sanitize_mode or 'salam') == 'salam'  else '' }}>🤖 حماية تلقائية ذكية لكل مجموعة (سلام / حذف أرقام / تغيير كلمات) ✅ افتراضي</option>
                                     <option value="skip"   {{ 'selected' if settings.sanitize_mode == 'skip'   else '' }}>⏭️ تخطي — لا ترسل للمجموعات المحمية</option>
-                                    <option value="smart"  {{ 'selected' if settings.sanitize_mode == 'smart'  else '' }}>🧠 ذكية — ينقّي الرسالة (يحذف روابط/أرقام)</option>
-                                    <option value="always" {{ 'selected' if settings.sanitize_mode == 'always' else '' }}>🛡️ تنقية — أرسل مع حذف الروابط دائماً</option>
+                                    <option value="smart"  {{ 'selected' if settings.sanitize_mode == 'smart'  else '' }}>🧠 ذكية — تحليل وتنقية تلقائية حسب قيود كل مجموعة</option>
+                                    <option value="always" {{ 'selected' if settings.sanitize_mode == 'always' else '' }}>🛡️ تنقية شاملة — حذف الروابط والأرقام وتعديل الكلمات</option>
                                     <option value="off"    {{ 'selected' if settings.sanitize_mode == 'off'    else '' }}>🚫 معطّل — أرسل كما هي (خطر حظر)</option>
                                 </select>
                                 <div class="form-text">
-                                    <strong>🤖 ذكي (salam) [افتراضي]:</strong> يرسل "السلام عليكم" أولاً، ينتظر مدة interval، فإن وصلت ≥3 رسائل عدّل إلى رسالتك، وإلا حذف وأعاد الدورة. يُوقف تلقائياً عند تغيير الوضع. <br>
-                                    <strong>⏭️ تخطي:</strong> يتجاهل المجموعات المحمية تماماً — الأأمن للحساب. <br>
-                                    <strong>🧠 ذكية:</strong> يحذف الروابط والأرقام تلقائياً قبل الإرسال للمجموعات المحمية. <br>
-                                    <strong>🛡️ تنقية:</strong> يحذف الروابط من كل رسالة لجميع المجموعات. <br>
-                                    <strong>🚫 معطّل:</strong> يرسل الرسالة كما هي بدون تنقية (خطر حظر).
+                                    <strong>🤖 حماية تلقائية ذكية [افتراضي]:</strong> تطبق الإستراتيجية المناسبة فعلياً لكل مجموعة: تغيير الكلمات المحظورة، حذف الأرقام/الروابط عند حظرها، أو إرسال "السلام عليكم" ثم التعديل بعد تحقق الشروط، بفاصل ثابت <strong>7 ثوانٍ</strong> بين كل مجموعة مع إشعار فوري بحسابك الخاص لأي فشل.<br>
+                                    <strong>⏭️ تخطي:</strong> يتجاهل المجموعات المحمية مع إشعارك بالسبب. <br>
+                                    <strong>🧠 ذكية / 🛡️ تنقية شاملة:</strong> يكيّف النص تلقائياً حسب قيود المجموعة قبل الإرسال. <br>
+                                    <strong>🚫 معطّل:</strong> يرسل الرسالة كما هي بدون تعديل.
                                 </div>
                             </div>
 
@@ -5042,6 +5041,28 @@
             <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
           </div>
           <div class="modal-body p-4 bg-light">
+            <!-- شريط استوديو قوالب كانفا داخل قسم الخدمات التعليمية -->
+            <div class="bg-white rounded-3 shadow-sm border p-3 mb-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"
+                 style="border-color:#0f766e !important;background:linear-gradient(135deg,#f0fdfa 0%,#eef2ff 100%) !important;">
+              <div class="d-flex align-items-start gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                      style="width:52px;height:52px;background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">
+                  <i class="fas fa-palette fa-lg"></i>
+                </span>
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">🎨 جلب واستعراض ومعاينة قوالب كانفا (داخل الأداة)</h6>
+                  <p class="text-muted small mb-0">تصفح قوالب كانفا التعليمية ومعاينتها داخلياً، ثم اختر القالب لدمجه مباشرة في ملف الأداء الوظيفي أو شواهد الأداء أو شواهد وتقارير.</p>
+                </div>
+              </div>
+              <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                <button type="button" id="btnOpenEduCanvaHub" onclick="openEduCanvaHub()"
+                        class="btn btn-sm fw-bold text-white px-3 py-2 shadow-sm"
+                        style="background:linear-gradient(135deg,#0f766e,#1e3a8a);border-radius:10px;">
+                  <i class="fas fa-magic me-1"></i> فتح استوديو قوالب كانفا واختيار الدمج
+                </button>
+              </div>
+            </div>
+
             <div class="row g-3">
               <div class="col-12 col-md-4">
                 <button type="button" id="btnOpenPerformancePortfolio"
@@ -5054,6 +5075,7 @@
                   </span>
                   <span class="fw-bold fs-6 text-dark mb-1">ملف الأداء الوظيفي</span>
                   <span class="text-muted small">تطبيق تفاعلي كامل قابل للتعديل والحفظ وتصدير PDF والطباعة</span>
+                  <span id="eduBadgePortfolio" class="badge bg-info text-dark mt-2 d-none" style="font-size:0.7rem;"></span>
                 </button>
               </div>
               <div class="col-12 col-md-4">
@@ -5067,6 +5089,7 @@
                   </span>
                   <span class="fw-bold fs-6 text-dark mb-1">شواهد الأداء</span>
                   <span class="text-muted small">سجل توثيق شواهد الأداء الوظيفي بالصور والروابط وباركود QR</span>
+                  <span id="eduBadgeWitnesses" class="badge bg-info text-dark mt-2 d-none" style="font-size:0.7rem;"></span>
                 </button>
               </div>
               <div class="col-12 col-md-4">
@@ -5080,6 +5103,7 @@
                   </span>
                   <span class="fw-bold fs-6 text-dark mb-1">ملف التقارير والشواهد المدرسية</span>
                   <span class="text-muted small">تقارير البرامج والأنشطة بالصور وباركود QR وإدارة الصفحات وتصدير PDF</span>
+                  <span id="eduBadgeReports" class="badge bg-info text-dark mt-2 d-none" style="font-size:0.7rem;"></span>
                 </button>
               </div>
             </div>
@@ -5095,6 +5119,9 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#3b6978,#62929e);">
             <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
+                <i class="fas fa-palette me-1"></i> قوالب كانفا
+              </button>
               <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5126,6 +5153,9 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
             <h5 class="modal-title mb-0"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
+                <i class="fas fa-palette me-1"></i> قوالب كانفا
+              </button>
               <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل السجل قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5156,6 +5186,9 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
             <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والشواهد المدرسية</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
+                <i class="fas fa-palette me-1"></i> قوالب كانفا
+              </button>
               <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5258,7 +5291,64 @@
         window.location.assign(targetUrl);
         return false;
       }
+
+      function openEduCanvaHub() {
+        if (window.EduCanvaStudio) {
+          window.EduCanvaStudio.open('hub');
+        }
+      }
+
+      function refreshEduCanvaMergedBadges() {
+        const map = [
+          { key: 'portfolio', elId: 'eduBadgePortfolio' },
+          { key: 'witnesses', elId: 'eduBadgeWitnesses' },
+          { key: 'reports', elId: 'eduBadgeReports' },
+        ];
+        map.forEach(({ key, elId }) => {
+          const el = document.getElementById(elId);
+          if (!el) return;
+          try {
+            const raw = localStorage.getItem('ecs_merged_template_' + key);
+            const tpl = raw ? JSON.parse(raw) : null;
+            if (tpl && tpl.name) {
+              el.textContent = '🎨 مدمج: ' + tpl.name;
+              el.classList.remove('d-none');
+            } else {
+              el.textContent = '';
+              el.classList.add('d-none');
+            }
+          } catch (_) {}
+        });
+      }
+
+      window.onEduCanvaMergedToTarget = function(target, tpl, shouldOpenTarget) {
+        refreshEduCanvaMergedBadges();
+        const frameMap = {
+          portfolio: 'performancePortfolioFrame',
+          witnesses: 'performanceWitnessesFrame',
+          reports: 'schoolReportsFrame',
+        };
+        const targets = target === 'all' ? ['portfolio', 'witnesses', 'reports'] : [target];
+        targets.forEach(tg => {
+          const fid = frameMap[tg];
+          const frame = fid ? document.getElementById(fid) : null;
+          if (frame && frame.contentWindow && frame.contentWindow.EduCanvaStudio) {
+            try {
+              frame.contentWindow.EduCanvaStudio.applyMergedTemplate(tpl, true);
+            } catch (_) {}
+          }
+        });
+        if (shouldOpenTarget) {
+          if (target === 'portfolio') openPerformancePortfolio();
+          else if (target === 'witnesses') openPerformanceWitnesses();
+          else if (target === 'reports') openSchoolReports();
+        }
+      };
+
+      document.getElementById('eduServicesModal')?.addEventListener('show.bs.modal', refreshEduCanvaMergedBadges);
+      document.addEventListener('DOMContentLoaded', refreshEduCanvaMergedBadges);
     </script>
+    <script src="/static/js/edu_canva_studio.js"></script>
 
 
     <!-- ===== مودال استوديو العروض والمستندات الموحد (PowerPoint + Word + Excel + Canva + AI) ===== -->
@@ -14176,6 +14266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 message: payload.message, 
                 groups: payload.groups, 
                 send_to_all: false, 
+                interval: 7,
                 images: window.selectedImages || [] 
             });
 

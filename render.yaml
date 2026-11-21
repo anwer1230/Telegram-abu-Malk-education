@@ -57,9 +57,9 @@ services:
       - key: DB_RETRIES
         value: "2"
       - key: SMART_SALAM_WAIT_SECONDS
-        value: "60"
+        value: "90"
       - key: BATCH_SEND_INTERVAL_SECONDS
-        value: "5"
+        value: "7"
       - key: JOIN_MIN_DELAY_SECONDS
         value: "3"
       - key: JOIN_MAX_DELAY_SECONDS

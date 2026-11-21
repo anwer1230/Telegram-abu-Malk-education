@@ -355,11 +355,94 @@ def obfuscate_forbidden_words_in_text(text, keywords_to_avoid=None, include_comm
     )
     return working, actions
 
+
+_ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+
+def strip_phone_numbers_and_links(text, strip_phones=True, strip_links=True):
+    """
+    حذف فعلي ونظيف لأرقام الهواتف والروابط المحظورة من النص مع تنظيف العبارات اليتيمة المرتبطة بها.
+    تُرجع (النص_النظيف, قائمة_الإجراءات).
+    """
+    if not text:
+        return text, []
+
+    working = str(text)
+    actions = []
+
+    if strip_links:
+        before_links = working
+        working = re.sub(r'https?://(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com|whatsapp\.com)[^\s<>]*', '', working, flags=re.IGNORECASE)
+        working = re.sub(r'(?:https?://)?(?:t\.me|telegram\.me)/[^\s<>]+', '', working, flags=re.IGNORECASE)
+        working = re.sub(r'https?://[^\s<>]+|www\.[^\s<>]+', '', working, flags=re.IGNORECASE)
+        working = re.sub(r'(?<![\w.])wa\.me/[^\s<>]+', '', working, flags=re.IGNORECASE)
+        if working != before_links:
+            actions.append("🚫 حذف الروابط الخارجية وروابط تيليجرام/واتساب")
+
+    if strip_phones:
+        before_phones = working
+        # تطبيع الأرقام العربية الهندية داخل نسخة مطابقة للحذف بدقة
+        norm_working = working.translate(_ARABIC_INDIC_DIGITS)
+        phone_patterns = [
+            # أرقام دولية أو محلية مع فواصل/مسافات/أقواس مثل +966 55 123 4567 أو 055-123-4567 أو 01012345678
+            r'(?<!\d)(?:\+|00)?\d{1,4}[\s\-\.]*\(?\d{2,4}\)?[\s\-\.]*\d{3,4}[\s\-\.]*\d{3,4}(?!\d)',
+            # سلاسل رقمية متصلة من 7 إلى 15 خانة (تشمل أرقام الجوال والواتساب بدون كود دولي)
+            r'(?<!\d)(?:\+|00)?\d{7,15}(?!\d)',
+        ]
+        # إيجاد النطاقات المطابقة في norm_working وتطبيقها على working حتى نحافظ على بقية النص كما هو
+        spans = []
+        for pat in phone_patterns:
+            for m in re.finditer(pat, norm_working):
+                spans.append((m.start(), m.end()))
+        if spans:
+            # دمج النطاقات المتداخلة
+            spans.sort()
+            merged_spans = []
+            for s, e in spans:
+                if merged_spans and s <= merged_spans[-1][1]:
+                    merged_spans[-1] = (merged_spans[-1][0], max(merged_spans[-1][1], e))
+                else:
+                    merged_spans.append((s, e))
+            pieces = []
+            last_idx = 0
+            for s, e in merged_spans:
+                pieces.append(working[last_idx:s])
+                last_idx = e
+            pieces.append(working[last_idx:])
+            working = "".join(pieces)
+
+        if working != before_phones:
+            actions.append("📵 حذف أرقام الهواتف بالكامل لتوافق شروط المجموعة")
+
+    # تنظيف الأسطر والفواصل المتبقية الفارغة أو عبارات التواصل اليتيمة بعد الحذف
+    cleaned_lines = []
+    orphan_contact_re = re.compile(
+        r'^(?:للتواصل|تواصل|واتساب|واتس|رقم|جوال|هاتف|موبايل|اتصال|تليفون|فون|whatsapp|whats|contact|call)\s*[:\-–—•\|]*$',
+        re.IGNORECASE
+    )
+    for raw_line in working.splitlines():
+        line = re.sub(r'[ \t]{2,}', ' ', raw_line).strip()
+        line = re.sub(r'[:\-–—•\|]+\s*$', '', line).strip() if orphan_contact_re.match(line) else line
+        if not line:
+            continue
+        if orphan_contact_re.match(line):
+            continue
+        # إزالة أسطر الرموز الفارغة فقط (مثل 📱 أو 📞 المتبقية وحدها بعد حذف الرقم)
+        if not re.search(r'[\w\u0600-\u06FF]', line):
+            continue
+        cleaned_lines.append(line)
+
+    working = "\n".join(cleaned_lines).strip()
+    return working, actions
+
+
 async def fetch_group_recent_messages(client, entity_obj, limit=50):
     """
-    استخراج آخر 50 رسالة من المجموعة مع فحص القيود وبوتات الإشراف والتحقق المسبق من طبيعة المحادثة
+    استخراج آخر 50 رسالة + الرسالة المثبتة (إن وجدت) من المجموعة مع فحص القيود وبوتات الإشراف
     """
     messages_data = []
+    pinned_rules = []
+    detected_bots = []
     group_title = getattr(entity_obj, 'title', str(getattr(entity_obj, 'id', 'مجموعة')))
     group_id = getattr(entity_obj, 'id', 0)
     username = getattr(entity_obj, 'username', '')
@@ -468,6 +551,11 @@ async def fetch_group_recent_messages(client, entity_obj, limit=50):
             if getattr(msg, 'action', None):
                 action_type = type(msg.action).__name__
 
+            if sender and is_bot:
+                b_uname = (getattr(sender, 'username', '') or '').strip().lower()
+                if b_uname and f"@{b_uname}" not in detected_bots:
+                    detected_bots.append(f"@{b_uname}")
+
             messages_data.append({
                 "id": msg.id,
                 "sender_id": msg.sender_id,
@@ -480,6 +568,17 @@ async def fetch_group_recent_messages(client, entity_obj, limit=50):
                 "is_forward": bool(getattr(msg, 'forward', None)),
                 "has_media": bool(getattr(msg, 'media', None))
             })
+
+        # فحص الرسائل المثبتة لاستخلاص قواعد المجموعة (مثل منع الأرقام أو الكلمات أو الروابط)
+        try:
+            from telethon.tl.types import InputMessagesFilterPinned
+            pinned_msgs = await client.get_messages(entity_obj, filter=InputMessagesFilterPinned, limit=2)
+            for pm in (pinned_msgs or []):
+                p_txt = (getattr(pm, 'raw_text', None) or getattr(pm, 'message', '') or '').strip()
+                if p_txt:
+                    pinned_rules.append(p_txt[:600])
+        except Exception:
+            pass
     except Exception as e:
         err_msg = str(e)
         logger.warning(f"Error fetching messages for group {group_title}: {err_msg}")
@@ -491,6 +590,8 @@ async def fetch_group_recent_messages(client, entity_obj, limit=50):
             "permissions": permissions,
             "messages_count": 0,
             "messages": [],
+            "pinned_rules": [],
+            "detected_bots": [],
             "accessible": False,
             "error": f"تعذر قراءة رسائل المحادثة ({err_msg})"
         }
@@ -502,6 +603,8 @@ async def fetch_group_recent_messages(client, entity_obj, limit=50):
         "permissions": permissions,
         "messages_count": len(messages_data),
         "messages": messages_data,
+        "pinned_rules": pinned_rules,
+        "detected_bots": detected_bots,
         "accessible": True
     }
 
@@ -527,48 +630,65 @@ def _heuristic_analysis(group_data, sample_message=""):
         }
 
     messages = group_data.get("messages", [])
+    pinned_rules = group_data.get("pinned_rules", []) or []
+    detected_bots = group_data.get("detected_bots", []) or []
     punishments = []
     causes = []
     mistakes = []
     prohibited = set()
     keywords_avoid = []
-    sanction_texts = []
+    sanction_texts = list(pinned_rules)
     risk = "low"
 
     bot_keywords = [
         "تم كتم", "تم طرد", "تم حظر", "حظر", "كتم", "طرد", "ممنوع نشر", "ممنوع الروابط",
-        "ممنوع الإعلانات", "ممنوع التوجيه", "ممنوع", "محظور", "محضور", "حذف الرسالة",
+        "ممنوع الإعلانات", "ممنوع الاعلانات", "ممنوع الأرقام", "ممنوع الارقام", "ممنوع التوجيه",
+        "ممنوع", "محظور", "محضور", "حذف الرسالة", "عدم نشر", "يمنع نشر",
         "warned", "muted", "banned", "kicked", "antispam", "forbidden", "blacklisted"
     ]
 
+    # فحص القوانين المثبتة في المجموعة (إن وجدت)
+    for pr in pinned_rules:
+        pr_l = pr.lower()
+        if any(k in pr_l for k in ["رابط", "روابط", "link", "t.me", "http"]):
+            prohibited.add("no_links")
+            causes.append("قواعد المجموعة المثبتة تمنع الروابط")
+        if any(k in pr_l for k in ["رقم", "ارقام", "أرقام", "هاتف", "جوال", "واتس", "phone", "whatsapp"]):
+            prohibited.add("no_phones")
+            causes.append("قواعد المجموعة المثبتة تمنع أرقام الهواتف والواتساب")
+        if any(k in pr_l for k in ["اعلان", "إعلان", "ترويج", "دعاية", "تسويق", "ads", "spam"]):
+            prohibited.add("no_ads")
+            causes.append("قواعد المجموعة المثبتة تمنع الإعلانات")
+
     for m in messages:
         text = m.get("text", "")
+        text_l = text.lower()
         action = m.get("action")
         if action in ("MessageActionChatDeleteUser", "MessageActionChatJoinedByLink"):
             if action == "MessageActionChatDeleteUser":
                 punishments.append("طرد/مغادرة عضو من المجموعة (Service Action)")
                 risk = "medium"
 
-        if any(bw in text.lower() for bw in bot_keywords):
+        if any(bw in text_l for bw in bot_keywords) or (m.get("is_bot") and any(w in text_l for w in ["⚠️", "🚫", "❌", "warn", "mute", "ban", "delete", "مخالفة", "تحذير", "إنذار"])):
             sanction_texts.append(text)
             punishments.append(f"تنبيه/عقوبة رصدت: {text[:100]}")
-            if any(k in text for k in ["رابط", "روابط", "link", "t.me", "http"]):
+            if any(k in text_l for k in ["رابط", "روابط", "link", "t.me", "http"]):
                 causes.append("نشر روابط خارجية أو دعوات")
                 prohibited.add("no_links")
                 mistakes.append("نشر روابط أدى لكتم أو طرد صاحبها فوراً")
-            if any(k in text for k in ["رقم", "هاتف", "phone", "واتس", "whatsapp"]):
+            if any(k in text_l for k in ["رقم", "ارقام", "أرقام", "هاتف", "جوال", "phone", "واتس", "whatsapp"]):
                 causes.append("نشر أرقام هواتف أو واتساب")
                 prohibited.add("no_phones")
                 mistakes.append("نشر أرقام التواصل تسبب في تدخل البوت")
-            if any(k in text for k in ["تكرار", "سبام", "flood", "spam"]):
+            if any(k in text_l for k in ["تكرار", "سبام", "flood", "spam"]):
                 causes.append("تكرار الرسائل بسرعة (سبام)")
                 prohibited.add("slow_down")
                 mistakes.append("الإرسال المتتالي والسريع تسبب في الحظر التلقائي")
-            if any(k in text for k in ["توجيه", "forward"]):
+            if any(k in text_l for k in ["توجيه", "forward"]):
                 causes.append("تحويل الرسائل من قنوات أخرى")
                 prohibited.add("no_forwards")
                 mistakes.append("إرسال رسائل محولة مسبقاً")
-            if any(k in text for k in ["اعلان", "إعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سكاليف", "سكليف", "عذر", "اعذار", "واجب", "اختبار", "كويز", "بحث", "صحتي"]):
+            if any(k in text_l for k in ["اعلان", "إعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سكاليف", "سكليف", "عذر", "اعذار", "واجب", "اختبار", "كويز", "بحث", "صحتي"]):
                 causes.append("استخدام كلمات محظورة أو ترويجية ترصدها فلاتر البوتات")
                 prohibited.add("no_ads")
                 mistakes.append("استخدام كلمات محظورة أدى لحذف الرسالة أو كتم المرسل")
@@ -577,9 +697,9 @@ def _heuristic_analysis(group_data, sample_message=""):
         prohibited.add("no_links")
         causes.append("المجموعة معطل بها ميزة تضمين الروابط")
 
-    # استخراج كافة الكلمات المحظورة من رسائل التحذير والبوتات أو من النص المزمع إرساله إذا كانت المجموعة مراقبة
+    # استخراج كافة الكلمات المحظورة من رسائل التحذير والبوتات والقوانين المثبتة
     keywords_avoid = extract_forbidden_keywords_from_texts(sanction_texts)
-    if (punishments or "no_ads" in prohibited or any(m.get("is_bot") for m in messages)) and sample_message:
+    if (punishments or "no_ads" in prohibited or detected_bots or any(m.get("is_bot") for m in messages)) and sample_message:
         msg_risk_kws = extract_forbidden_keywords_from_texts([sample_message])
         seen_norm = {_normalize_ar_token(k) for k in keywords_avoid}
         for mk in msg_risk_kws:
@@ -588,10 +708,14 @@ def _heuristic_analysis(group_data, sample_message=""):
                 keywords_avoid.append(mk)
 
     if keywords_avoid:
+        prohibited.add("keyword_filter")
         prohibited.add("no_ads")
 
     if punishments:
         risk = "high" if len(punishments) >= 2 else "medium"
+    elif detected_bots or pinned_rules:
+        if prohibited:
+            risk = "medium"
 
     return {
         "has_recent_punishments": len(punishments) > 0,
@@ -601,9 +725,11 @@ def _heuristic_analysis(group_data, sample_message=""):
         "mistakes_by_others": list(set(mistakes)),
         "prohibited_actions": list(prohibited),
         "keywords_to_avoid": keywords_avoid,
+        "detected_bots": detected_bots,
+        "pinned_rules": pinned_rules,
         "risk_assessment": risk,
-        "summary_ar": f"تم رصد {len(punishments)} حالة عقوبة أو تنبيه في آخر {len(messages)} رسالة." if punishments else "لم يُرصد نشاط حظر صارم حديث في آخر 50 رسالة.",
-        "recommended_action": "تطبيق الحماية التلقائية وتحويل الكلمات المحظورة وتنقية الروابط والأرقام لتجنب أي عقوبة."
+        "summary_ar": f"تم رصد {len(punishments)} حالة عقوبة أو تنبيه في آخر {len(messages)} رسالة." if punishments else ("تم رصد قواعد/بوتات تنظيمية للمجموعة." if (detected_bots or prohibited) else "لم يُرصد نشاط حظر صارم حديث في آخر 50 رسالة."),
+        "recommended_action": "تطبيق الحماية المناسبة لطبيعة المجموعة (السلام عليكم والتعديل، حذف الأرقام/الروابط، أو استبدال الكلمات المحظورة)."
     }
 
 
@@ -700,6 +826,11 @@ def analyze_group_conversations_with_ai(group_data, sample_message=""):
                         extra_keywords=(parsed.get("keywords_to_avoid") or []) + (heuristic_res.get("keywords_to_avoid") or []),
                     )
                     parsed["keywords_to_avoid"] = merged_kws
+                    parsed["pinned_rules"] = group_data.get("pinned_rules", []) or []
+                    parsed["detected_bots"] = group_data.get("detected_bots", []) or []
+                    for extra_act in (heuristic_res.get("prohibited_actions") or []):
+                        if extra_act not in (parsed.get("prohibited_actions") or []):
+                            parsed.setdefault("prohibited_actions", []).append(extra_act)
                     if merged_kws and "no_ads" not in (parsed.get("prohibited_actions") or []):
                         parsed.setdefault("prohibited_actions", []).append("no_ads")
                     logger.info(f"✅ AI Analysis succeeded using {model} for group: {group_data.get('group_title')}")
@@ -728,7 +859,7 @@ def adapt_message_safely(original_message, analysis, has_media=False):
     should_skip = False
     skip_reason = ""
     can_send_media = has_media
-    delay_seconds = 3
+    delay_seconds = 7
 
     # 1. فحص هل المجموعة تتطلب تخطي قطعي لحماية الحساب من الحظر الفوري
     if "skip_group" in prohibited or risk == "critical":
@@ -744,33 +875,16 @@ def adapt_message_safely(original_message, analysis, has_media=False):
             "delay_seconds": delay_seconds
         }
 
-    # 2. تنقية أو إزالة الروابط إذا كانت سبباً لعقوبات الآخرين
-    if "no_links" in prohibited or any("رابط" in c for c in analysis.get("causes", [])):
-        # تحويل روابط واتساب إلى نص مقروء بدون رابط تشعبي
-        wa_match = re.search(r'(?:https?://)?(?:wa\.me|api\.whatsapp\.com/send\?phone=)/?(\+?\d+)', adapted_message)
-        if wa_match:
-            phone_num = wa_match.group(1)
-            adapted_message = re.sub(r'https?://(?:wa\.me|api\.whatsapp\.com/send\?phone=)[^\s]+', f'واتساب: {phone_num}', adapted_message)
-            actions_taken.append("🔗 تحويل رابط واتساب إلى نص مباشر بدون رابط تشعبي")
-
-        # إزالة باقي الروابط العامة الخارجية لحمايته كما حدث للآخرين
-        if re.search(r'https?://[^\s]+', adapted_message):
-            adapted_message = re.sub(r'https?://[^\s]+', '', adapted_message).strip()
-            actions_taken.append("🚫 إزالة الروابط الخارجية لتفادي كتم/طرد البوتات الحارسة")
-
-        # إزالة معرفات قنوات تليجرام t.me
-        if re.search(r't\.me/[^\s]+', adapted_message):
-            adapted_message = re.sub(r't\.me/[^\s]+', '', adapted_message).strip()
-            actions_taken.append("📢 إزالة روابط قنوات تليجرام تجنباً لكشف الترويج")
-
-    # 3. تعديل صيغة أرقام الهواتف إذا كانت ممنوعة
-    if "no_phones" in prohibited or any("رقم" in c for c in analysis.get("causes", [])):
-        # كتابة الأرقام بصيغة متباعدة غير نمطية لتجاوز regex البوتات
-        def _mask_phone(m):
-            num = m.group(0)
-            return " ".join(list(num.replace(" ", "")))
-        adapted_message = re.sub(r'\+?\d{8,15}', _mask_phone, adapted_message)
-        actions_taken.append("📱 تمويه تنسيق رقم الهاتف لمنع اصطياده من بوتات منع الأرقام")
+    # 2. حذف الروابط والأرقام فعلياً عند وجود منع لها في المجموعة
+    need_strip_links = "no_links" in prohibited or any("رابط" in c for c in analysis.get("causes", []))
+    need_strip_phones = "no_phones" in prohibited or any("رقم" in c or "أرقام" in c or "ارقام" in c for c in analysis.get("causes", []))
+    if need_strip_links or need_strip_phones:
+        adapted_message, strip_acts = strip_phone_numbers_and_links(
+            adapted_message,
+            strip_phones=need_strip_phones,
+            strip_links=need_strip_links,
+        )
+        actions_taken.extend(strip_acts)
 
     # 4. فحص الوسائط
     if "no_media" in prohibited and has_media:
@@ -782,6 +896,7 @@ def adapt_message_safely(original_message, analysis, has_media=False):
         list(analysis.get("causes", []))
         + list(analysis.get("mistakes_by_others", []))
         + list(analysis.get("details_of_punishments", []))
+        + list(analysis.get("pinned_rules", []))
         + ([analysis.get("summary_ar", "")] if analysis.get("summary_ar") else [])
     )
     keywords_avoid = extract_forbidden_keywords_from_texts(
@@ -790,22 +905,24 @@ def adapt_message_safely(original_message, analysis, has_media=False):
     )
     has_keyword_or_ad_ban = (
         "no_ads" in prohibited
+        or "keyword_filter" in prohibited
         or risk in ("high", "medium")
         or bool(keywords_avoid)
         or any(t in " ".join(all_reason_texts).lower() for t in ["إعلان", "اعلان", "ترويج", "كلمات", "محظور", "محضور", "ممنوع", "سبام"])
     )
-    adapted_message, kw_actions = obfuscate_forbidden_words_in_text(
-        adapted_message,
-        keywords_to_avoid=keywords_avoid,
-        include_common_ads=has_keyword_or_ad_ban,
-        mode="auto",
-    )
-    actions_taken.extend(kw_actions)
+    if has_keyword_or_ad_ban and adapted_message:
+        adapted_message, kw_actions = obfuscate_forbidden_words_in_text(
+            adapted_message,
+            keywords_to_avoid=keywords_avoid,
+            include_common_ads=("no_ads" in prohibited or risk in ("high", "medium")),
+            mode="auto",
+        )
+        actions_taken.extend(kw_actions)
 
-    # 6. فرض فاصل أمان زمني لتجنب Flood / Spam Detection
+    # 6. فاصل الأمان الموحد بين المجموعات
     if "slow_down" in prohibited or risk in ("high", "medium"):
-        delay_seconds = 8
-        actions_taken.append("⏳ تمديد فاصل الانتظار لتفادي الرصد السريع وتجاوز حد الإرسال")
+        delay_seconds = 7
+        actions_taken.append("⏳ تطبيق فاصل أمان 7 ثوانٍ لتفادي الرصد السريع")
 
     if not actions_taken:
         actions_taken.append("✅ المحادثة آمنة — لم يُرصد أي مانع أو خطر يستدعي التعديل")

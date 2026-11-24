@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Aref+Ruqaa:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="/static/js/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1111,10 +1111,10 @@
         </div>
 
         <div class="witness-modal-section">
-            <h4>🔗 إضافة رابط كشاهد (سيتم تحويله إلى باركود QR)</h4>
-            <input type="url" id="linkInput" placeholder="https://example.com/witness" dir="ltr">
-            <input type="text" id="linkTitleInput" placeholder="عنوان الرابط (اختياري)">
-            <button class="add-link-btn" onclick="addLink()">➕ إضافة الرابط</button>
+            <h4>🔗 إضافة روابط الشواهد (صور حقيقية أو باركود Google Drive)</h4>
+            <textarea id="linkInput" rows="2" placeholder="ألصق رابطاً أو عدة روابط — الروابط المباشرة تظهر كصور حقيقية، وروابط Google Drive كباركود QR" dir="ltr" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:8px;font-family:inherit;resize:vertical;"></textarea>
+            <input type="text" id="linkTitleInput" placeholder="عنوان رابط Google Drive (اختياري)">
+            <button type="button" class="add-link-btn" onclick="addLink()">➕ إضافة الرابط (صورة فعلية / باركود Drive)</button>
             <div class="link-list" id="linkList"></div>
         </div>
 
@@ -1926,12 +1926,63 @@ let currentWitnessSettings = {
     columns: 'auto'
 };
 
+function isGoogleDriveUrl(raw) {
+    if (!raw) return false;
+    try {
+        const u = new URL(raw);
+        const h = u.hostname.toLowerCase();
+        return h === 'drive.google.com' || h.endsWith('.drive.google.com') || h === 'docs.google.com' || h === 'drive.usercontent.google.com';
+    } catch (e) {
+        return /drive\.google\.com|docs\.google\.com/i.test(String(raw));
+    }
+}
+
+function normalizeExternalAssetUrl(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '';
+    const ghBlob = trimmed.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i);
+    if (ghBlob) return `https://raw.githubusercontent.com/${ghBlob[1]}/${ghBlob[2]}/${ghBlob[3]}`;
+    return trimmed;
+}
+
+function renderSingleQRCode(container, text, size) {
+    if (!container || !text) return;
+    container.innerHTML = '';
+    if (typeof QRCode === 'undefined') return;
+    new QRCode(container, { text, width: size, height: size, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+    const canvas = container.querySelector('canvas');
+    const img = container.querySelector('img');
+    if (canvas && img) {
+        try {
+            const dataUrl = canvas.toDataURL('image/png');
+            if (dataUrl && dataUrl.startsWith('data:image/')) {
+                img.src = dataUrl;
+                img.style.display = 'block';
+                canvas.remove();
+            }
+        } catch (e) {}
+    }
+}
+
 function normalizeWitnessData(rawData) {
     const d = rawData && typeof rawData === 'object' ? rawData : {};
     const sizeNum = parseInt(d.imageSize, 10);
+    const images = [];
+    const seen = new Set();
+    const pushImg = (src) => {
+        const clean = normalizeExternalAssetUrl(src);
+        if (clean && !seen.has(clean)) { seen.add(clean); images.push(clean); }
+    };
+    (Array.isArray(d.images) ? d.images : []).forEach(pushImg);
+    const links = [];
+    (Array.isArray(d.links) ? d.links : []).forEach(lk => {
+        if (!lk || !lk.url) return;
+        if (isGoogleDriveUrl(lk.url)) links.push(lk);
+        else pushImg(lk.url);
+    });
     return {
-        images: Array.isArray(d.images) ? d.images : [],
-        links: Array.isArray(d.links) ? d.links : [],
+        images,
+        links,
         imageSize: Number.isFinite(sizeNum) && sizeNum >= 70 ? Math.min(620, sizeNum) : 160,
         imageSizeMode: d.imageSizeMode === 'full' ? 'full' : 'px',
         imageFit: d.imageFit === 'cover' ? 'cover' : 'contain',
@@ -2350,14 +2401,31 @@ function removeImage(idx) {
 }
 
 function addLink() {
-    const url = document.getElementById('linkInput').value.trim();
+    const raw = document.getElementById('linkInput').value.trim();
     const title = document.getElementById('linkTitleInput').value.trim();
-    if (!url) { setStatus('⚠️ أدخل رابطاً صحيحاً'); return; }
-    if (!/^https?:\/\//.test(url)) { setStatus('⚠️ الرابط يجب أن يبدأ بـ http:// أو https://'); return; }
-    currentLinks.push({ url, title: title || url });
+    const urls = raw.split(/[\s\n\r,]+/).map(s => s.trim()).filter(s => /^https?:\/\//i.test(s));
+    if (!urls.length) { setStatus('⚠️ أدخل رابطاً صحيحاً يبدأ بـ http:// أو https://'); return; }
+    let addedImgs = 0, addedDrive = 0;
+    urls.forEach(url => {
+        if (isGoogleDriveUrl(url)) {
+            if (!currentLinks.some(l => l.url === url)) {
+                currentLinks.push({ url, title: title || 'ملف Google Drive' });
+                addedDrive++;
+            }
+        } else {
+            const imgUrl = normalizeExternalAssetUrl(url);
+            if (imgUrl && !currentImages.includes(imgUrl)) {
+                currentImages.push(imgUrl);
+                addedImgs++;
+            }
+        }
+    });
     document.getElementById('linkInput').value = '';
     document.getElementById('linkTitleInput').value = '';
+    renderImagePreviews();
     renderLinkList();
+    if (addedImgs && !addedDrive) setStatus(`✅ تم إضافة ${addedImgs} صورة حقيقية للشواهد`);
+    else if (addedDrive) setStatus(`✅ تم إضافة ${addedDrive} باركود Google Drive`);
 }
 
 function renderLinkList() {
@@ -2539,11 +2607,7 @@ function renderFreeWitnessBlock(blk) {
     blk.innerHTML = html;
     if (hasLinks) {
         blk.querySelectorAll('.qr-container').forEach(el => {
-            const url = el.dataset.url;
-            el.innerHTML = '';
-            if (typeof QRCode !== 'undefined') {
-                new QRCode(el, { text: url, width: 60, height: 60, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
-            }
+            renderSingleQRCode(el, el.dataset.url, 60);
         });
     }
     updatePageOverflowFlag(blk);
@@ -2620,18 +2684,7 @@ function renderWitnesses(cell) {
 
     if (hasLinks) {
         cell.querySelectorAll('.qr-container').forEach(el => {
-            const url = el.dataset.url;
-            el.innerHTML = '';
-            if (typeof QRCode !== 'undefined') {
-                new QRCode(el, {
-                    text: url,
-                    width: 60,
-                    height: 60,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.L
-                });
-            }
+            renderSingleQRCode(el, el.dataset.url, 60);
         });
     }
 

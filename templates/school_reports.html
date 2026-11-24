@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="/static/js/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -358,11 +358,20 @@
     .evidence-box.auto-height > img.witness-photo { height: auto; max-height: 640px; }
     .evidence-box .qr-container {
         padding: 8px; background: #ffffff; border-radius: 8px;
-        border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;
+        border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
     }
     .evidence-box .qr-container img,
     .evidence-box .qr-container canvas {
         width: 112px !important; height: 112px !important; position: static !important; display: block !important;
+    }
+    .evidence-box .qr-container img[src^="data:"] + canvas,
+    .evidence-box .qr-container canvas + img[src=""] {
+        display: none !important;
+    }
+    .evidence-box .qr-drive-badge {
+        display: inline-block; font-size: 10px; font-weight: 800; color: #0f766e;
+        background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 999px; padding: 2px 8px;
     }
     .evidence-box .qr-title {
         font-size: 11px; color: #1e3a8a; font-weight: 700; text-align: center;
@@ -501,7 +510,7 @@
     .modal-section { margin-bottom: 18px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; }
     .modal-section h4 { color: var(--primary-dark); margin-bottom: 10px; }
     .modal-section input[type="file"] { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-family: inherit; }
-    .modal-section input[type="url"], .modal-section input[type="text"] { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 8px; font-family: inherit; }
+    .modal-section input[type="url"], .modal-section input[type="text"], .modal-section textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 8px; font-family: inherit; resize: vertical; }
     .add-link-btn { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; }
     .add-link-btn:hover { background: #2563eb; }
     .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; margin-top: 10px; }
@@ -806,10 +815,11 @@
             </div>
         </div>
         <div class="modal-section">
-            <h4>🔗 إضافة رابط (يتحول إلى باركود QR تلقائياً)</h4>
-            <input type="url" id="linkInput" placeholder="https://example.com" dir="ltr">
-            <input type="text" id="linkTitleInput" placeholder="عنوان الرابط (اختياري)">
-            <button type="button" class="add-link-btn" onclick="addLink()">➕ إضافة رابط وتحويله لباركود</button>
+            <h4>🔗 إضافة روابط الشواهد (صور حقيقية أو باركود Google Drive)</h4>
+            <textarea id="linkInput" rows="2" placeholder="ألصق رابطاً أو عدة روابط — روابط الصور تظهر كصور حقيقية، وروابط Google Drive تتحول إلى باركود QR فعلي" dir="ltr"></textarea>
+            <input type="text" id="linkTitleInput" placeholder="عنوان رابط Google Drive (اختياري)">
+            <button type="button" class="add-link-btn" onclick="addLink()">➕ إضافة الرابط (صورة فعلية / باركود Drive)</button>
+            <div style="font-size:11.5px;color:#475569;margin-top:6px;">ℹ️ كل الروابط المباشرة والصور تظهر كصور فعلية في هذا القسم، بينما روابط Google Drive تتحول تلقائياً إلى باركود QR.</div>
             <div id="linkList" style="margin-top:10px;"></div>
         </div>
         <div style="text-align:center;display:flex;gap:10px;justify-content:center;">
@@ -3321,6 +3331,39 @@ function removeImage(idx) {
     renderPreviews();
 }
 
+function isGoogleDriveUrl(raw) {
+    if (!raw) return false;
+    try {
+        const u = new URL(raw);
+        const h = u.hostname.toLowerCase();
+        return h === 'drive.google.com' || h.endsWith('.drive.google.com') || h === 'docs.google.com' || h === 'drive.usercontent.google.com';
+    } catch (e) {
+        return /drive\.google\.com|docs\.google\.com/i.test(String(raw));
+    }
+}
+
+function normalizeExternalAssetUrl(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '';
+    const ghBlob = trimmed.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/i);
+    if (ghBlob) {
+        return `https://raw.githubusercontent.com/${ghBlob[1]}/${ghBlob[2]}/${ghBlob[3]}`;
+    }
+    return trimmed;
+}
+
+function canUseAnonymousCors(url) {
+    if (!url || url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('/')) return true;
+    try {
+        const u = new URL(url, location.href);
+        if (u.origin === location.origin) return true;
+        const h = u.hostname.toLowerCase();
+        return h === 'raw.githubusercontent.com' || h.endsWith('.githubusercontent.com');
+    } catch (e) {
+        return false;
+    }
+}
+
 function normalizeUrlInput(raw) {
     const trimmed = (raw || '').trim();
     if (!trimmed) return '';
@@ -3329,23 +3372,86 @@ function normalizeUrlInput(raw) {
     return '';
 }
 
+function extractUrlsFromInput(raw) {
+    return String(raw || '')
+        .split(/[\s\n\r,]+/)
+        .map(s => normalizeUrlInput(s))
+        .filter(Boolean);
+}
+
+function renderSingleQRCode(container, text, size) {
+    if (!container || !text) return;
+    container.innerHTML = '';
+    if (typeof QRCode === 'undefined') {
+        const fb = document.createElement('div');
+        fb.style.cssText = 'font-size:11px;color:#0f766e;font-weight:700;padding:8px;';
+        fb.textContent = 'QR: ' + text;
+        container.appendChild(fb);
+        return;
+    }
+    const lvl = (QRCode.CorrectLevel && size >= 90) ? QRCode.CorrectLevel.M : QRCode.CorrectLevel.L;
+    new QRCode(container, {
+        text,
+        width: size,
+        height: size,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: lvl
+    });
+    // تأكيد تحويل الكانفس إلى صورة واحدة حقيقية ومنع التكرار
+    const canvas = container.querySelector('canvas');
+    const img = container.querySelector('img');
+    if (canvas && img) {
+        try {
+            const dataUrl = canvas.toDataURL('image/png');
+            if (dataUrl && dataUrl.startsWith('data:image/')) {
+                img.src = dataUrl;
+                img.alt = 'باركود QR';
+                img.style.display = 'block';
+                canvas.remove();
+            }
+        } catch (e) {}
+    }
+}
+
 function addLink(silent = false) {
     const linkInput = document.getElementById('linkInput');
     const titleInput = document.getElementById('linkTitleInput');
-    const url = normalizeUrlInput(linkInput.value);
-    const title = (titleInput.value || '').trim();
-    if (!url) {
+    const urls = extractUrlsFromInput(linkInput ? linkInput.value : '');
+    const title = (titleInput ? titleInput.value : '').trim();
+    if (!urls.length) {
         if (!silent) {
             setStatus('⚠️ يرجى إدخال رابط صحيح مثل https://example.com');
-            linkInput.focus();
+            if (linkInput) linkInput.focus();
         }
         return false;
     }
-    currentLinks.push({ url, title: title || url });
-    linkInput.value = '';
-    titleInput.value = '';
+    let addedImgs = 0;
+    let addedDrive = 0;
+    urls.forEach(rawUrl => {
+        if (isGoogleDriveUrl(rawUrl)) {
+            if (!currentLinks.some(l => l.url === rawUrl)) {
+                currentLinks.push({ url: rawUrl, title: title || 'ملف Google Drive' });
+                addedDrive++;
+            }
+        } else {
+            const imgUrl = normalizeExternalAssetUrl(rawUrl);
+            if (imgUrl && !currentImages.includes(imgUrl)) {
+                currentImages.push(imgUrl);
+                addedImgs++;
+            }
+        }
+    });
+    if (linkInput) linkInput.value = '';
+    if (titleInput) titleInput.value = '';
+    renderPreviews();
     renderLinkList();
-    return true;
+    if (!silent) {
+        if (addedImgs && addedDrive) setStatus(`✅ تم إضافة ${addedImgs} صورة فعلية و ${addedDrive} باركود Google Drive`);
+        else if (addedImgs) setStatus(`✅ تم إضافة ${addedImgs} صورة حقيقية للشواهد`);
+        else if (addedDrive) setStatus(`✅ تم إضافة ${addedDrive} باركود Google Drive`);
+    }
+    return (addedImgs + addedDrive) > 0;
 }
 
 function renderLinkList() {
@@ -3357,16 +3463,7 @@ function renderLinkList() {
 
         const qrThumb = document.createElement('div');
         qrThumb.style.cssText = 'width:46px;height:46px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:2px;display:flex;align-items:center;justify-content:center;';
-        if (typeof QRCode !== 'undefined') {
-            new QRCode(qrThumb, {
-                text: link.url,
-                width: 40,
-                height: 40,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.L
-            });
-        }
+        renderSingleQRCode(qrThumb, link.url, 40);
 
         const anchor = document.createElement('a');
         anchor.href = link.url;
@@ -3428,10 +3525,38 @@ function deleteSingleWitness(grid, type, idx) {
 
 function renderWitnesses(container) {
     if (!container) return;
-    let images = [];
-    let links = [];
-    try { images = JSON.parse(container.dataset.images || '[]'); } catch (e) { images = []; }
-    try { links = JSON.parse(container.dataset.links || '[]'); } catch (e) { links = []; }
+    let rawImages = [];
+    let rawLinks = [];
+    try { rawImages = JSON.parse(container.dataset.images || '[]'); } catch (e) { rawImages = []; }
+    try { rawLinks = JSON.parse(container.dataset.links || '[]'); } catch (e) { rawLinks = []; }
+
+    // أي رابط غير Google Drive يظهر كصورة فعلية حقيقية، وروابط Google Drive فقط تتحول لباركود QR
+    const images = [];
+    const seenImgs = new Set();
+    const pushImg = (src) => {
+        const clean = normalizeExternalAssetUrl(src);
+        if (clean && !seenImgs.has(clean)) {
+            seenImgs.add(clean);
+            images.push(clean);
+        }
+    };
+    rawImages.forEach(pushImg);
+
+    const links = [];
+    rawLinks.forEach(lk => {
+        if (!lk || !lk.url) return;
+        if (isGoogleDriveUrl(lk.url)) {
+            links.push(lk);
+        } else {
+            pushImg(lk.url);
+        }
+    });
+
+    if (images.length !== rawImages.length || links.length !== rawLinks.length) {
+        container.dataset.images = JSON.stringify(images);
+        container.dataset.links = JSON.stringify(links);
+    }
+
     const cfg = getReportWitnessCfg(container);
     if (!container.dataset.cols && images.length > 0 && images.length !== 4) {
         cfg.cols = 3;
@@ -3452,12 +3577,19 @@ function renderWitnesses(container) {
 
         const img = document.createElement('img');
         img.className = 'witness-photo';
-        img.crossOrigin = 'anonymous';
+        if (canUseAnonymousCors(imgSrc)) {
+            img.crossOrigin = 'anonymous';
+        }
         img.src = imgSrc;
         img.alt = 'صورة شاهد';
         img.title = 'اضغط لتكبير الصورة';
         img.onclick = () => viewImage(imgSrc);
         img.onerror = function() {
+            if (this.hasAttribute('crossorigin')) {
+                this.removeAttribute('crossorigin');
+                this.src = imgSrc;
+                return;
+            }
             this.onerror = null;
             this.style.display = 'none';
             const fb = document.createElement('div');
@@ -3577,23 +3709,19 @@ function renderWitnesses(container) {
             deleteSingleWitness(container, 'link', idx);
         };
 
+        const badge = document.createElement('span');
+        badge.className = 'qr-drive-badge';
+        badge.textContent = '📱 باركود Google Drive';
+
         box.appendChild(qrDiv);
+        box.appendChild(badge);
         box.appendChild(titleEl);
         box.appendChild(urlAnchor);
         box.appendChild(tools);
         box.appendChild(delBtn);
         container.appendChild(box);
 
-        if (typeof QRCode !== 'undefined') {
-            new QRCode(qrDiv, {
-                text: link.url,
-                width: 112,
-                height: 112,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-        }
+        renderSingleQRCode(qrDiv, link.url, 112);
     });
 }
 
@@ -3642,6 +3770,41 @@ function saveData() {
     }
 }
 
+const DEFAULT_TEMPLATE_WITNESSES = {};
+function captureDefaultWitnessSnapshot() {
+    document.querySelectorAll('#mainContainer .report, #mainContainer .single-page-report').forEach((sec, idx) => {
+        const grid = sec.querySelector('.evidence-grid');
+        if (!grid) return;
+        const titleEl = sec.querySelector('.report-title .editable-area, .report-title');
+        const key = (titleEl ? titleEl.textContent.replace(/\s+/g, ' ').trim() : '') || `idx:${idx}`;
+        if (grid.dataset.images || grid.dataset.links) {
+            DEFAULT_TEMPLATE_WITNESSES[key] = {
+                images: grid.dataset.images || '',
+                links: grid.dataset.links || '',
+                cols: grid.dataset.cols || ''
+            };
+        }
+    });
+}
+
+function mergeMissingTemplateWitnesses() {
+    document.querySelectorAll('#mainContainer .report, #mainContainer .single-page-report').forEach((sec, idx) => {
+        const grid = sec.querySelector('.evidence-grid');
+        if (!grid) return;
+        const hasImgs = (() => { try { return JSON.parse(grid.dataset.images || '[]').length > 0; } catch (e) { return false; } })();
+        const hasLinks = (() => { try { return JSON.parse(grid.dataset.links || '[]').length > 0; } catch (e) { return false; } })();
+        if (hasImgs || hasLinks) return;
+        const titleEl = sec.querySelector('.report-title .editable-area, .report-title');
+        const key = (titleEl ? titleEl.textContent.replace(/\s+/g, ' ').trim() : '') || `idx:${idx}`;
+        const def = DEFAULT_TEMPLATE_WITNESSES[key];
+        if (def) {
+            if (def.images) grid.dataset.images = def.images;
+            if (def.links) grid.dataset.links = def.links;
+            if (def.cols && !grid.dataset.cols) grid.dataset.cols = def.cols;
+        }
+    });
+}
+
 function restoreSavedData() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
@@ -3649,6 +3812,7 @@ function restoreSavedData() {
         return;
     }
     document.getElementById('mainContainer').innerHTML = saved;
+    mergeMissingTemplateWitnesses();
     initPageControls();
     renderAllWitnesses();
     window.dispatchEvent(new CustomEvent('eduCanvaReapply'));
@@ -4013,6 +4177,7 @@ window.addEventListener('load', () => {
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
 
+    captureDefaultWitnessSnapshot();
     initPageControls();
     renderAllWitnesses();
 

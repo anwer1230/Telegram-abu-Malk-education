@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -79,6 +80,9 @@
         td.action-cell { display: none !important; }
         .add-page-bar { display: none !important; }
         .fmt-bar { display: none !important; }
+        .witness-actions, .witness-quick-bar, .witness-modal, .witness-below-hint, .witness-thumb .remove-thumb, .witness-info .link-count, .img-lightbox { display: none !important; }
+        .witness-qr { display: block !important; }
+        .page.has-overflow-witness { height: auto !important; min-height: 297mm !important; overflow: visible !important; }
     }
 
     /* ===== وضع معاينة قبل الطباعة ===== */
@@ -108,7 +112,15 @@
     body.print-preview-mode .row-del-btn,
     body.print-preview-mode td.action-cell,
     body.print-preview-mode .add-page-bar,
-    body.print-preview-mode .fmt-bar { display: none !important; }
+    body.print-preview-mode .fmt-bar,
+    body.print-preview-mode .witness-actions,
+    body.print-preview-mode .witness-quick-bar,
+    body.print-preview-mode .witness-modal,
+    body.print-preview-mode .witness-below-hint,
+    body.print-preview-mode .witness-thumb .remove-thumb,
+    body.print-preview-mode .witness-info .link-count { display: none !important; }
+    body.print-preview-mode .witness-qr { display: block !important; }
+    body.print-preview-mode .page.has-overflow-witness { height: auto !important; min-height: 1123px !important; overflow: visible !important; }
     body.print-preview-mode .editable-area,
     body.print-preview-mode .cell-content {
         background: transparent !important;
@@ -157,7 +169,15 @@
     body.pdf-exporting td.action-cell,
     body.pdf-exporting .add-page-bar,
     body.pdf-exporting .fmt-bar,
+    body.pdf-exporting .witness-actions,
+    body.pdf-exporting .witness-quick-bar,
+    body.pdf-exporting .witness-modal,
+    body.pdf-exporting .witness-below-hint,
+    body.pdf-exporting .witness-thumb .remove-thumb,
+    body.pdf-exporting .witness-info .link-count,
     body.pdf-exporting .preview-page-badge { display: none !important; }
+    body.pdf-exporting .witness-qr { display: block !important; }
+    body.pdf-exporting .page.has-overflow-witness { height: auto !important; min-height: 1123px !important; overflow: visible !important; }
     body.pdf-exporting .editable-area,
     body.pdf-exporting .cell-content { background: transparent !important; box-shadow: none !important; outline: none !important; }
 
@@ -328,6 +348,129 @@
     .add-page-bar { text-align: center; margin: 20px auto; }
     .add-page-bar button { background: #27ae60; color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; }
     .add-page-bar button:hover { background: #2ecc71; }
+
+    /* ===== شواهد الجداول والتحكم بحجمها ومحاذاتها ===== */
+    .witness-evidence-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+    .witness-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+    .witness-actions button {
+        background: var(--primary-teal); color: #fff; border: none; padding: 3px 9px;
+        border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 11.5px; font-weight: 700; transition: 0.15s;
+    }
+    .witness-actions button:hover { background: var(--dark-teal); }
+    .witness-thumbnails {
+        display: flex; flex-wrap: wrap; gap: 8px; width: 100%;
+        justify-content: center; align-items: flex-start;
+    }
+    .witness-thumb {
+        position: relative; width: var(--thumb-w, 160px); max-width: 100%;
+        border-radius: 6px; overflow: hidden; border: 1.5px solid var(--border-color);
+        cursor: pointer; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .witness-thumb img { width: 100%; height: auto; display: block; object-fit: contain; }
+    .witness-thumb.crop-square { aspect-ratio: 1; }
+    .witness-thumb.crop-square img { height: 100%; object-fit: cover; }
+    .witness-thumb .remove-thumb {
+        position: absolute; top: 4px; right: 4px; background: rgba(192,57,43,0.92); color: #fff;
+        border: none; width: 20px; height: 20px; border-radius: 50%; font-size: 11px;
+        cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 3;
+    }
+    td.col-item { vertical-align: top; }
+    .witness-below-container {
+        margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(59,105,120,0.4);
+        width: 100%; text-align: right;
+    }
+    .witness-below-container .witness-thumbnails {
+        justify-content: flex-start !important;
+        justify-items: start !important;
+        align-items: flex-start;
+    }
+    .witness-below-container .witness-quick-bar { justify-content: flex-start; }
+    .witness-subrow td.witness-subrow-cell {
+        background: #f8fbfc; padding: 12px 14px; border: 1px solid var(--border-color); text-align: right;
+    }
+    .witness-below-hint {
+        font-size: 11px; color: var(--dark-teal); background: #e6f2f4;
+        padding: 3px 8px; border-radius: 6px; font-weight: 700; display: inline-block;
+    }
+    .witness-quick-bar {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px;
+        margin-top: 6px; padding: 4px 6px; background: #eef5f7; border: 1px solid #c5dce0; border-radius: 6px;
+    }
+    .witness-quick-bar button {
+        background: var(--dark-teal); color: #fff; border: none; padding: 2px 7px; border-radius: 4px;
+        cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700;
+    }
+    .witness-quick-bar .size-tag { font-size: 11px; color: var(--dark-teal); font-weight: 900; min-width: 42px; text-align: center; }
+    .witness-info { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 3px; }
+    .link-count { background: #3498db; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 900; }
+    .witness-qr { display: none; margin-top: 5px; }
+    .witness-qr canvas, .witness-qr img { width: 60px !important; height: 60px !important; border: 1px solid #ddd; border-radius: 4px; }
+    .witness-qr .qr-url { font-size: 7px; color: #666; word-break: break-all; max-width: 90px; margin-top: 2px; text-align: center; }
+
+    .img-lightbox {
+        display: none; position: fixed; inset: 0; z-index: 120000;
+        background: rgba(15,23,42,0.88); align-items: center; justify-content: center; padding: 20px;
+    }
+    .img-lightbox.show { display: flex; }
+    .img-lightbox img { max-width: 94vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); background: #fff; }
+    .img-lightbox .lb-close {
+        position: fixed; top: 18px; left: 18px; background: #ef4444; color: #fff;
+        border: none; width: 38px; height: 38px; border-radius: 50%; font-size: 18px; font-weight: 900; cursor: pointer;
+    }
+
+    /* ===== نافذة الشواهد المنبثقة ===== */
+    .witness-modal {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99999;
+        align-items: center; justify-content: center; padding: 20px;
+    }
+    .witness-modal.show { display: flex; }
+    .witness-modal-content {
+        background: #fff; border-radius: 15px; padding: 22px; width: 100%; max-width: 600px;
+        max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .witness-modal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--primary-teal);
+    }
+    .witness-modal-header h3 { color: var(--dark-teal); font-family: var(--font-academic); font-size: 21px; font-weight: 700; }
+    .witness-modal-close {
+        background: #c0392b; color: #fff; border: none; width: 32px; height: 32px;
+        border-radius: 50%; font-size: 18px; cursor: pointer; font-weight: 900;
+    }
+    .witness-modal-section { margin-bottom: 16px; padding: 14px; border: 1px solid #ddd; border-radius: 10px; background: #f8fbfc; }
+    .witness-modal-section h4 { color: var(--dark-teal); margin-bottom: 10px; font-size: 15px; }
+    .witness-modal-section input[type=file], .witness-modal-section input[type=url], .witness-modal-section input[type=text] {
+        width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; margin-bottom: 8px; background: #fff;
+    }
+    .witness-ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+    .witness-ctrl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .witness-ctrl-btn {
+        background: #fff; color: #334155; border: 1.5px solid #cbd5e1; padding: 6px 10px;
+        border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700;
+    }
+    .witness-ctrl-btn.active { background: var(--dark-teal); color: #fff; border-color: var(--dark-teal); }
+    .witness-size-field-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .witness-size-field-row label { font-size: 13px; color: #334155; font-weight: 800; }
+    .witness-size-input {
+        width: 95px; padding: 5px 8px; border: 1.5px solid var(--primary-teal); border-radius: 6px;
+        font-family: inherit; font-size: 13px; font-weight: 800; text-align: center; background: #fff; color: var(--dark-teal);
+    }
+    .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 10px; }
+    .image-preview-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-teal); }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .image-preview-item .remove-img {
+        position: absolute; top: 3px; right: 3px; background: #c0392b; color: #fff; border: none;
+        width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; font-weight: 900;
+    }
+    .link-item {
+        display: flex; align-items: center; gap: 10px; background: #fff;
+        padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #ddd;
+    }
+    .link-item a { flex: 1; color: #3498db; text-decoration: none; font-size: 13px; word-break: break-all; }
+    .link-item .del-link {
+        background: #c0392b; color: #fff; border: none; width: 24px; height: 24px;
+        border-radius: 50%; cursor: pointer; font-size: 12px; font-weight: 900;
+    }
 </style>
 </head>
 <body>
@@ -339,6 +482,7 @@
     <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
     <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
     <button type="button" onclick="exportPDF()" class="gold">📄 تصدير PDF</button>
+    <button type="button" onclick="EduCanvaStudio.open('portfolio')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
     <button type="button" onclick="loadData()">🔄 استرجاع</button>
     <button type="button" onclick="addNewPage()">➕ صفحة جديدة</button>
     <button type="button" onclick="printDocument()">🖨️ طباعة</button>
@@ -386,6 +530,94 @@
     <input type="color" onchange="execCmd('foreColor', this.value)" title="لون النص" value="#111111">
     <input type="color" onchange="execCmd('hiliteColor', this.value)" title="لون الخلفية" value="#ffff00">
     <button onclick="execCmd('removeFormat')" title="إزالة التنسيق">✕</button>
+</div>
+
+<!-- عارض صور الشواهد -->
+<div class="img-lightbox" id="imgLightboxModal" onclick="if(event.target===this) closeImageLightbox()">
+    <button type="button" class="lb-close" onclick="closeImageLightbox()" title="إغلاق">✕</button>
+    <img id="imgLightboxEl" src="" alt="عرض الشاهد">
+</div>
+
+<!-- نافذة الشواهد المنبثقة -->
+<div class="witness-modal" id="witnessModal">
+    <div class="witness-modal-content">
+        <div class="witness-modal-header">
+            <h3 id="witnessModalTitle">إضافة وتخصيص الشواهد</h3>
+            <button type="button" class="witness-modal-close" onclick="closeWitnessModal()">✕</button>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>📷 إضافة صور كشواهد</h4>
+            <input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageUpload(event)">
+            <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>📐 التحكم بحجم ومكان صور الشواهد</h4>
+            <div class="witness-ctrl-group">
+                <div>
+                    <div class="witness-size-field-row">
+                        <label for="witnessSizeInput">📏 حجم الصورة (بكسل):</label>
+                        <input type="number" id="witnessSizeInput" class="witness-size-input" min="70" max="620" step="10" value="160" oninput="setModalImageSize(parseInt(this.value,10) || 160, 'px')" onchange="setModalImageSize(parseInt(this.value,10) || 160, 'px')">
+                        <strong id="witnessSizeLabel" style="color:var(--dark-teal);margin-right:auto;font-size:13px;">160 بكسل</strong>
+                    </div>
+                    <input type="range" id="witnessSizeRange" min="70" max="620" step="10" value="160" style="width:100%;accent-color:var(--dark-teal);" oninput="setModalImageSize(parseInt(this.value,10), 'px')">
+                    <div class="witness-ctrl-row" style="margin-top:6px;">
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="90" onclick="setModalImageSize(90, 'px')">صغير (90px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="160" onclick="setModalImageSize(160, 'px')">متوسط (160px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="260" onclick="setModalImageSize(260, 'px')">كبير (260px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="380" onclick="setModalImageSize(380, 'px')">كبير جداً (380px)</button>
+                        <button type="button" class="witness-ctrl-btn" data-size-preset="full" onclick="setModalImageSize(100, 'full')">عرض كامل (100%)</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size:13px;color:#334155;margin-bottom:6px;">📍 موضع عرض الصور:</div>
+                    <div class="witness-ctrl-row">
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="below" onclick="setModalPlacement('below')">⬇ تحت اسم العنصر تماماً</button>
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="opposite" onclick="setModalPlacement('opposite')">↔ مقابل اسم العنصر</button>
+                        <button type="button" class="witness-ctrl-btn" data-placement-btn="full-row" onclick="setModalPlacement('full-row')">⬛ أسفل العنصر بعرض الجدول</button>
+                    </div>
+                </div>
+
+                <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🖼️ شكل الصورة:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-fit-btn="contain" onclick="setModalImageFit('contain')">كاملة بدون قص</button>
+                            <button type="button" class="witness-ctrl-btn" data-fit-btn="cover" onclick="setModalImageFit('cover')">مربع متناسق</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:#475569;margin-bottom:4px;">🔢 الترتيب في الصف:</div>
+                        <div class="witness-ctrl-row">
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="auto" onclick="setModalColumns('auto')">تلقائي</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="1" onclick="setModalColumns(1)">1</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="2" onclick="setModalColumns(2)">2</button>
+                            <button type="button" class="witness-ctrl-btn" data-cols-btn="3" onclick="setModalColumns(3)">3</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:4px;padding-top:8px;border-top:1px dashed #cbd5e1;display:flex;justify-content:flex-start;">
+                    <button type="button" onclick="applyModalStyleToAll()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">📌 تطبيق نفس الحجم والموضع على جميع الشواهد</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="witness-modal-section">
+            <h4>🔗 إضافة رابط كشاهد (سيتم تحويله إلى باركود QR)</h4>
+            <input type="url" id="linkInput" placeholder="https://example.com/witness" dir="ltr">
+            <input type="text" id="linkTitleInput" placeholder="عنوان الرابط (اختياري)">
+            <button type="button" onclick="addLink()" style="background:#3498db;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;">➕ إضافة الرابط</button>
+            <div id="linkList" style="margin-top:10px;"></div>
+        </div>
+
+        <div style="text-align:center;margin-top:16px;">
+            <button type="button" onclick="saveWitness()" style="background:#27ae60;color:#fff;border:none;padding:10px 28px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;">💾 حفظ الشواهد</button>
+            <button type="button" onclick="closeWitnessModal()" style="background:#95a5a6;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;margin-right:8px;">إلغاء</button>
+        </div>
+    </div>
 </div>
 
 <div class="pages-wrap" id="pagesWrap">
@@ -1389,10 +1621,469 @@ function toggleCheck(cell) {
     }
 }
 
-function toggleRowCell(cell) {
-    // خلية نوع الشاهد (نص قابل للتعديل)
+function toggleRowCell(cell, ev) {
+    if (ev && ev.target && ev.target.closest('.witness-actions, .witness-quick-bar, .witness-thumb, .witness-qr')) {
+        return;
+    }
     const content = cell.querySelector('.cell-content');
     if (content) content.focus();
+}
+
+/* ============ نظام شواهد الصور والتحكم بحجمها وموضعها ============ */
+let currentWitnessCell = null;
+let currentImages = [];
+let currentLinks = [];
+let currentWitnessSettings = {
+    imageSize: 160,
+    imageSizeMode: 'px',
+    imageFit: 'contain',
+    placement: 'below',
+    columns: 'auto'
+};
+
+function normalizeWitnessData(rawData) {
+    const d = rawData && typeof rawData === 'object' ? rawData : {};
+    const sizeNum = parseInt(d.imageSize, 10);
+    return {
+        images: Array.isArray(d.images) ? d.images : [],
+        links: Array.isArray(d.links) ? d.links : [],
+        imageSize: Number.isFinite(sizeNum) && sizeNum >= 70 ? Math.min(620, sizeNum) : 160,
+        imageSizeMode: d.imageSizeMode === 'full' ? 'full' : 'px',
+        imageFit: d.imageFit === 'cover' ? 'cover' : 'contain',
+        placement: ['opposite', 'below', 'full-row'].includes(d.placement) ? d.placement : 'below',
+        columns: [1, 2, 3].includes(Number(d.columns)) ? Number(d.columns) : 'auto'
+    };
+}
+
+function getWitnessData(cell) {
+    if (!cell || !cell.dataset.witness) return normalizeWitnessData({});
+    try {
+        return normalizeWitnessData(JSON.parse(cell.dataset.witness));
+    } catch (e) {
+        return normalizeWitnessData({});
+    }
+}
+
+function syncModalSettingsUI() {
+    const { imageSize, imageSizeMode, imageFit, placement, columns } = currentWitnessSettings;
+    const range = document.getElementById('witnessSizeRange');
+    const numInp = document.getElementById('witnessSizeInput');
+    const label = document.getElementById('witnessSizeLabel');
+    if (range) range.value = imageSizeMode === 'full' ? 620 : imageSize;
+    if (numInp && document.activeElement !== numInp) {
+        numInp.value = imageSize;
+    }
+    if (label) label.textContent = imageSizeMode === 'full' ? 'عرض كامل (100%)' : `${imageSize} بكسل`;
+
+    document.querySelectorAll('[data-size-preset]').forEach(btn => {
+        const val = btn.dataset.sizePreset;
+        const active = (val === 'full' && imageSizeMode === 'full') || (imageSizeMode === 'px' && Number(val) === imageSize);
+        btn.classList.toggle('active', active);
+    });
+    document.querySelectorAll('[data-placement-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.placementBtn === placement);
+    });
+    document.querySelectorAll('[data-fit-btn]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.fitBtn === imageFit);
+    });
+    document.querySelectorAll('[data-cols-btn]').forEach(btn => {
+        btn.classList.toggle('active', String(btn.dataset.colsBtn) === String(columns));
+    });
+}
+
+function setModalImageSize(size, mode) {
+    currentWitnessSettings.imageSizeMode = mode === 'full' ? 'full' : 'px';
+    if (currentWitnessSettings.imageSizeMode === 'px') {
+        currentWitnessSettings.imageSize = Math.max(70, Math.min(620, Number(size) || 160));
+    }
+    syncModalSettingsUI();
+}
+
+function setModalPlacement(placement) {
+    if (['opposite', 'below', 'full-row'].includes(placement)) {
+        currentWitnessSettings.placement = placement;
+        syncModalSettingsUI();
+    }
+}
+
+function setModalImageFit(fit) {
+    currentWitnessSettings.imageFit = fit === 'cover' ? 'cover' : 'contain';
+    syncModalSettingsUI();
+}
+
+function setModalColumns(cols) {
+    currentWitnessSettings.columns = [1, 2, 3].includes(Number(cols)) ? Number(cols) : 'auto';
+    syncModalSettingsUI();
+}
+
+function applyModalStyleToAll() {
+    let count = 0;
+    document.querySelectorAll('#pagesWrap td.col-type').forEach(td => {
+        const data = getWitnessData(td);
+        data.imageSize = currentWitnessSettings.imageSize;
+        data.imageSizeMode = currentWitnessSettings.imageSizeMode;
+        data.imageFit = currentWitnessSettings.imageFit;
+        data.placement = currentWitnessSettings.placement;
+        data.columns = currentWitnessSettings.columns;
+        td.dataset.witness = JSON.stringify(data);
+        renderWitnesses(td);
+        count++;
+    });
+    setStatus(`✅ تم تطبيق الحجم والموضع على ${count} صف`);
+}
+
+function openWitnessModal(typeCell) {
+    currentWitnessCell = typeCell;
+    currentImages = [];
+    currentLinks = [];
+    document.getElementById('imagePreviewGrid').innerHTML = '';
+    document.getElementById('linkList').innerHTML = '';
+    document.getElementById('imageInput').value = '';
+    document.getElementById('linkInput').value = '';
+    document.getElementById('linkTitleInput').value = '';
+
+    const data = getWitnessData(typeCell);
+    currentImages = data.images.slice();
+    currentLinks = data.links.slice();
+    currentWitnessSettings = {
+        imageSize: data.imageSize,
+        imageSizeMode: data.imageSizeMode,
+        imageFit: data.imageFit,
+        placement: data.placement,
+        columns: data.columns
+    };
+    renderImagePreviews();
+    renderLinkList();
+    syncModalSettingsUI();
+
+    document.getElementById('witnessModalTitle').textContent = 'إضافة وتخصيص الشواهد';
+    document.getElementById('witnessModal').classList.add('show');
+}
+
+function closeWitnessModal() {
+    document.getElementById('witnessModal').classList.remove('show');
+    currentWitnessCell = null;
+    currentImages = [];
+    currentLinks = [];
+}
+
+function handleImageUpload(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (window.EduImageCropper) {
+        EduImageCropper.openQueue(files, (croppedDataUrl) => {
+            currentImages.push(croppedDataUrl);
+            renderImagePreviews();
+            setStatus('✅ تم قص وإضافة الصورة بنجاح');
+        });
+        return;
+    }
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentImages.push(e.target.result);
+            renderImagePreviews();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function cropExistingImage(idx) {
+    const src = currentImages[idx];
+    if (!src || !window.EduImageCropper) return;
+    EduImageCropper.cropExisting(src, (croppedUrl) => {
+        currentImages[idx] = croppedUrl;
+        renderImagePreviews();
+        setStatus('✅ تم تحديث الجزء المقصوص من الصورة');
+    });
+}
+
+function renderImagePreviews() {
+    const grid = document.getElementById('imagePreviewGrid');
+    grid.innerHTML = '';
+    currentImages.forEach((img, idx) => {
+        const item = document.createElement('div');
+        item.className = 'image-preview-item';
+        item.innerHTML = `
+            <img src="${img}" alt="شاهد">
+            <button type="button" class="remove-img" style="right:auto;left:3px;background:#2563eb;" onclick="cropExistingImage(${idx})" title="قص الصورة">✂️</button>
+            <button type="button" class="remove-img" onclick="removeImage(${idx})" title="حذف">✕</button>
+        `;
+        grid.appendChild(item);
+    });
+}
+
+function removeImage(idx) {
+    currentImages.splice(idx, 1);
+    renderImagePreviews();
+}
+
+function addLink() {
+    const url = document.getElementById('linkInput').value.trim();
+    const title = document.getElementById('linkTitleInput').value.trim();
+    if (!url) { setStatus('⚠️ أدخل رابطاً صحيحاً'); return; }
+    if (!/^https?:\/\//.test(url)) { setStatus('⚠️ الرابط يجب أن يبدأ بـ http:// أو https://'); return; }
+    currentLinks.push({ url, title: title || url });
+    document.getElementById('linkInput').value = '';
+    document.getElementById('linkTitleInput').value = '';
+    renderLinkList();
+}
+
+function renderLinkList() {
+    const list = document.getElementById('linkList');
+    list.innerHTML = '';
+    currentLinks.forEach((link, idx) => {
+        const item = document.createElement('div');
+        item.className = 'link-item';
+        item.innerHTML = `
+            <a href="${link.url}" target="_blank">${link.title}</a>
+            <button type="button" class="del-link" onclick="removeLink(${idx})">✕</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function removeLink(idx) {
+    currentLinks.splice(idx, 1);
+    renderLinkList();
+}
+
+function saveWitness() {
+    if (!currentWitnessCell) return;
+    const data = normalizeWitnessData({
+        images: currentImages,
+        links: currentLinks,
+        ...currentWitnessSettings
+    });
+    currentWitnessCell.dataset.witness = JSON.stringify(data);
+    renderWitnesses(currentWitnessCell);
+    closeWitnessModal();
+    setStatus('✅ تم حفظ الشواهد وإعدادات العرض');
+}
+
+function buildThumbnailsMarkup(cell, data) {
+    if (!data.images || !data.images.length) return '';
+    const isFull = data.imageSizeMode === 'full';
+    const thumbWidth = isFull ? '100%' : `${data.imageSize}px`;
+    const fitClass = data.imageFit === 'cover' ? ' crop-square' : '';
+    const alignItems = data.placement === 'below' ? 'start' : 'center';
+
+    let gridStyle = '';
+    if (data.columns === 1 || isFull) {
+        gridStyle = `display:grid;grid-template-columns:1fr;justify-items:${alignItems};`;
+    } else if (data.columns === 2) {
+        gridStyle = `display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));justify-items:${alignItems};`;
+    } else if (data.columns === 3) {
+        gridStyle = `display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));justify-items:${alignItems};`;
+    }
+
+    let html = `<div class="witness-thumbnails" style="${gridStyle}">`;
+    data.images.forEach((img, idx) => {
+        const finalWidth = (data.columns === 2 || data.columns === 3) && !isFull
+            ? `min(${data.imageSize}px, 100%)`
+            : thumbWidth;
+        html += `<div class="witness-thumb${fitClass}" style="width:${finalWidth};" onclick="event.stopPropagation();viewImage(this.querySelector('img').src)">
+            <img src="${img}" alt="شاهد">
+            <button type="button" class="remove-thumb edit-only" onclick="event.stopPropagation();removeImageFromWitness(this, ${idx})" title="حذف الصورة">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function buildQuickControlsMarkup(data) {
+    const sizeText = data.imageSizeMode === 'full' ? '100%' : `${data.imageSize}px`;
+    const placeLabels = {
+        'below': '⬇ تحت العنصر',
+        'opposite': '↔ مقابل العنصر',
+        'full-row': '⬛ عرض الجدول'
+    };
+    return `<div class="witness-quick-bar edit-only" onclick="event.stopPropagation()">
+        <button type="button" onclick="adjustWitnessSize(this, -30)" title="تصغير الصورة">➖</button>
+        <span class="size-tag">${sizeText}</span>
+        <button type="button" onclick="adjustWitnessSize(this, 30)" title="تكبير الصورة">➕</button>
+        <button type="button" onclick="cycleWitnessPlacement(this)" title="تغيير موضع الصورة">${placeLabels[data.placement] || '⬇ تحت العنصر'}</button>
+        <button type="button" onclick="openWitnessModal(findEvidenceCellFromEl(this))" title="خيارات متقدمة">⚙️</button>
+    </div>`;
+}
+
+function findEvidenceCellFromEl(el) {
+    const directTd = el.closest('td.col-type');
+    if (directTd) return directTd;
+    const row = el.closest('tr');
+    if (!row) return null;
+    if (row.classList.contains('witness-subrow')) {
+        const prevRow = row.previousElementSibling;
+        return prevRow ? prevRow.querySelector('td.col-type') : null;
+    }
+    return row.querySelector('td.col-type');
+}
+
+function adjustWitnessSize(btn, delta) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    if (data.imageSizeMode === 'full') {
+        if (delta < 0) {
+            data.imageSizeMode = 'px';
+            data.imageSize = 360;
+        }
+    } else {
+        const nextSize = data.imageSize + delta;
+        if (nextSize >= 480 && delta > 0) {
+            data.imageSizeMode = 'full';
+        } else {
+            data.imageSize = Math.max(70, Math.min(620, nextSize));
+        }
+    }
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnesses(cell);
+}
+
+function cycleWitnessPlacement(btn) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    const order = ['below', 'opposite', 'full-row'];
+    const idx = order.indexOf(data.placement);
+    data.placement = order[(idx + 1) % order.length];
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnesses(cell);
+}
+
+function removeImageFromWitness(btn, idx) {
+    const cell = findEvidenceCellFromEl(btn);
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    data.images.splice(idx, 1);
+    cell.dataset.witness = JSON.stringify(data);
+    renderWitnesses(cell);
+}
+
+function updatePageOverflowFlag(el) {
+    const page = el ? el.closest('.page') : null;
+    if (!page) return;
+    page.classList.toggle('has-overflow-witness', page.scrollHeight > 1130);
+}
+
+function renderWitnesses(cell) {
+    if (!cell) return;
+    const data = getWitnessData(cell);
+    const hasImages = data.images && data.images.length > 0;
+    const hasLinks = data.links && data.links.length > 0;
+    const tr = cell.closest('tr');
+    const itemTd = tr ? tr.querySelector('td.col-item') : null;
+
+    if (itemTd) {
+        itemTd.querySelectorAll('.witness-below-container').forEach(el => el.remove());
+    }
+    if (tr && tr.nextElementSibling && tr.nextElementSibling.classList.contains('witness-subrow')) {
+        tr.nextElementSibling.remove();
+    }
+
+    let typeContent = cell.querySelector('.cell-content');
+    const existingText = typeContent ? typeContent.innerHTML : '';
+    cell.querySelectorAll('.witness-evidence-cell').forEach(el => el.remove());
+
+    if (!typeContent) {
+        typeContent = document.createElement('div');
+        typeContent.className = 'cell-content';
+        typeContent.contentEditable = 'true';
+        typeContent.innerHTML = existingText;
+        cell.appendChild(typeContent);
+    }
+
+    const holder = document.createElement('div');
+    holder.className = 'witness-evidence-cell';
+    let html = `<div class="witness-actions edit-only">
+        <button type="button" onclick="event.stopPropagation();openWitnessModal(this.closest('td.col-type'))" title="إضافة/تعديل الشواهد والصور">📎 شواهد</button>
+    </div>`;
+
+    if (hasImages && data.placement === 'opposite') {
+        html += buildThumbnailsMarkup(cell, data);
+        html += buildQuickControlsMarkup(data);
+    } else if (hasImages && data.placement === 'below') {
+        html += `<span class="witness-below-hint edit-only">⬇️ تحت اسم العنصر</span>`;
+        if (itemTd) {
+            const belowDiv = document.createElement('div');
+            belowDiv.className = 'witness-below-container';
+            belowDiv.innerHTML = buildThumbnailsMarkup(cell, data) + buildQuickControlsMarkup(data);
+            itemTd.appendChild(belowDiv);
+        }
+    } else if (hasImages && data.placement === 'full-row') {
+        html += `<span class="witness-below-hint edit-only">⬛ بعرض الجدول</span>`;
+        if (tr && tr.parentNode) {
+            const subTr = document.createElement('tr');
+            subTr.className = 'witness-subrow';
+            const subTd = document.createElement('td');
+            subTd.colSpan = 4;
+            subTd.className = 'witness-subrow-cell';
+            subTd.innerHTML = buildThumbnailsMarkup(cell, data) + buildQuickControlsMarkup(data);
+            subTr.appendChild(subTd);
+            tr.parentNode.insertBefore(subTr, tr.nextSibling);
+        }
+    }
+
+    if (hasLinks) {
+        html += `<div class="witness-info"><span class="link-count">🔗 ${data.links.length} رابط</span></div>`;
+        html += '<div class="witness-qr">';
+        data.links.forEach((link) => {
+            html += `<div class="qr-container" data-url="${link.url}" style="margin:3px auto;"></div>`;
+            html += `<div class="qr-url">${link.url.substring(0, 30)}...</div>`;
+        });
+        html += '</div>';
+    }
+
+    holder.innerHTML = html;
+    cell.appendChild(holder);
+
+    if (hasLinks) {
+        holder.querySelectorAll('.qr-container').forEach(el => {
+            const url = el.dataset.url;
+            el.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(el, {
+                    text: url,
+                    width: 60,
+                    height: 60,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            }
+        });
+    }
+
+    updatePageOverflowFlag(cell);
+}
+
+function renderAllWitnesses() {
+    document.querySelectorAll('#pagesWrap td.col-type').forEach(cell => {
+        if (cell.dataset.witness) renderWitnesses(cell);
+    });
+}
+
+function initWitnessCells() {
+    document.querySelectorAll('#pagesWrap td.col-type').forEach(cell => {
+        if (!cell.getAttribute('onclick')?.includes('event')) {
+            cell.setAttribute('onclick', 'toggleRowCell(this, event)');
+        }
+        renderWitnesses(cell);
+    });
+}
+
+function viewImage(src) {
+    const lb = document.getElementById('imgLightboxModal');
+    const imgEl = document.getElementById('imgLightboxEl');
+    if (lb && imgEl) {
+        imgEl.src = src;
+        lb.classList.add('show');
+    }
+}
+
+function closeImageLightbox() {
+    document.getElementById('imgLightboxModal')?.classList.remove('show');
 }
 
 /* ============ إدارة الصفوف ============ */
@@ -1401,20 +2092,26 @@ function addRow(btn) {
     const tbody = table.querySelector('tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td class="col-type check-cell" onclick="toggleRowCell(this)"><div class="cell-content" contenteditable="true"></div></td>
+        <td class="col-type check-cell" onclick="toggleRowCell(this, event)"><div class="cell-content" contenteditable="true"></div></td>
         <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
         <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
         <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;"></div></td>
         <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
     `;
     tbody.appendChild(tr);
+    initWitnessCells();
     const firstInput = tr.querySelector('.col-item .cell-content');
     if (firstInput) firstInput.focus();
 }
 
 function delRow(btn) {
     const tr = btn.closest('tr');
-    if (confirm('حذف هذا الصف؟')) tr.remove();
+    if (confirm('حذف هذا الصف؟')) {
+        if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('witness-subrow')) {
+            tr.nextElementSibling.remove();
+        }
+        tr.remove();
+    }
 }
 
 /* ============ إضافة صفحة جديدة ============ */
@@ -1461,6 +2158,8 @@ function loadData() {
     try {
         const state = JSON.parse(raw);
         document.getElementById('pagesWrap').innerHTML = state.pagesHTML;
+        initWitnessCells();
+        window.dispatchEvent(new CustomEvent('eduCanvaReapply'));
         setStatus('✅ تم استرجاع البيانات المحفوظة');
     } catch(e) {
         setStatus('❌ خطأ في الاسترجاع: ' + e.message);
@@ -1538,6 +2237,7 @@ function togglePrintPreview(forceState) {
     }
     fmtBar.classList.remove('show');
     if (next) {
+        renderAllWitnesses();
         document.body.classList.add('print-preview-mode');
         renderPreviewBadges();
         applyPreviewZoom();
@@ -1561,6 +2261,7 @@ function printDocument() {
         document.activeElement.blur();
     }
     fmtBar.classList.remove('show');
+    renderAllWitnesses();
     // إزالة التكبير مؤقتاً أثناء الطباعة حتى لا يتأثر مقاس A4
     document.querySelectorAll('#pagesWrap > .page').forEach(p => {
         p.style.transform = '';
@@ -1678,6 +2379,7 @@ async function exportPDF() {
     }
     fmtBar.classList.remove('show');
     closePdfReadyBanner();
+    renderAllWitnesses();
 
     if (overlay) overlay.classList.add('show');
     if (titleEl) titleEl.textContent = 'جاري تجهيز ملف PDF...';
@@ -1831,6 +2533,7 @@ window.addEventListener('load', () => {
     const backBtn = document.getElementById('btnBackHome');
     if (backBtn && isStandalone) backBtn.style.display = 'inline-block';
 
+    initWitnessCells();
     const raw = localStorage.getItem('perf_form_data');
     if (raw) {
         if (confirm('يوجد حفظ سابق. هل تريد استرجاعه؟')) {
@@ -1838,6 +2541,13 @@ window.addEventListener('load', () => {
         }
     }
 });
+</script>
+<script src="/static/js/edu_image_cropper.js"></script>
+<script src="/static/js/edu_canva_studio.js"></script>
+<script>
+window.openEduCanvaStudio = function() {
+    if (window.EduCanvaStudio) window.EduCanvaStudio.open('portfolio');
+};
 </script>
 
 </body>

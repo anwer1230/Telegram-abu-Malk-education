@@ -14281,7 +14281,7 @@ def performance_witnesses_page():
 @app.route("/school_reports")
 @app.route("/school_reports/")
 def school_reports_page():
-    """ملف التقارير والشواهد المدرسية - الواجهة التفاعلية الكاملة"""
+    """ملف التقارير والبرامج التربوية والأنشطة المدرسية - الواجهة التفاعلية الكاملة"""
     resp = make_response(
         send_file(
             os.path.join(app.root_path, 'templates', 'school_reports.html'),
@@ -15790,11 +15790,11 @@ def api_edu_canva_proxy_img():
 
 @app.route('/api/edu/canva/import_file', methods=['POST'])
 def api_edu_canva_import_file():
-    """استيراد تصميم كانفا من ملف صورة أو PowerPoint مصدّر من كانفا وتوليد قالب جاهز داخلياً."""
+    """استيراد تصميم كانفا من ملف صورة أو PDF أو PowerPoint مصدّر من كانفا وتوليد قالب جاهز داخلياً."""
     if not _pptx_dimp:
         return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
     if 'file' not in request.files:
-        return jsonify({'success': False, 'error': 'يرجى اختيار ملف تصميم من كانفا (صورة أو PPTX)'}), 400
+        return jsonify({'success': False, 'error': 'يرجى اختيار ملف تصميم من كانفا (صورة أو PDF أو PPTX)'}), 400
     f = request.files['file']
     name = (request.form.get('name') or '').strip()
     category = (request.form.get('category') or 'تصاميمي المجلوبة').strip()
@@ -15808,6 +15808,47 @@ def api_edu_canva_import_file():
         return jsonify({'success': True, 'template': tpl})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/process_for_merge', methods=['POST'])
+def api_edu_canva_process_for_merge():
+    """معالجة القالب المختار من كانفا وتحويله إلى صيغة متوافقة (صور PNG A4 + ملف PDF) للدمج المباشر في الملفات."""
+    if not _pptx_dimp:
+        return jsonify({'success': False, 'error': 'وحدة كانفا غير متاحة'}), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        tpl_item = body.get('template') or body
+        token = (body.get('canva_token') or '').strip()
+        if not isinstance(tpl_item, dict) or not (tpl_item.get('id') or tpl_item.get('name')):
+            return jsonify({'success': False, 'error': 'بيانات القالب المختار مطلوبة للمعالجة'}), 400
+        processed_tpl = _pptx_dimp.process_edu_canva_template_for_merge(tpl_item, canva_token=token)
+        return jsonify({
+            'success': True,
+            'template': processed_tpl,
+            'processed_pdf_url': processed_tpl.get('processed_pdf_url', ''),
+            'processed_pages': processed_tpl.get('processed_pages', []),
+            'processed_format': processed_tpl.get('processed_format', 'PNG + PDF (A4)'),
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/edu/canva/asset/<tid>/<filename>', methods=['GET'])
+def api_edu_canva_processed_asset(tid, filename):
+    """تقديم ملفات القالب المعالجة (صور PNG أو PDF) بنفس النطاق لضمان الدمج والتصدير لـ PDF بدون قيود CORS."""
+    from flask import send_from_directory
+    safe_tid = re.sub(r'[^A-Za-z0-9_-]', '', tid or '')
+    if not safe_tid or safe_tid != tid:
+        return '', 404
+    if not re.match(r'^(?:page_\d{2}\.png|template\.pdf)$', filename or ''):
+        return '', 404
+    asset_dir = os.path.join(_cfg.DATA_DIR, 'edu_canva_processed', safe_tid)
+    if not os.path.isdir(asset_dir) or not os.path.isfile(os.path.join(asset_dir, filename)):
+        return '', 404
+    as_dl = request.args.get('download') == '1'
+    resp = send_from_directory(asset_dir, filename, as_attachment=as_dl)
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 
 

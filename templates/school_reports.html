@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ملف التقارير التربوية والبرامج والأنشطة المدرسية - تفاعلي</title>
+<title>ملف التقارير والبرامج التربوية والأنشطة المدرسية - تفاعلي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
@@ -370,6 +370,62 @@
     .evidence-box .qr-url-link {
         font-size: 10px; color: #2563eb; text-decoration: none; word-break: break-all;
     }
+    .evidence-box.evidence-placeholder {
+        cursor: pointer;
+        border-color: #94a3b8;
+        background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    }
+    .evidence-box.evidence-placeholder:hover {
+        border-color: var(--primary-light);
+        background: #eff6ff;
+    }
+    .evidence-box.evidence-static-card {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border: 2px solid var(--accent-light);
+        color: #78350f;
+        padding: 16px;
+        text-align: center;
+    }
+    .evidence-box.evidence-static-card .card-title {
+        font-size: 1.05em; font-weight: 900; color: var(--accent); margin-bottom: 6px;
+    }
+    .evidence-box.evidence-static-card .card-body {
+        font-size: 0.95em; font-weight: 600; line-height: 1.7; color: #451a03;
+    }
+    .witness-fallback {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 6px; padding: 14px; color: #64748b; text-align: center; min-height: 150px;
+    }
+
+    /* ==================== بطاقات الخطوات والمحتوى المرقّم ==================== */
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0; page-break-inside: avoid; }
+    .step-card {
+        background: linear-gradient(135deg, #fdf2f8 0%, #ffffff 100%);
+        border: 1.5px solid #fbcfe8; border-right: 5px solid var(--pink-light);
+        border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(157, 23, 77, 0.06);
+    }
+    .step-card .step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 50%; background: var(--pink); color: #fff;
+        font-weight: 900; font-size: 0.95em; margin-left: 8px;
+    }
+    .step-card .step-title { font-weight: 800; color: var(--pink); font-size: 1.05em; margin-bottom: 6px; display: flex; align-items: center; }
+    .step-card .step-desc { font-size: 0.98em; color: var(--gray-700); line-height: 1.7; }
+
+    /* ==================== الاعتماد النهائي وقائمة التحقق ==================== */
+    .footer-section {
+        padding: 40px; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+        border-top: 4px solid var(--primary); page-break-before: always; position: relative;
+    }
+    .footer-section h2 {
+        color: var(--primary); font-size: 1.8em; font-weight: 900; text-align: center;
+        margin-bottom: 24px; padding-bottom: 14px; border-bottom: 3px solid var(--primary-light);
+    }
+    .checklist-table th { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); text-align: center; }
+    .checklist-table td { text-align: center; padding: 10px 12px; font-size: 0.98em; }
+    .checklist-table td:nth-child(2) { text-align: right; font-weight: 700; color: var(--gray-800); }
+    .checklist-table input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--success); }
+
     .witness-del-btn {
         position: absolute; top: 6px; left: 6px; z-index: 5;
         background: rgba(220, 38, 38, 0.9); color: #fff; border: none;
@@ -569,10 +625,11 @@
 <!-- ==================== شريط الأدوات ==================== -->
 <div class="toolbar">
     <button type="button" id="btnBackHome" class="back-btn" onclick="goBackToDashboard()">⬅️ الرئيسية</button>
-    <span class="brand">📚 محرر التقارير التربوية والشواهد</span>
+    <span class="brand">📚 ملف التقارير والبرامج التربوية والأنشطة المدرسية</span>
     <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
     <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
     <button type="button" onclick="exportPDF()" class="warning">📄 تصدير PDF</button>
+    <button type="button" onclick="EduCanvaStudio.open('reports')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
     <button type="button" onclick="loadData()">🔄 استرجاع</button>
     <button type="button" onclick="addNewPage()" class="teal-btn">➕ إضافة صفحة</button>
     <button type="button" onclick="addNewSection()">➕ إضافة قسم/تقرير</button>
@@ -606,7 +663,7 @@
 <!-- ==================== شريط جاهزية PDF المباشر ==================== -->
 <div class="pdf-ready-banner" id="pdfReadyBanner">
     <span>✅ ملف PDF جاهز للتحميل:</span>
-    <a id="pdfDirectDownloadLink" href="#" download="ملف_التقارير_والشواهد_المدرسية.pdf">📥 حفظ الملف</a>
+    <a id="pdfDirectDownloadLink" href="#" download="ملف_التقارير_والبرامج_التربوية_والأنشطة_المدرسية.pdf">📥 حفظ الملف</a>
     <button type="button" class="open-btn" onclick="openLastPdfBlob()">👁️ فتح الملف</button>
     <button type="button" class="close-btn" onclick="closePdfReadyBanner()">✕</button>
 </div>
@@ -724,7 +781,7 @@
             <div class="kingdom editable-area" contenteditable="true">المملكة العربية السعودية</div>
             <div class="ministry editable-area" contenteditable="true">وزارة التعليم</div>
             <div class="school editable-area" contenteditable="true">مدرسة أمنة بنت عفان</div>
-            <div class="file-title editable-area" contenteditable="true">📚 ملف التقارير التربوية<br>والبرامج والأنشطة المدرسية</div>
+            <div class="file-title editable-area" contenteditable="true">📚 ملف التقارير والبرامج التربوية<br>والأنشطة المدرسية</div>
             <div class="year editable-area" contenteditable="true">📅 للعام الدراسي 1448هـ</div>
             <div class="info-box">
                 <p class="editable-area" contenteditable="true">👩🏫 إعداد: أ/ أسماء ياسين الخيري</p>
@@ -762,265 +819,44 @@
 
     <!-- ==================== الفهرس ==================== -->
     <div class="index-section">
-        <h2 class="editable-area" contenteditable="true">📋 الفهرس (جدول المحتويات)</h2>
+        <h2 class="editable-area" contenteditable="true">📋 الفهرس (جدول المحتويات — 26 تقريراً)</h2>
         <div class="index-grid">
-            <div class="index-item"><div class="index-number">1</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة</div></div>
-            <div class="index-item"><div class="index-number">2</div><div class="index-text editable-area" contenteditable="true">تقرير تبادل الزيارات</div></div>
-            <div class="index-item"><div class="index-number">3</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div></div>
-            <div class="index-item"><div class="index-number">4</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</div></div>
-            <div class="index-item"><div class="index-number">5</div><div class="index-text editable-area" contenteditable="true">تقرير الأسبوع التمهيدي</div></div>
-            <div class="index-item"><div class="index-number">6</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</div></div>
-            <div class="index-item"><div class="index-number">8</div><div class="index-text editable-area" contenteditable="true">تقرير الأنشطة الصفية</div></div>
-            <div class="index-item"><div class="index-number">9</div><div class="index-text editable-area" contenteditable="true">تقرير التفاعل المهني</div></div>
-            <div class="index-item"><div class="index-number">10</div><div class="index-text editable-area" contenteditable="true">تقرير تحليل النتائج</div></div>
-            <div class="index-item"><div class="index-number">12</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</div></div>
-            <div class="index-item"><div class="index-number">13</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</div></div>
-            <div class="index-item"><div class="index-number">14</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف</div></div>
-            <div class="index-item"><div class="index-number">15</div><div class="index-text editable-area" contenteditable="true">تقرير خطة التعليم</div></div>
-            <div class="index-item"><div class="index-number">16</div><div class="index-text editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</div></div>
-            <div class="index-item"><div class="index-number">17</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div></div>
-            <div class="index-item"><div class="index-number">18</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div></div>
-            <div class="index-item"><div class="index-number">19</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div></div>
-            <div class="index-item"><div class="index-number">20</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</div></div>
-            <div class="index-item"><div class="index-number">21</div><div class="index-text editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</div></div>
-            <div class="index-item"><div class="index-number">22</div><div class="index-text editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</div></div>
-            <div class="index-item"><div class="index-number">23</div><div class="index-text editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</div></div>
-            <div class="index-item"><div class="index-number">24</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</div></div>
+            <div class="index-item"><div class="index-number">1</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج الأسبوع التمهيدي</div></div>
+            <div class="index-item"><div class="index-number">2</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div></div>
+            <div class="index-item"><div class="index-number">3</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل يوم المعلم</div></div>
+            <div class="index-item"><div class="index-number">4</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div></div>
+            <div class="index-item"><div class="index-number">5</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية البطاقات الملونة</div></div>
+            <div class="index-item"><div class="index-number">6</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div></div>
+            <div class="index-item"><div class="index-number">7</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية الدقيقة الواحدة</div></div>
+            <div class="index-item"><div class="index-number">8</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة (بطاقة الخروج 3-2-1 والتفكير العليا والربط بالوطن)</div></div>
+            <div class="index-item"><div class="index-number">9</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ استراتيجية 1-2-3 (أو 3-2-1)</div></div>
+            <div class="index-item"><div class="index-number">10</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل برنامج التسامح (كوكبنا يزهر بالتسامح)</div></div>
+            <div class="index-item"><div class="index-number">11</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج STEAM (سر الصحراء المذهل)</div></div>
+            <div class="index-item"><div class="index-number">12</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل القوانين الصفية والانضباط</div></div>
+            <div class="index-item"><div class="index-number">13</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div></div>
+            <div class="index-item"><div class="index-number">14</div><div class="index-text editable-area" contenteditable="true">تقرير تبادل الزيارات</div></div>
+            <div class="index-item"><div class="index-number">15</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</div></div>
+            <div class="index-item"><div class="index-number">16</div><div class="index-text editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</div></div>
+            <div class="index-item"><div class="index-number">17</div><div class="index-text editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</div></div>
+            <div class="index-item"><div class="index-number">18</div><div class="index-text editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</div></div>
+            <div class="index-item"><div class="index-number">19</div><div class="index-text editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</div></div>
+            <div class="index-item"><div class="index-number">20</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</div></div>
+            <div class="index-item"><div class="index-number">21</div><div class="index-text editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</div></div>
+            <div class="index-item"><div class="index-number">22</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف والأنشطة الصفية والإثرائية</div></div>
+            <div class="index-item"><div class="index-number">23</div><div class="index-text editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</div></div>
+            <div class="index-item"><div class="index-number">24</div><div class="index-text editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</div></div>
+            <div class="index-item"><div class="index-number">25</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</div></div>
             <div class="index-item"><div class="index-number">26</div><div class="index-text editable-area" contenteditable="true">تقرير تنفيذ ورشة عمل</div></div>
         </div>
     </div>
 
     <!-- ==================== القسم الأول ==================== -->
-    <div class="section-header editable-area" contenteditable="true">🎯 القسم الأول: تقارير استراتيجيات التدريس وأدواته</div>
+    <div class="section-header teal editable-area" contenteditable="true">🎉 القسم الأول: تقارير البرامج والمناسبات الوطنية والعالمية</div>
 
     <!-- تقرير 1 -->
     <div class="report fade-in">
-        <div class="report-title blue">
+        <div class="report-title teal">
             <div class="num">1</div>
-            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة</div>
-        </div>
-        <table class="info-table">
-            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">العصف الذهني / التعلم باللعب والرسم</td></tr>
-            <tr><th>المادة</th><td class="editable-area" contenteditable="true">دراسات اجتماعية</td></tr>
-            <tr><th>تاريخ التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>المرحلة الدراسية</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
-            <tr><th>الفصل</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>عدد الطلاب</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>عنوان الدرس</th><td class="editable-area" contenteditable="true"></td></tr>
-        </table>
-        <div class="sub-heading editable-area" contenteditable="true">🛠️ الأدوات والوسائل التعليمية المستخدمة</div>
-        <div class="checkbox-grid">
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">سبورة تقليدية</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">جهاز عرض</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">سبورة ذكية</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">جهاز الحاسب</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">بطاقات تعليمية</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">صور توضيحية</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">أوراق عمل</span></label>
-            <label class="checkbox-item"><input type="checkbox"> <span class="editable-area" contenteditable="true">عرض تقديمي</span></label>
-        </div>
-        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">رفع مستوى التعلم</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين التفاعل داخل الفصل</li>
-            <li class="editable-area editable-block" contenteditable="true">مراعاة الفروق الفردية</li>
-            <li class="editable-area editable-block" contenteditable="true">بناء اتجاهات وقيم إيجابية</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين نواتج التعلم</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">تنوعت استراتيجيات التدريس التي وظفتها المعلمة لتناسب الفروق الفردية وتزيد من دافعية الطالبات.</li>
-            <li class="editable-area editable-block" contenteditable="true">تم دمج استراتيجية التعلم باللعب والرسم لتنمية المهارات الحركية والدقيقة.</li>
-            <li class="editable-area editable-block" contenteditable="true">تفعيل استراتيجية العصف الذهني في بداية الدروس لتحفيز التفكير وإثارة الفضول.</li>
-            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة مفتوحة (مثل: هل تبدو جميع أجزاء سطح الأرض متشابهة؟) لربط خبرات الطالبات السابقة بالموضوع الجديد.</li>
-            <li class="editable-area editable-block" contenteditable="true">أظهرت الاستراتيجيات تفاعلاً ممتازاً وساعدت في تهيئة أذهان الطالبات لاستقبال المعلومات الجغرافية الجديدة، مما جعل بيئة التعلم أكثر متعة وجاذبية.</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير تنفيذ استراتيجية البطاقات الملونة</div>
-        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">حرصت المعلمة على تفعيل 'استراتيجية البطاقات الملونة' لتنظيم المعلومات الجغرافية المعقدة (مثل الهضاب في المملكة) وتحويلها إلى صورة بصرية جاذبة. تم تقسيم الطالبات وتوزيع المفاهيم بألوان مختلفة، مما سهل عليهن عملية التصنيف والربط بين المعلومة واللون. وقد أثرت هذه الاستراتيجية بشكل إيجابي على مستوى الانتباه والتركيز لدى الطالبات، وساعدت في ترسيخ المعلومة في ذهن المتعلمة بطريقة تفاعلية وممتعة بعيداً عن التلقين. (تم التنفيذ بتاريخ 12/11/2026 لصف رابع).</p>
-        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير استراتيجية بطاقة الخروج (التقويم الختامي)</div>
-        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #eff6ff; border-right: 4px solid var(--primary-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">طبقت المعلمة 'استراتيجية بطاقة الخروج' كأداة تقويم ختامي بديلة، حيث طُلب من الطالبات كتابة ثلاث أفكار مستفادة، وشيئين أعجبهما، وسؤال يودن معرفته. وقد أظهرت النتائج مدى استيعاب الطالبات لأهداف الدرس، كما أتاحت للمعلمة التعرف على الفجوات الفردية والمفاهيم الغامضة التي تحتاج إلى معالجة في الحصة القادمة. تعكس هذه الاستراتيجية حرص المعلمة على تقييم نواتج التعلم بشكل شامل وشفاف، وتعزيز مهارات التفكير التأملي لدى الطالبات. (تم التنفيذ بتاريخ 12/11/2026 لصف رابع).</p>
-        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد (استراتيجيات التدريس)</div>
-        <div class="evidence-grid"></div>
-        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 17 -->
-    <div class="report fade-in">
-        <div class="report-title blue">
-            <div class="num">17</div>
-            <div class="editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div>
-        </div>
-        <table class="info-table">
-            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأربعاء</td></tr>
-            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثانية</td></tr>
-            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
-            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
-            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">توظيف استراتيجية العصف الذهني لتنمية التفكير الإبداعي</td></tr>
-            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
-            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلم المادة</td></tr>
-        </table>
-        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي لدى الطلاب من خلال توليد أفكار متنوعة</li>
-            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة الفاعلة وبناء الثقة في طرح آرائهم بحرية</li>
-            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الحوار والنقاش واحترام الرأي الآخر داخل الصف</li>
-            <li class="editable-area editable-block" contenteditable="true">إثراء الدرس بأفكار متعددة تسهم في رفع مستوى الفهم والتحصيل</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">تفعيل استراتيجية العصف الذهني في بداية الدروس لتحفيز التفكير وإثارة الفضول.</li>
-            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة مفتوحة (مثل: هل تبدو جميع أجزاء سطح الأرض متشابهة؟) لربط خبرات الطالبات السابقة بالموضوع الجديد.</li>
-            <li class="editable-area editable-block" contenteditable="true">فتح باب المشاركة وكتابة الإجابات المقترحة على السبورة أو الشاشة.</li>
-            <li class="editable-area editable-block" contenteditable="true">مناقشة الأفكار وتحليلها مع المجموعة الصفية وتلخيص أهم الأفكار وإعادة ربطها بهدف الدرس.</li>
-        </ul>
-        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
-        <ul class="pros-list">
-            <li class="editable-area editable-block" contenteditable="true">زيادة دافعية الطلاب للمشاركة</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي والناقد</li>
-            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات التواصل واحترام آراء الآخرين</li>
-            <li class="editable-area editable-block" contenteditable="true">إثراء الدرس بعدد كبير من الأفكار من الطلاب أنفسهم</li>
-        </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
-        <ul class="cons-list">
-            <li class="editable-area editable-block" contenteditable="true">تشجيع كل الإجابات دون تصحيح مباشر أثناء العصف</li>
-            <li class="editable-area editable-block" contenteditable="true">إدارة الوقت بدقة لتحقيق الهدف من النشاط</li>
-            <li class="editable-area editable-block" contenteditable="true">ربط الأفكار الناتجة بالمخرجات التعليمية للدرس</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
-        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 18 -->
-    <div class="report fade-in">
-        <div class="report-title blue">
-            <div class="num">18</div>
-            <div class="editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div>
-        </div>
-        <table class="info-table">
-            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
-            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثالثة</td></tr>
-            <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
-            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
-            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">استخدام التقنية في العملية التعليمية</td></tr>
-            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
-            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
-        </table>
-        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">توظيف أدوات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالذكاء</li>
-            <li class="editable-area editable-block" contenteditable="true">تعزيز المشاركة الفاعلة للطلاب وتحفيزهم على طرح الأسئلة والاستكشاف</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">استخدام أدوات الذكاء الاصطناعي لعرض مفاهيم الدرس بطريقة تفاعلية</li>
-            <li class="editable-area editable-block" contenteditable="true">توليد أسئلة إثرائية فورية بناءً على الدرس</li>
-            <li class="editable-area editable-block" contenteditable="true">عرض صور ورسوم توضيحية مرتبطة بمحتوى الدرس</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
-        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">في إطار توظيف التقنيات الحديثة، استخدمت المعلمة منصة Wordwall لتحويل مراجعة درس 'مظاهر السطح' إلى لعبة تفاعلية تنافسية. ساهمت هذه الأداة الرقمية في رفع مستوى الدافعية لدى الطالبات وجذبهن للمشاركة الفعالة، كما وفرت للمعلمة تغذية راجعة فورية (Feedback) عن مستوى استيعاب الطالبات للمفاهيم، مما جعل بيئة التعلم تفاعلية ومحفزة وتحقق متعة التعلم.</p>
-        <div class="sub-heading editable-area" contenteditable="true">🛠️ الوسائل المستخدمة</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">جهاز عرض (داتا شو) + حاسب محمول</li>
-            <li class="editable-area editable-block" contenteditable="true">أداة ChatGPT أو أدوات مشابهة في توليد المحتوى والأسئلة</li>
-            <li class="editable-area editable-block" contenteditable="true">عروض تفاعلية PowerPoint / Canva</li>
-        </ul>
-        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
-        <ul class="pros-list">
-            <li class="editable-area editable-block" contenteditable="true">جذب انتباه الطلاب وتشويقهم لمفاهيم المادة التعليمية</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل الصور التوضيحية والأسئلة الذكية</li>
-            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة وطرح الأسئلة</li>
-        </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
-        <ul class="cons-list">
-            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام أدوات الذكاء الاصطناعي التعليمية بفعالية</li>
-            <li class="editable-area editable-block" contenteditable="true">توظيف الذكاء الاصطناعي في دروس إضافية تعزز استيعاب الدرس</li>
-            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى المولد مع القيم الإسلامية والمناهج الرسمية</li>
-        </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
-        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- ==================== القسم الثاني ==================== -->
-    <div class="section-header teal editable-area" contenteditable="true">🎉 القسم الثاني: تقارير البرامج والمناسبات الوطنية والاجتماعية</div>
-
-    <!-- تقرير 3 -->
-    <div class="report fade-in">
-        <div class="report-title teal">
-            <div class="num">3</div>
-            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div>
-        </div>
-        <table class="info-table">
-            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن</td></tr>
-            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">........%</span></span></td></tr>
-            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
-        </table>
-        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن في نفوس الطلاب والطالبات</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية روح المشاركة والمسؤولية الاجتماعية لدى منسوبي المدرسة</li>
-            <li class="editable-area editable-block" contenteditable="true">تعريف الطلاب بتاريخ المملكة ومنجزاتها الوطنية والحضارية</li>
-            <li class="editable-area editable-block" contenteditable="true">غرس القيم الوطنية والاعتزاز بالهوية السعودية</li>
-        </ul>
-        <div class="sub-heading teal editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">تجسيداً لروح الانتماء والولاء للوطن الغالي، نفذت المعلمة باقة من الفعاليات والأنشطة الوطنية المتنوعة.</li>
-            <li class="editable-area editable-block" contenteditable="true">تزيين الفصول بالعلم السعودي.</li>
-            <li class="editable-area editable-block" contenteditable="true">توزيع الهدايا الرمزية.</li>
-            <li class="editable-area editable-block" contenteditable="true">تنظيم مسابقات ثقافية وطنية.</li>
-            <li class="editable-area editable-block" contenteditable="true">عززت هذه الأنشطة في نفوس الطالبات الفخر والاعتزاز بمملكتنا الحبيبة وتاريخها العريق.</li>
-        </ul>
-        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
-        <ul class="pros-list">
-            <li class="editable-area editable-block" contenteditable="true">تفاعل كبير من الطلاب والمعلمين وأولياء الأمور مع الفعاليات</li>
-            <li class="editable-area editable-block" contenteditable="true">إبراز مواهب الطلاب الإبداعية في مجالات متنوعة (فنية، ثقافية، تقنية)</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية الروح الوطنية وتعزيز الهوية السعودية بأسلوب ممتع وجاذب</li>
-        </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
-        <ul class="cons-list">
-            <li class="editable-area editable-block" contenteditable="true">توسيع المشاركة لتشمل فقرات ميدانية وزيارات للمعالم الوطنية القريبة</li>
-            <li class="editable-area editable-block" contenteditable="true">إشراك أولياء الأمور بشكل أكبر في التنظيم والتفعيل المسبق للفعاليات</li>
-            <li class="editable-area editable-block" contenteditable="true">الاستفادة من التقنية بشكل أوسع (تصميم فيديوهات – مسابقات رقمية)</li>
-        </ul>
-        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
-        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 5 -->
-    <div class="report fade-in">
-        <div class="report-title teal">
-            <div class="num">5</div>
             <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج الأسبوع التمهيدي</div>
         </div>
         <table class="info-table">
@@ -1059,8 +895,317 @@
             <li class="editable-area editable-block" contenteditable="true">إشراك طالبات الصفوف العليا في استقبال المستجدات لتعزيز روح المسؤولية.</li>
             <li class="editable-area editable-block" contenteditable="true">توفير نشرات إرشادية لأولياء الأمور لدعم أبنائهم في هذه المرحلة.</li>
         </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد وباركود التوثيق</div>
+        <div class="evidence-grid" data-cols="3" data-keep-placeholders="1" data-links='[{"url":"https://drive.google.com/file/d/1H8UO-gKcEuyAtYroOwqJUFlRAHoXMGAm/view?usp=drivesdk","title":"شواهد تهيئة البيئة التعليمية"}]'>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 2 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">2</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true">طالبات ومنسوبات المدرسة</td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">أسبوع</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">جميع الطالبات</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">المدرسة</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلمة المادة</td></tr>
+        </table>
+        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مشاعر الانتماء والولاء للوطن في نفوس الطلاب والطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية روح المشاركة والمسؤولية الاجتماعية لدى منسوبي المدرسة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعريف الطلاب بتاريخ المملكة ومنجزاتها الوطنية والحضارية</li>
+            <li class="editable-area editable-block" contenteditable="true">غرس القيم الوطنية والاعتزاز بالهوية السعودية</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تجسيداً لروح الانتماء والولاء للوطن الغالي، نفذت المعلمة باقة من الفعاليات والأنشطة الوطنية المتنوعة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تزيين الفصول بالعلم السعودي وشعارات اليوم الوطني 95.</li>
+            <li class="editable-area editable-block" contenteditable="true">توزيع الهدايا والتذكارات الوطنية الرمزية على الطالبات.</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم مسابقات ثقافية وطنية وعروض صفية تعزز الولاء والانتماء.</li>
+            <li class="editable-area editable-block" contenteditable="true">عززت هذه الأنشطة في نفوس الطالبات الفخر والاعتزاز بمملكتنا الحبيبة وتاريخها العريق.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل كبير من الطلاب والمعلمين وأولياء الأمور مع الفعاليات</li>
+            <li class="editable-area editable-block" contenteditable="true">إبراز مواهب الطلاب الإبداعية في مجالات متنوعة (فنية، ثقافية، تقنية)</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية الروح الوطنية وتعزيز الهوية السعودية بأسلوب ممتع وجاذب</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">توسيع المشاركة لتشمل فقرات ميدانية وزيارات للمعالم الوطنية القريبة</li>
+            <li class="editable-area editable-block" contenteditable="true">إشراك أولياء الأمور بشكل أكبر في التنظيم والتفعيل المسبق للفعاليات</li>
+            <li class="editable-area editable-block" contenteditable="true">الاستفادة من التقنية بشكل أوسع (تصميم فيديوهات – مسابقات رقمية)</li>
+        </ul>
         <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0010.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0016.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0018.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0026.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0027.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0032.jpg"]'></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 3 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">3</div>
+            <div class="editable-area" contenteditable="true">تقرير تفعيل يوم المعلم</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المناسبة</th><td class="editable-area" contenteditable="true">اليوم العالمي للمعلم</td></tr>
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true">طالبات ومنسوبات المدرسة</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">5 أكتوبر / 1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">المدرسة والفصول الدراسية</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز مكانة المعلم وتقدير دوره الريادي في بناء الأجيال وصناعة المستقبل</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">غرس قيم التقدير والاحترام للمعلم في نفوس الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">إبراز الجهود التربوية والتعليمية للمعلمات ودورهن في المجتمع</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز الانتماء المدرسي وبناء علاقات إيجابية داعمة داخل البيئة المدرسية</li>
+            <li class="editable-area editable-block" contenteditable="true">إتاحة الفرصة للطالبات للتعبير عن مشاعر الشكر والامتنان</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تفعيل إذاعة مدرسية خاصة بيوم المعلم تتضمن كلمات تقديرية وعبارات شكر</li>
+            <li class="editable-area editable-block" contenteditable="true">إعداد ركن تعبيري لكتابة رسائل الشكر والامتنان من الطالبات للمعلمات</li>
+            <li class="editable-area editable-block" contenteditable="true">تبادل التهاني والتكريمات الرمزية لتعزيز التحفيز والانتماء الوظيفي</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل عاطفي وإيجابي مميز من الطالبات والمعلمات وأولياء الأمور</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع الروح المعنوية وتعزيز مناخ الاحترام والتقدير بالمدرسة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استمرار المبادرات التقديرية الداعمة للمعلمات طوال العام الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق رسائل الشكر والأعمال الطلابية في ملفات الإنجاز</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد ورسالة الشكر</div>
+        <div class="evidence-grid" data-cols="3" data-keep-placeholders="1">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-static-card">
+                <div class="icon">💌</div>
+                <div class="card-title editable-area" contenteditable="true">رسالة شكر</div>
+                <div class="card-body editable-area" contenteditable="true">"معلمتي الفاضلة، شكراً لعطائك اللامحدود، وصبرك الجميل، وغرسك القيم والمعرفة في نفوس طالباتك لتنيري لهن دروب المستقبل."</div>
+            </div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 4 -->
+    <div class="report fade-in">
+        <div class="report-title teal">
+            <div class="num">4</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div>
+        </div>
+        <table class="info-table">
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true">طالبات المرحلة الابتدائية</td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">أسبوع</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">33</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل الدراسي / غرفة النشاط</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">ربط أسبوع الفضاء بالمعارف الجغرافية والكونية في مادة الدراسات الاجتماعية وتنمية مهارات الاستكشاف والتفكير</td></tr>
+            <tr><th>المعلم/ة المنفذة</th><td class="editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</td></tr>
+        </table>
+        <div class="sub-heading teal editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الفهم والتحليل الجغرافي لدى الطالبات من خلال ربط مفاهيم الفضاء والأرض بمخرجات تعلم مادة الدراسات الاجتماعية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية قدرة الطالبات على فهم حركة الأرض والمجموعة الشمسية وتأثيرها على الظواهر الجغرافية</li>
+            <li class="editable-area editable-block" contenteditable="true">التعريف بجهود المملكة العربية السعودية وإنجازاتها في علوم الفضاء ورؤية 2030</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف استراتيجيات التعلم النشط والأنشطة التطبيقية لتحفيز الإبداع والبحث والاستقصاء</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📝 وصف البرنامج وما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">الإعلان عن البرنامج وتحفيز الطالبات للمشاركة في فعاليات أسبوع الفضاء العالمي</li>
+            <li class="editable-area editable-block" contenteditable="true">تقديم عروض مرئية وخرائط توضيحية تربط كوكب الأرض بالفضاء ومظاهر السطح والمناخ في الدراسات الاجتماعية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنفيذ أنشطة صفية تفاعلية ومجسمات وأوراق عمل تستعرض رواد الفضاء السعوديين وإنجازات المملكة</li>
+            <li class="editable-area editable-block" contenteditable="true">مناقشة الأفكار والنتائج وتوثيق أعمال الطالبات المتميزة</li>
+        </ul>
+        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== القسم الثاني ==================== -->
+    <div class="section-header editable-area" contenteditable="true">🎯 القسم الثاني: تقارير استراتيجيات التدريس والتعلم النشط</div>
+
+    <!-- تقرير 5 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">5</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية البطاقات الملونة</div>
+        </div>
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">استراتيجية البطاقات الملونة</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>الدرس التابع له</th><td class="editable-area" contenteditable="true">المواطنة: الهوية الوطنية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true">الصف الرابع (الفصل الدراسي الأول)</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الحصة الخامسة (يوم الأحد) أو الحصة الرابعة (يوم الثلاثاء)</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">1448-03-17هـ (الأحد) أو 1448-03-19هـ (الثلاثاء) — الأسبوع الثاني عشر</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل الدراسي</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تنظيم مفاهيم الهوية الوطنية ومقومات المواطنة الصالحة وتحويلها إلى بطاقات بصرية ملونة تسهل التصنيف والربط والاستيعاب</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تبسيط مفاهيم المواطنة والهوية الوطنية ومقوماتها وتصنيفها باستخدام الترميز اللوني</li>
+            <li class="editable-area editable-block" contenteditable="true">رفع مستوى الانتباه والتركيز والمشاركة التفاعلية لطالبات الصف الرابع</li>
+            <li class="editable-area editable-block" contenteditable="true">ترسيخ قيم الانتماء والاعتزاز بالهوية الوطنية في ذهن المتعلمة بعيداً عن الحفظ والتلقين</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات العمل التعاوني والتصنيف المفاهيمي السريع</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">حرصت المعلمة على تفعيل «استراتيجية البطاقات الملونة» في تدريس درس «المواطنة: الهوية الوطنية» لطالبات الصف الرابع (الفصل الدراسي الأول)، وذلك خلال الحصة الخامسة يوم الأحد 1448-03-17هـ أو الحصة الرابعة يوم الثلاثاء 1448-03-19هـ (الأسبوع الثاني عشر). تم تقسيم الطالبات إلى مجموعات تعاونية وتوزيع مفاهيم الهوية الوطنية ومقوماتها (الدين، اللغة، الوطن، القيادة، الرموز الوطنية) على بطاقات بألوان مختلفة؛ مما أسهم في تنظيم المعرفة بصرياً وتسهيل عملية التصنيف والربط بين المفهوم ودلالته، وأثر إيجابياً على تركيز الطالبات وترسيخ الفهم.</p>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">سهولة التمييز والتصنيف البصري لمقومات الهوية الوطنية وخصائص المواطنة</li>
+            <li class="editable-area editable-block" contenteditable="true">حماس وتفاعل الطالبات أثناء التوزيع والمناقشة الجماعية داخل الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">بقاء أثر التعلم وتحسن نتائج التقويم البنائي الفوري</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تعميم البطاقات الملونة في دروس المفاهيم الوطنية والتصنيفات المتعددة</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الألوان المتناسقة في الخرائط الذهنية وأوراق العمل الإثرائية</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد وباركود التوثيق</div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261112-WA0001.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261112-WA0002.jpg"]' data-links='[{"url":"https://drive.google.com/file/d/1XMJzbdVL71c4CzqX0PtuUrkPsSatdjUz/view?usp=drivesdk","title":"شواهد استراتيجيات التعلم النشط والتقويم البديل"}]'></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 6 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">6</div>
+            <div class="editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</div>
+        </div>
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">استراتيجية العصف الذهني</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>الدرس التابع له</th><td class="editable-area" contenteditable="true">المواطنة: الهوية الوطنية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true">الصف الرابع (الفصل الدراسي الأول)</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الحصة الخامسة (يوم الأحد) أو الحصة الرابعة (يوم الثلاثاء)</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">1448-03-17هـ (الأحد) أو 1448-03-19هـ (الثلاثاء) — الأسبوع الحادي عشر</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">جميع طالبات الفصل</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل الدراسي</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">توظيف استراتيجية العصف الذهني لتنمية التفكير الإبداعي وتعزيز الوعي بالهوية الوطنية</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلمة المادة</td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي والناقد لدى الطالبات من خلال توليد أفكار متنوعة حول الهوية الوطنية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطالبات على المشاركة الفاعلة وبناء الثقة في التعبير عن مشاعر الانتماء والمواطنة</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الحوار والنقاش واحترام الرأي الآخر داخل الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">إثراء درس «المواطنة: الهوية الوطنية» بأفكار تطبيقية تسهم في رفع مستوى الفهم والتحصيل</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تفعيل استراتيجية العصف الذهني في التمهيد لدرس «المواطنة: الهوية الوطنية» لطالبات الصف الرابع (الفصل الدراسي الأول) خلال الحصة الخامسة يوم الأحد 1448-03-17هـ أو الحصة الرابعة يوم الثلاثاء 1448-03-19هـ (الأسبوع الحادي عشر).</li>
+            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة مفتوحة محفزة (مثل: ما العناصر التي تميز وطننا وتجسد هويتنا الوطنية؟ وكيف تعبر الطالبة عن انتمائها لوطنها؟) لربط الخبرات السابقة بمفاهيم الدرس.</li>
+            <li class="editable-area editable-block" contenteditable="true">فتح باب المشاركة الحرة وتدوين كافة المقترحات والأفكار على السبورة دون تقييد أو نقد فوري.</li>
+            <li class="editable-area editable-block" contenteditable="true">مناقشة الأفكار المجمعة وتصنيفها مع الطالبات وربطها بمحاور الدرس وقيم المواطنة الصالحة.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">زيادة دافعية الطالبات للمشاركة وتوليد أفكار أصيلة حول الهوية الوطنية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير الإبداعي والناقد والاستنتاج</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات التواصل واحترام آراء الزميلات</li>
+            <li class="editable-area editable-block" contenteditable="true">إثراء الموقف التعليمي بعدد كبير من الأمثلة الواقعية المنبثقة من الطالبات أنفسهن</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تشجيع كافة الإجابات والأفكار الإبداعية أثناء مرحلة التوليد قبل الفرز والتصنيف</li>
+            <li class="editable-area editable-block" contenteditable="true">إدارة الوقت بدقة لضمان إتاحة الفرصة لأكبر عدد من الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق أبرز الأفكار الناتجة وربطها بالمخرجات التعليمية لدرس الهوية الوطنية</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد وباركود التوثيق</div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261111-WA0026.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261111-WA0027.jpg"]' data-links='[{"url":"https://drive.google.com/file/d/1kKfJo2IHuZtwFsyhQtzhTnsvOB7NE30L/view?usp=drivesdk","title":"شواهد التنوع في استراتيجيات التدريس"}]'></div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 7 -->
+    <div class="report fade-in">
+        <div class="report-title blue">
+            <div class="num">7</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية الدقيقة الواحدة</div>
+        </div>
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">استراتيجية الدقيقة الواحدة (One-Minute Paper)</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">15 / 11 / 2026 م</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل الدراسي</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">قياس استيعاب الطالبات الفوري وتلخيص أهم مفاهيم الدرس خلال دقيقة واحدة</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">قياس مدى فهم الطالبات لأهداف الدرس بسرعة ودقة في نهاية الحصة</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارة التركيز والتفكير السريع والتعبير الموجز لدى الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تقديم تغذية راجعة فورية للمعلمة حول المفاهيم التي تحتاج إلى تعزيز</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز إدارة الوقت والانضباط الصفي أثناء الأنشطة الختامية</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">عرض سؤال ختامي محدد على الشاشة مع تفعيل مؤقت الدقيقة الواحدة (60 ثانية)</li>
+            <li class="editable-area editable-block" contenteditable="true">تدوين الطالبات للإجابة المختصرة أو الفكرة الرئيسية للدرس في بطاقة سريعة</li>
+            <li class="editable-area editable-block" contenteditable="true">استعراض أبرز الإجابات وتصحيح المفاهيم غير الدقيقة فور انتهاء المؤقت</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">حماس عالٍ وتنافس إيجابي بين الطالبات للإنجاز ضمن الوقت المحدد</li>
+            <li class="editable-area editable-block" contenteditable="true">وضوح مستوى الفهم الفردي لكل طالبة بنهاية الحصة مباشرة</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارة التلخيص وتنظيم الأفكار</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استخدام المؤقت المرئي بانتظام في أنشطة الغلق الصفي</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع أسئلة الدقيقة الواحدة بين الأسئلة المعرفية ومهارات التفكير العليا</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261115-WA0004(1).jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261115-WA0004.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261115-WA0005.jpg"]'></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1070,15 +1215,52 @@
 
     <!-- تقرير 8 -->
     <div class="report fade-in">
-        <div class="report-title teal">
+        <div class="report-title blue">
             <div class="num">8</div>
-            <div class="editable-area" contenteditable="true">تقرير الأنشطة الصفية</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة (بطاقة الخروج 3-2-1 والتفكير العليا والربط بالوطن)</div>
         </div>
-        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid var(--secondary-light);">
-            حرصت المعلمة على دمج أنشطة إثرائية وتفاعلية ضمن الحصص الدراسية، مثل الأعمال اليدوية، والرسم، والأنشطة الجماعية، بهدف تنمية المهارات الحركية والدقيقة للطالبات، وإطلاق طاقاتهن الإبداعية، وجعل بيئة التعلم أكثر متعة وتحفيزاً.
-        </p>
-        <div class="sub-heading teal editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">استراتيجية بطاقة الخروج (3-2-1) / التفكير العليا / التعلم باللعب</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>الدرس التابع له</th><td class="editable-area" contenteditable="true">المواطنة: الهوية الوطنية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true">الصف الرابع (الفصل الدراسي الأول)</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الحصة الخامسة (يوم الأحد) أو الحصة الرابعة (يوم الثلاثاء)</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">1448-03-17هـ (الأحد) أو 1448-03-19هـ (الثلاثاء) — الأسبوع الحادي عشر</td></tr>
+            <tr><th>المرحلة الدراسية</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>عدد الطالبات</th><td class="editable-area" contenteditable="true">28 طالبة</td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🛠️ الأدوات والوسائل التعليمية المستخدمة</div>
+        <div class="checkbox-grid">
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">سبورة تقليدية</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">جهاز عرض</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">سبورة ذكية</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">جهاز الحاسب</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">بطاقات تعليمية</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">صور توضيحية</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">أوراق عمل</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">عرض تقديمي</span></label>
+        </div>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">قياس تحقق نواتج التعلم في درس «المواطنة: الهوية الوطنية» عبر بطاقة الخروج الختامية (3-2-1)</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير العليا (التحليل والاستنتاج والربط) وربط المفاهيم بالانتماء الوطني</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز التفاعل الصفي الإيجابي ومراعاة الفروق الفردية بين الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">تشخيص الفجوات الفردية فورياً من خلال التقويم الختامي البديل ومعالجتها</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">تنوعت استراتيجيات التدريس والتقويم المطبقة في درس «المواطنة: الهوية الوطنية» لتناسب الفروق الفردية وترفع دافعية طالبات الصف الرابع (الفصل الدراسي الأول).</li>
+            <li class="editable-area editable-block" contenteditable="true">تطبيق استراتيجية بطاقة الخروج الختامية في ختام الحصة (الحصة الخامسة يوم الأحد 1448-03-17هـ أو الحصة الرابعة يوم الثلاثاء 1448-03-19هـ — الأسبوع الحادي عشر) للتحقق الفوري من الاستيعاب.</li>
+            <li class="editable-area editable-block" contenteditable="true">طرح أسئلة تفكير عليا تربط مفاهيم الهوية الوطنية بواقع المملكة العربية السعودية ومسيرة التنمية في ظل رؤية 2030.</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير استراتيجية بطاقة الخروج (التقويم الختامي 3-2-1)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #eff6ff; border-right: 4px solid var(--primary-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">طبقت المعلمة «استراتيجية بطاقة الخروج (3-2-1)» كأداة تقويم ختامي بديلة لدرس «المواطنة: الهوية الوطنية» في الصف الرابع (الفصل الدراسي الأول)، وذلك خلال الحصة الخامسة يوم الأحد 1448-03-17هـ أو الحصة الرابعة يوم الثلاثاء 1448-03-19هـ (الأسبوع الحادي عشر). طُلب من الطالبات تدوين ثلاث أفكار مستفادة من الدرس، وقيمتين وطنيتين تعتزّان بهما، وسؤال إثرائي يودن استكشافه؛ وقد أظهرت البطاقات ارتفاع مستوى الاستيعاب لأهداف الدرس وساعدت في تحديد الاحتياجات الفردية لتعزيزها لاحقاً.</p>
+        <div class="sub-heading editable-area" contenteditable="true">📝 ملخص تنفيذ استراتيجية البطاقات الملونة (الأسبوع الثاني عشر)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">استكمالاً للتكامل الاستراتيجي في درس «المواطنة: الهوية الوطنية» لطالبات الصف الرابع (الفصل الدراسي الأول)، تم تنفيذ «استراتيجية البطاقات الملونة» خلال الحصة الخامسة يوم الأحد 1448-03-17هـ أو الحصة الرابعة يوم الثلاثاء 1448-03-19هـ (الأسبوع الثاني عشر) لتصنيف مقومات الهوية الوطنية بأسلوب بصري جاذب يعزز التركيز والتعلم التعاوني.</p>
+        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير مهارات التفكير العليا والربط بالوطن</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #fefce8; border-right: 4px solid var(--accent-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">وظفت المعلمة أسئلة الاستقصاء ومهارات التفكير العليا في درس «المواطنة: الهوية الوطنية» عبر تحفيز الطالبات على تحليل دور الفرد في صون المكتسبات الوطنية وربط الهوية السعودية بالمشاريع التنموية والحضارية في رؤية المملكة 2030، مما عمّق الفهم الوطني وأثرى الحوار الصفي.</p>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد (استراتيجيات التدريس والتقويم)</div>
+        <div class="evidence-grid" data-cols="2" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261111-WA0024.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261111-WA0025.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261112-WA0003.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261112-WA0004.jpg"]'></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1086,28 +1268,301 @@
         </div>
     </div>
 
+
+
     <!-- تقرير 9 -->
     <div class="report fade-in">
-        <div class="report-title teal">
+        <div class="report-title blue">
             <div class="num">9</div>
-            <div class="editable-area" contenteditable="true">تقرير التفاعل المهني</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية 1-2-3 (أو 3-2-1)</div>
         </div>
-        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #f8fafc; padding: 20px; border-radius: 8px; border-right: 4px solid var(--secondary-light);">
-            شاركت المعلمة بفعالية في المجتمع المهني من خلال إطلاق مبادرات تعليمية تطوعية، وتبادل الخبرات التربوية مع الزميلات، مما يعكس روح التعاون والحرص على التطوير المستمر للعملية التعليمية داخل المدرسة.
+        <table class="info-table">
+            <tr><th>الاستراتيجية</th><td class="editable-area" contenteditable="true">استراتيجية 1-2-3 (أو 3-2-1)</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية</td></tr>
+            <tr><th>الدرس التابع له</th><td class="editable-area" contenteditable="true">المواطنة: الهوية الوطنية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true">الصف الرابع (الفصل الدراسي الأول)</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الحصة الخامسة (يوم الأحد) أو الحصة الرابعة (يوم الثلاثاء)</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">1448-03-17هـ (الأحد) أو 1448-03-19هـ (الثلاثاء) — الأسبوع الثاني عشر</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل الدراسي</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading editable-area" contenteditable="true">🎯 هدف الاستراتيجية</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #eff6ff; border-right: 4px solid var(--primary-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">
+            تُعد استراتيجية (1-2-3) من استراتيجيات التقويم البديل والتعلم النشط، وتهدف إلى قياس مدى استيعاب الطلاب للدرس، وتلخيص المعلومات، وإتاحة الفرصة للطلاب للتعبير عن مشاعرهم تجاه ما تعلموه، بالإضافة إلى الكشف عن أي غموض أو صعوبات واجهتهم لمعالجتها.
         </p>
+        <div class="sub-heading editable-area" contenteditable="true">📝 آلية التطبيق في الحصة</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f8fafc; border-right: 4px solid var(--secondary); border-radius: 8px; margin: 10px 0 14px; font-size: 1.05em; text-align: justify;">
+            في ختام درس "الهوية الوطنية"، تم عرض بطاقة الخروج (استراتيجية 1-2-3) على الشاشة التفاعلية، وطُلب من الطالبات تدوين إجاباتهن بناءً على المعايير التالية:
+        </p>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true"><strong>1. ثلاثة (3):</strong> ذكر ثلاث أفكار أو معلومات جديدة تعلمتها من الدرس (مثل: مفهوم الوطن، مظاهر التضاريس، أهمية الانتماء).</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>2. اثنان (2):</strong> ذكر شيئين أعجبا الطالبة أثناء تقديم الدرس (مثل: العرض المرئي، أو نشاط البطاقات الملونة).</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>3. واحد (1):</strong> ذكر سؤال واحد أو شيء لا يزال غامضاً وتود الطالبة معرفته.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">📊 النتائج والتوصيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">أظهرت إجابات الطالبات تفاعلاً ممتازاً واستيعاباً جيداً لمفاهيم الدرس الأساسية.</li>
+            <li class="editable-area editable-block" contenteditable="true">ساعدت الاستراتيجية المعلمة على تحديد بعض النقاط الغامضة التي ذكرتها الطالبات (مثل التفريق بين بعض المظاهر التضاريسية)، وسيتم معالجتها في بداية الحصة القادمة.</li>
+            <li class="editable-area editable-block" contenteditable="true">تُوصى المعلمة بتكرار هذه الاستراتيجية لما لها من أثر في تنمية مهارات التفكير والتقييم الذاتي لدى الطالبات.</li>
+        </ul>
+        <div class="sub-heading editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد 1 — بطاقة خروج 1-2-3 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد 2 — استجابات الطالبات (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد 3 — العرض التفاعلي (اضغط لإضافة صورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
             <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
         </div>
     </div>
 
-    <!-- ==================== القسم الثالث ==================== -->
-    <div class="section-header purple editable-area" contenteditable="true">📊 القسم الثالث: تقارير الأداء الأكاديمي والخطط العلاجية والإثرائية</div>
 
-    <!-- تقرير 2 -->
+
+    <!-- ==================== القسم الثالث ==================== -->
+    <div class="section-header pink editable-area" contenteditable="true">🌟 القسم الثالث: القيم التربوية، برامج STEAM، والقوانين الصفية</div>
+
+    <!-- تقرير 10 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">10</div>
+            <div class="editable-area" contenteditable="true">تقرير تفعيل برنامج التسامح (كوكبنا يزهر بالتسامح)</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اسم البرنامج</th><td class="editable-area" contenteditable="true">كوكبنا يزهر بالتسامح</td></tr>
+            <tr><th>المجال</th><td class="editable-area" contenteditable="true">القيم التربوية والسلوك الإيجابي</td></tr>
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">المدرسة والفصول الدراسية</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">غرس قيمة التسامح والعفو والتعايش الإيجابي في نفوس الطالبات</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🌸 نبذة البرنامج</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #fdf2f8; border-right: 4px solid var(--pink-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">تحت شعار «كوكبنا يزهر بالتسامح»، تم تنفيذ حزمة من الأنشطة التربوية والقيمية الهادفة إلى ترسيخ ثقافة العفو، وقبول الآخر، ونشر المحبة والسلام داخل البيئة المدرسية، وربط القيمة بالتعاليم الإسلامية والقدوة الحسنة.</p>
+        <div class="sub-heading pink editable-area" contenteditable="true">🔢 خطوات ومراحل التنفيذ</div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-title"><span class="step-num">1</span><span class="editable-area" contenteditable="true">التعريف والتهيئة القيمية</span></div>
+                <div class="step-desc editable-area editable-block" contenteditable="true">عرض قصص ومواقف تربوية ملهمة حول التسامح وآثاره على الفرد والمجتمع خلال الإذاعة وبداية الحصص.</div>
+            </div>
+            <div class="step-card">
+                <div class="step-title"><span class="step-num">2</span><span class="editable-area" contenteditable="true">الأنشطة الحوارية والإبداعية</span></div>
+                <div class="step-desc editable-area editable-block" contenteditable="true">تصميم لوحات فنية وبطاقات «كوكبنا يزهر بالتسامح» وكتابة رسائل مودة واعتذار إيجابية بين الطالبات.</div>
+            </div>
+            <div class="step-card">
+                <div class="step-title"><span class="step-num">3</span><span class="editable-area" contenteditable="true">التطبيق السلوكي والتعزيز</span></div>
+                <div class="step-desc editable-area editable-block" contenteditable="true">رصد المواقف السلوكية الإيجابية للطالبات وتكريم «سفيرات التسامح» داخل الفصول الدراسية.</div>
+            </div>
+        </div>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">ترسيخ قيمة التسامح والعفو والتآخي في المجتمع المدرسي</li>
+            <li class="editable-area editable-block" contenteditable="true">الحد من الخلافات الطلابية وتعزيز مهارات الحوار الهادئ وحل المشكلات</li>
+            <li class="editable-area editable-block" contenteditable="true">بناء بيئة صفية آمنة يسودها الاحترام والمودة المتبادلة</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل إيجابي ملحوظ من الطالبات في التعبير عن مشاعر المودة والتسامح</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسن الأجواء الصفية وروح التعاون والانسجام بين الطالبات</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استدامة المبادرات القيمية وربطها بمواقف الحياة اليومية للطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق أعمال الطالبات الإبداعية في أركان المدرسة وملفات الشواهد</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 11 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">11</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج STEAM (سر الصحراء المذهل — المواطنة: الهوية الوطنية)</div>
+        </div>
+        <table class="info-table">
+            <tr><th>البرنامج</th><td class="editable-area" contenteditable="true">تكامل العلوم والتقنية والهندسة والفنون والرياضيات (STEAM)</td></tr>
+            <tr><th>عنوان المشروع</th><td class="editable-area" contenteditable="true">سر الصحراء المذهل — تجسيد الهوية الوطنية والبيئة السعودية</td></tr>
+            <tr><th>المادة</th><td class="editable-area" contenteditable="true">الدراسات الاجتماعية والتكامل المعرفي</td></tr>
+            <tr><th>الدرس التابع له</th><td class="editable-area" contenteditable="true">المواطنة: الهوية الوطنية</td></tr>
+            <tr><th>الفصل</th><td class="editable-area" contenteditable="true">الصف الرابع (الفصل الدراسي الأول)</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الحصة الخامسة (يوم الأحد) أو الحصة الرابعة (يوم الثلاثاء)</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">1448-03-17هـ (الأحد) أو 1448-03-19هـ (الثلاثاء) — الأسبوع الثالث عشر</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل / معمل الأنشطة</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">توظيف منحى STEAM في تدريس درس «المواطنة: الهوية الوطنية» لاكتشاف البيئة الصحراوية والتراث السعودي وربطهما بالإبداع العلمي والتقني والفني والانتماء للوطن</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🛠️ المهارات والأدوات المفعلة في المشروع</div>
+        <div class="checkbox-grid">
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">الاستقصاء العلمي (Science)</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">التوظيف التقني (Technology)</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">التصميم الهندسي (Engineering)</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">التعبير الفني (Arts)</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">القياس والحساب (Mathematics)</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">العمل التعاوني</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">حل المشكلات</span></label>
+            <label class="checkbox-item"><input type="checkbox" checked="checked"> <span class="editable-area" contenteditable="true">عرض وتوثيق النماذج</span></label>
+        </div>
+        <div class="sub-heading pink editable-area" contenteditable="true">🔬 مجالات تطبيق STEAM في درس «المواطنة: الهوية الوطنية»</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true"><strong>العلوم (S):</strong> استكشاف خصائص البيئة الصحراوية والتنوع الجغرافي في المملكة العربية السعودية بوصفه جزءاً أصيلاً من الهوية الوطنية ومقومات الوطن.</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>التقنية (T):</strong> استخدام العروض التفاعلية والبحث الرقمي الآمن لعرض معالم المملكة ومبادرات السعودية الخضراء المرتبطة بالانتماء والمسؤولية الوطنية.</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>الهندسة والرياضيات (E / M):</strong> تصميم مجسمات مصغرة لمعالم الوطن والبيئة الصحراوية وحساب المساحات والأبعاد والمقارنات العددية للرموز والمعالم الوطنية.</li>
+            <li class="editable-area editable-block" contenteditable="true"><strong>الفنون (A):</strong> توظيف الرسم والألوان والخامات البيئية في تجسيد رموز الهوية الوطنية (العلم، الشعار الوطني، التراث العمراني) بأسلوب إبداعي.</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تعميق الاعتزاز بالهوية الوطنية والانتماء للوطن من خلال التعلم القائم على المشاريع (STEAM)</li>
+            <li class="editable-area editable-block" contenteditable="true">ربط مفاهيم درس «المواطنة: الهوية الوطنية» بالتكامل المعرفي بين العلوم والتقنية والهندسة والفنون والرياضيات</li>
+            <li class="editable-area editable-block" contenteditable="true">إطلاق طاقات طالبات الصف الرابع الإبداعية والابتكارية عبر العمل الجماعي في الأسبوع الثالث عشر</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">التوسع في تطبيق مشاريع STEAM عبر الوحدات الدراسية المرتبطة بالهوية والمواطنة</li>
+            <li class="editable-area editable-block" contenteditable="true">إقامة معرض صفي مصغر لعرض مجسمات ومنتجات الطالبات الوطنية</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد (اضغط على أي خانة لإرفاق صور المشروع)</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد STEAM 1 — نشاط سر الصحراء والهوية الوطنية (اضغط لرفع الصورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد STEAM 2 — تفاعل الطالبات (اضغط لرفع الصورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد STEAM 3 — مخرجات المشروع (اضغط لرفع الصورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 12 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">12</div>
+            <div class="editable-area" contenteditable="true">تقرير تفعيل القوانين الصفية والانضباط</div>
+        </div>
+        <table class="info-table">
+            <tr><th>البرنامج</th><td class="editable-area" contenteditable="true">ميثاق القوانين الصفية والانضباط الإيجابي</td></tr>
+            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">الابتدائية</td></tr>
+            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true">جميع طالبات الفصول المسندة</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">11 / 11 / 2026 م</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصول الدراسية</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تنظيم البيئة الصفية وتعزيز الانضباط الذاتي واحترام قواعد التعلم المشتركة</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">بناء ميثاق صفّي واضح تشارك الطالبات في صياغته والالتزام به</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز السلوك الإيجابي والهدوء والاستماع الفعال أثناء الحصة الدراسية</li>
+            <li class="editable-area editable-block" contenteditable="true">استثمار زمن التعلم بكفاءة وتقليل المشتتات الصفية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية الشعور بالمسؤولية الذاتية واحترام حقوق الزميلات</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">مناقشة القوانين الصفية بوضوح وعرضها مرئياً داخل الفصل (الاستئذان، الإنصات، الحفاظ على النظافة، التعاون)</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف إشارات صفية منظمة ولوحة تعزيز لتحفيز المجموعات المنضبطة</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة التزام الطالبات وتكريم الطالبات والمجموعات الأكثر التزاماً بالقوانين الصفية</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع ملحوظ في انضباط الطالبات وسرعة التهيئة لبداية الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز ثقافة الاحترام المتبادل والنظام داخل الصف</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">التذكير الدوري بميثاق القوانين الصفية وتجديد لوحات التحفيز</li>
+            <li class="editable-area editable-block" contenteditable="true">إشراك الطالبات في التقييم الذاتي لمستوى الانضباط الأسبوعي</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد (اضغط على أي خانة لإرفاق صور التفعيل)</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد القوانين الصفية 1 (اضغط لرفع الصورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد القوانين الصفية 2 (اضغط لرفع الصورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">شاهد القوانين الصفية 3 (اضغط لرفع الصورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- تقرير 13 -->
+    <div class="report fade-in">
+        <div class="report-title pink">
+            <div class="num">13</div>
+            <div class="editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</div>
+        </div>
+        <table class="info-table">
+            <tr><th>اليوم</th><td class="editable-area" contenteditable="true">الأحد</td></tr>
+            <tr><th>الحصة</th><td class="editable-area" contenteditable="true">الثالثة</td></tr>
+            <tr><th>الصف</th><td class="editable-area" contenteditable="true">الرابع الابتدائي</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">28 طالبة</td></tr>
+            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الفصل</td></tr>
+            <tr><th>الموضوع</th><td class="editable-area" contenteditable="true">توظيف أدوات الذكاء الاصطناعي والمنصات الرقمية في العملية التعليمية</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلمة المادة</td></tr>
+        </table>
+        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">توظيف أدوات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالذكاء</li>
+            <li class="editable-area editable-block" contenteditable="true">تعزيز المشاركة الفاعلة للطلاب وتحفيزهم على طرح الأسئلة والاستكشاف</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">استخدام أدوات الذكاء الاصطناعي لعرض مفاهيم الدرس بطريقة تفاعلية</li>
+            <li class="editable-area editable-block" contenteditable="true">توليد أسئلة إثرائية فورية بناءً على الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">عرض صور ورسوم توضيحية مرتبطة بمحتوى الدرس</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">في إطار توظيف التقنيات الحديثة، استخدمت المعلمة منصة Wordwall لتحويل مراجعة درس «مظاهر السطح» إلى لعبة تفاعلية تنافسية. ساهمت هذه الأداة الرقمية في رفع مستوى الدافعية لدى الطالبات وجذبهن للمشاركة الفعالة، كما وفرت للمعلمة تغذية راجعة فورية عن مستوى استيعاب الطالبات للمفاهيم، مما جعل بيئة التعلم تفاعلية ومحفزة.</p>
+        <div class="sub-heading pink editable-area" contenteditable="true">🛠️ الوسائل المستخدمة</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">جهاز عرض (داتا شو) + حاسب محمول</li>
+            <li class="editable-area editable-block" contenteditable="true">أدوات الذكاء الاصطناعي في توليد المحتوى والأسئلة والأنشطة الإثرائية</li>
+            <li class="editable-area editable-block" contenteditable="true">عروض تفاعلية PowerPoint / Canva ومنصة Wordwall</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">جذب انتباه الطلاب وتشويقهم لمفاهيم المادة التعليمية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل الصور التوضيحية والأسئلة الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة وطرح الأسئلة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام أدوات الذكاء الاصطناعي التعليمية بفعالية</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الذكاء الاصطناعي في دروس إضافية تعزز استيعاب الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى المولد مع القيم الإسلامية والمناهج الرسمية</li>
+        </ul>
+        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3" data-keep-placeholders="1" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0007.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0019.jpg"]'>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">إضافة شاهد إضافي (اضغط لرفع الصورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== القسم الرابع ==================== -->
+    <div class="section-header purple editable-area" contenteditable="true">📊 القسم الرابع: تقارير الأداء الأكاديمي والخطط العلاجية والإثرائية</div>
+
+    <!-- تقرير 14 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">2</div>
+            <div class="num">14</div>
             <div class="editable-area" contenteditable="true">تقرير تبادل الزيارات</div>
         </div>
         <table class="info-table">
@@ -1154,49 +1609,10 @@
         </div>
     </div>
 
-    <!-- تقرير 10 -->
+    <!-- تقرير 15 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">10</div>
-            <div class="editable-area" contenteditable="true">تقرير تحليل النتائج</div>
-        </div>
-        <table class="info-table">
-            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">رفع مستوى نواتج التعلم وتحسين الأداء الأكاديمي للطلاب من خلال تحليل النتائج ووضع خطط تطويرية</td></tr>
-        </table>
-        <div class="sub-heading purple editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">تحديد مواطن القوة والضعف في أداء الطالبات</li>
-            <li class="editable-area editable-block" contenteditable="true">دعم اتخاذ قرارات تربوية مبنية على بيانات دقيقة</li>
-            <li class="editable-area editable-block" contenteditable="true">بناء خطط علاجية وإثرائية لتحسين نواتج التعلم</li>
-            <li class="editable-area editable-block" contenteditable="true">متابعة تطور مستويات الطالبات وقياس التحسن بمرور الوقت</li>
-        </ul>
-        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
-        <ul class="pros-list">
-            <li class="editable-area editable-block" contenteditable="true">تقارير تفصيلية توضح مستويات التحصيل الدراسي</li>
-            <li class="editable-area editable-block" contenteditable="true">تحديد فجوات التعلم ووضع خطط علاجية مناسبة</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين الأداء العام للطالبات في المواد الدراسية</li>
-            <li class="editable-area editable-block" contenteditable="true">تعزيز ثقافة التحليل واتخاذ القرار القائم على البيانات داخل المدرسة</li>
-        </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
-        <ul class="cons-list">
-            <li class="editable-area editable-block" contenteditable="true">تفعيل البرامج العلاجية والإثرائية وفق نتائج التحليل</li>
-            <li class="editable-area editable-block" contenteditable="true">تكثيف المتابعة الأكاديمية للطالبات منخفضي التحصيل</li>
-            <li class="editable-area editable-block" contenteditable="true">توظيف استراتيجيات تدريس حديثة لمعالجة جوانب الضعف</li>
-            <li class="editable-area editable-block" contenteditable="true">إشراك أولياء الأمور في دعم العملية التعليمية</li>
-        </ul>
-        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
-        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 12 -->
-    <div class="report fade-in">
-        <div class="report-title purple">
-            <div class="num">12</div>
+            <div class="num">15</div>
             <div class="editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</div>
         </div>
         <table class="info-table">
@@ -1231,7 +1647,11 @@
             <li class="editable-area editable-block" contenteditable="true">توثيق نتائج المتابعة وقياس مدى التحسن بشكل دوري</li>
         </ul>
         <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1239,10 +1659,10 @@
         </div>
     </div>
 
-    <!-- تقرير 13 -->
+    <!-- تقرير 16 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">13</div>
+            <div class="num">16</div>
             <div class="editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</div>
         </div>
         <table class="info-table">
@@ -1277,7 +1697,11 @@
             <li class="editable-area editable-block" contenteditable="true">توثيق المخرجات والإنجازات ضمن ملفات تميز الطالبات</li>
         </ul>
         <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1285,25 +1709,10 @@
         </div>
     </div>
 
-    <!-- تقرير 15 -->
-    <div class="report fade-in">
-        <div class="report-title pink">
-            <div class="num">15</div>
-            <div class="editable-area" contenteditable="true">تقرير خطة التعليم</div>
-        </div>
-        <p class="editable-area editable-block" contenteditable="true" style="font-size: 1.1em; line-height: 1.8; text-align: justify; background: #fdf2f8; padding: 20px; border-radius: 8px; border-right: 4px solid var(--pink-light);">
-            تم إعداد خطط توزيع المناهج، والخطط الأسبوعية، والدروس اليومية بكل دقة واحترافية، مع مراعاة الفروق الفردية وأساليب التقويم المتنوعة، لضمان تغطية كاملة للمقررات الدراسية في الوقت المحدد وبما يحقق الأهداف التعليمية. كما يوضح الجدول الأسبوعي المرفق التوزيع الدقيق للحصص.
-        </p>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 21 -->
+    <!-- تقرير 17 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">21</div>
+            <div class="num">17</div>
             <div class="editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</div>
         </div>
         <table class="info-table">
@@ -1343,7 +1752,11 @@
             <li class="editable-area editable-block" contenteditable="true">عمل اختبارات وأوراق عمل بشكل مستمر لمتابعة مدى تقدم الطلاب</li>
         </ul>
         <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1351,10 +1764,10 @@
         </div>
     </div>
 
-    <!-- تقرير 22 -->
+    <!-- تقرير 18 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">22</div>
+            <div class="num">18</div>
             <div class="editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</div>
         </div>
         <table class="info-table">
@@ -1391,8 +1804,14 @@
             <li class="editable-area editable-block" contenteditable="true">الاستمرار في إقامة برامج التكريم التحفيزية بشكل دوري بعد كل فترة تقييم</li>
             <li class="editable-area editable-block" contenteditable="true">ربط برامج التكريم بخطط تحسين نواتج التعلم لزيادة الأثر الإيجابي على التحصيل الدراسي والسلوك التعليمي</li>
         </ul>
-        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد ورسالة الشكر والتقدير</div>
+        <div class="evidence-grid" data-cols="3" data-keep-placeholders="1" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0044.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0051.jpg"]'>
+            <div class="evidence-box evidence-static-card">
+                <div class="icon">🏆</div>
+                <div class="card-title editable-area" contenteditable="true">رسالة شكر وتقدير</div>
+                <div class="card-body editable-area" contenteditable="true">"تهنئة قلبية لطالباتنا المتميزات والمتفوقات في اختبار الفترة، فخورون بعطائكن ومثابرتكن، وإلى مزيد من التميز والنجاح بإذن الله."</div>
+            </div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1400,10 +1819,10 @@
         </div>
     </div>
 
-    <!-- تقرير 23 -->
+    <!-- تقرير 19 -->
     <div class="report fade-in">
         <div class="report-title purple">
-            <div class="num">23</div>
+            <div class="num">19</div>
             <div class="editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</div>
         </div>
         <table class="info-table">
@@ -1443,7 +1862,11 @@
             <li class="editable-area editable-block" contenteditable="true">عمل اختبارات وأوراق عمل بشكل مستمر لمتابعة مدى تقدم الطلاب</li>
         </ul>
         <div class="sub-heading purple editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1451,13 +1874,13 @@
         </div>
     </div>
 
-    <!-- ==================== القسم الرابع ==================== -->
-    <div class="section-header orange editable-area" contenteditable="true">👥 القسم الرابع: تقارير الإدارة الصفية والسلوك والمناسبات الاجتماعية</div>
+    <!-- ==================== القسم الخامس ==================== -->
+    <div class="section-header orange editable-area" contenteditable="true">👥 القسم الخامس: تقارير الإدارة الصفية، السلوك، التقنية، والمبادرات</div>
 
-    <!-- تقرير 4 -->
+    <!-- تقرير 20 -->
     <div class="report fade-in">
         <div class="report-title orange">
-            <div class="num">4</div>
+            <div class="num">20</div>
             <div class="editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</div>
         </div>
         <table class="info-table">
@@ -1497,8 +1920,8 @@
             <li class="editable-area editable-block" contenteditable="true">تنويع المواضيع بما يتناسب مع اهتمامات الطالبات والقيم التربوية</li>
             <li class="editable-area editable-block" contenteditable="true">توثيق الأنشطة بشكل دوري لتعزيز الممارسات المتميزة</li>
         </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد (سجلات تسديد حصص الانتظار)</div>
+        <div class="evidence-grid" data-cols="2" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0015.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0024.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0029.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0030.jpg"]'></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1506,10 +1929,10 @@
         </div>
     </div>
 
-    <!-- تقرير 6 -->
+    <!-- تقرير 21 -->
     <div class="report fade-in">
         <div class="report-title orange">
-            <div class="num">6</div>
+            <div class="num">21</div>
             <div class="editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</div>
         </div>
         <table class="info-table">
@@ -1549,7 +1972,11 @@
             <li class="editable-area editable-block" contenteditable="true">توثيق الأنشطة بشكل دوري لتعزيز الممارسات المتميزة</li>
         </ul>
         <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1557,11 +1984,11 @@
         </div>
     </div>
 
-    <!-- تقرير 14 -->
+    <!-- تقرير 22 -->
     <div class="report fade-in">
         <div class="report-title orange">
-            <div class="num">14</div>
-            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف</div>
+            <div class="num">22</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف والأنشطة الصفية والإثرائية</div>
         </div>
         <table class="info-table">
             <tr><th>اليوم</th><td class="editable-area" contenteditable="true"></td></tr>
@@ -1569,32 +1996,38 @@
             <tr><th>الصف</th><td class="editable-area" contenteditable="true"></td></tr>
             <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
             <tr><th>التاريخ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">إدارة الصف وتنظيم بيئة التعلم</td></tr>
-            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">الصف الدراسي</td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">إدارة الصف وتنظيم بيئة التعلم وتفعيل الأنشطة الصفية والإثرائية لتنمية مهارات الطالبات الإبداعية</td></tr>
+            <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">معلمة المادة</td></tr>
         </table>
         <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
         <ul class="goals-list">
             <li class="editable-area editable-block" contenteditable="true">تعزيز الانضباط الذاتي والمسؤولية لدى الطالبات داخل الصف</li>
             <li class="editable-area editable-block" contenteditable="true">تهيئة بيئة صفية جاذبة ومحفزة تسهم في رفع دافعية التعلم</li>
-            <li class="editable-area editable-block" contenteditable="true">تنويع أساليب إدارة الصف بما يحقق التفاعل الإيجابي بين المعلمة والطالبات</li>
-            <li class="editable-area editable-block" contenteditable="true">خلق بيئة صحية ومناسبة للتعلم</li>
+            <li class="editable-area editable-block" contenteditable="true">تنويع أساليب إدارة الصف والأنشطة الإثرائية بما يحقق التفاعل الإيجابي</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية المهارات الحركية والدقيقة والإبداعية لدى الطالبات عبر الأنشطة الصفية</li>
         </ul>
         <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
         <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">حرصت المعلمة على تهيئة بيئة صفية محفزة وجاذبة.</li>
-            <li class="editable-area editable-block" contenteditable="true">تنظيم المقاعد بشكل يسمح بالتفاعل، وتوفير كافة متطلبات الدروس والوسائل التعليمية التي تدعم التعلم.</li>
-            <li class="editable-area editable-block" contenteditable="true">تطبيق استراتيجيات الإدارة الصفية الفعالة.</li>
-            <li class="editable-area editable-block" contenteditable="true">دمج أنشطة إثرائية وتفاعلية ضمن الحصص الدراسية (مثل: الأعمال اليدوية، الرسم، الأنشطة الجماعية) بهدف تنمية المهارات الحركية والدقيقة للطالبات، وإطلاق طاقاتهن الإبداعية، وجعل بيئة التعلم أكثر متعة وتحفيزاً.</li>
+            <li class="editable-area editable-block" contenteditable="true">حرصت المعلمة على تهيئة بيئة صفية محفزة وجاذبة تساعد على التركيز والإبداع.</li>
+            <li class="editable-area editable-block" contenteditable="true">تنظيم المقاعد بشكل يسمح بالتفاعل والتعلم التعاوني، وتوفير متطلبات الدروس والوسائل التعليمية.</li>
+            <li class="editable-area editable-block" contenteditable="true">تطبيق استراتيجيات الإدارة الصفية الفعالة وتعزيز السلوك المنضبط.</li>
+            <li class="editable-area editable-block" contenteditable="true">دمج أنشطة صفية وإثرائية وتفاعلية ضمن الحصص الدراسية (مثل: الأعمال اليدوية، الرسم، التصميمات الورقية، والأنشطة الجماعية) لإطلاق طاقات الطالبات الإبداعية.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">بيئة صفية منظمة وجاذبة تدعم الاستقرار النفسي والتعليمي للطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">ظهور مواهب إبداعية وفنية لدى الطالبات خلال الأنشطة الصفية والإثرائية</li>
+            <li class="editable-area editable-block" contenteditable="true">ارتفاع مستوى الحماس والمشاركة والتعاون داخل الحصص الدراسية</li>
         </ul>
         <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
         <ul class="cons-list">
             <li class="editable-area editable-block" contenteditable="true">الاستمرار في تطبيق الأساليب التحفيزية وتشجيع الطالبات الملتزمات</li>
-            <li class="editable-area editable-block" contenteditable="true">تبادل الخبرات بين المعلمات حول أفضل الممارسات في إدارة الصف</li>
+            <li class="editable-area editable-block" contenteditable="true">تبادل الخبرات بين المعلمات حول أفضل الممارسات في إدارة الصف والأنشطة الإثرائية</li>
             <li class="editable-area editable-block" contenteditable="true">إدخال أدوات رقمية تفاعلية لدعم الانضباط والتحفيز مثل منصات المشاركة الصفية</li>
         </ul>
-        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
-        <div class="evidence-grid"></div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد وباركود التوثيق</div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0009.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0034.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0039.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0050.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0053.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0058.jpg"]' data-links='[{"url":"https://drive.google.com/file/d/1fJt4vrvfshnL-cejNrNGhHv41JHdw1Cv/view?usp=drivesdk","title":"شواهد الأنشطة الصفية والإثرائية"}]'></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1602,13 +2035,10 @@
         </div>
     </div>
 
-    <!-- ==================== القسم الخامس ==================== -->
-    <div class="section-header pink editable-area" contenteditable="true">🚀 القسم الخامس: تقارير البرامج الخاصة والمبادرات والورش</div>
-
-    <!-- تقرير 16 -->
+    <!-- تقرير 23 -->
     <div class="report fade-in">
-        <div class="report-title pink">
-            <div class="num">16</div>
+        <div class="report-title orange">
+            <div class="num">23</div>
             <div class="editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</div>
         </div>
         <table class="info-table">
@@ -1621,7 +2051,7 @@
             <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تحقيق تعليم فعّال يراعي الفروق الفردية بين الطلاب من خلال تحديد نمط التعلم المناسب</td></tr>
             <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
         </table>
-        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
         <ul class="goals-list">
             <li class="editable-area editable-block" contenteditable="true">التعرف على أنماط التعلم لدى الطلاب (السمعي، البصري، الحسي الحركي)</li>
             <li class="editable-area editable-block" contenteditable="true">تحليل نتائج تصنيف الطلاب وتوزيعهم حسب نمط التعلم</li>
@@ -1642,46 +2072,7 @@
             <li class="editable-area editable-block" contenteditable="true">عقد ورش تدريبية للمعلمين حول كيفية توظيف نتائج التصنيف في التخطيط للدروس</li>
             <li class="editable-area editable-block" contenteditable="true">متابعة أثر تطبيق التصنيف على التحصيل الدراسي وتحديث البيانات بشكل مستمر</li>
         </ul>
-        <div class="signatures">
-            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
-            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
-        </div>
-    </div>
-
-    <!-- تقرير 19 -->
-    <div class="report fade-in">
-        <div class="report-title pink">
-            <div class="num">19</div>
-            <div class="editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</div>
-        </div>
-        <table class="info-table">
-            <tr><th>المرحلة</th><td class="editable-area" contenteditable="true">المتوسطة</td></tr>
-            <tr><th>المستهدفون</th><td class="editable-area" contenteditable="true"></td></tr>
-            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">أسبوع</td></tr>
-            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true">33</td></tr>
-            <tr><th>التاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
-            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">غرفة النشاط</td></tr>
-            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">ربط أسبوع الفضاء بمهارات اختبارات نافس في مادة العلوم</td></tr>
-            <tr><th>المعلم/ة المنفذة</th><td class="editable-area" contenteditable="true"></td></tr>
-        </table>
-        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
-        <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">تعزيز مهارات الفهم العلمي والتحليل والتفسير لدى الطالبات من خلال ربط مفاهيم الفضاء بمخرجات تعلم مادة العلوم</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية قدرة الطالبات على تطبيق المفاهيم العلمية المتعلقة بالفضاء في مواقف حياتية وأسئلة تقيس مهارات التفكير العليا بما يتوافق مع اختبارات نافس</li>
-            <li class="editable-area editable-block" contenteditable="true">دعم مهارة الاستقصاء العلمي وحل المشكلات عبر تحليل الظواهر الفلكية واستنتاج القوانين العلمية المرتبطة بها</li>
-            <li class="editable-area editable-block" contenteditable="true">رفع مستوى جاهزية الطالبات لاختبارات نافس من خلال توظيف استراتيجيات التعلم النشط والأنشطة التطبيقية في مجال الفضاء</li>
-            <li class="editable-area editable-block" contenteditable="true">تعزيز الثقة العلمية والقدرة على التفسير المبني على الأدلة لتنمية التفكير الناقد والإبداع العلمي</li>
-        </ul>
-        <div class="sub-heading pink editable-area" contenteditable="true">📝 وصف البرنامج</div>
-        <ul class="content-list">
-            <li class="editable-area editable-block" contenteditable="true">الإعلان عن البرنامج من خلال منسقات المواد العلمية وتحفيز الطالبات للمشاركة فيه</li>
-            <li class="editable-area editable-block" contenteditable="true">تقديم عروض مرئية وتطبيقات علمية توضح مفاهيم الفضاء وعلاقتها بمهارات التفكير العلمي والتحليل والاستنتاج</li>
-            <li class="editable-area editable-block" contenteditable="true">تنفيذ أنشطة تدريبية قصيرة تحاكي أسئلة واختبارات نافس في مجال الفضاء، لرفع جاهزية الطالبات</li>
-            <li class="editable-area editable-block" contenteditable="true">تشجيع الطالبات على البحث والاستقصاء العلمي حول الظواهر الفلكية وربطها بمفاهيم دروس العلوم</li>
-            <li class="editable-area editable-block" contenteditable="true">متابعة أداء الطالبات وتقويم فهمهن من خلال بطاقات تقويم ومناقشات صفية تعزز مهارات التفكير العليا</li>
-            <li class="editable-area editable-block" contenteditable="true">توثيق تنفيذ البرنامج ورفع التقرير النهائي متضمناً أثره في تحسين مهارات الطالبات في اختبارات نافس</li>
-        </ul>
-        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
         <div class="evidence-grid"></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
@@ -1690,10 +2081,10 @@
         </div>
     </div>
 
-    <!-- تقرير 20 -->
+    <!-- تقرير 24 -->
     <div class="report fade-in">
-        <div class="report-title pink">
-            <div class="num">20</div>
+        <div class="report-title orange">
+            <div class="num">24</div>
             <div class="editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</div>
         </div>
         <table class="info-table">
@@ -1707,35 +2098,35 @@
             <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">99%</span></span></td></tr>
             <tr><th>الفئة المنفذة</th><td class="editable-area" contenteditable="true">المعلم/ة</td></tr>
         </table>
-        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
         <ul class="goals-list">
-            <li class="editable-area editable-block" contenteditable="true">توظيف أدوات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية</li>
-            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالذكاء</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الأدوات الرقمية وتطبيقات الذكاء الاصطناعي لتقديم المحتوى التعليمي بطريقة مشوقة</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين مستوى الفهم والاستيعاب عبر الوسائط الذكية والعروض التفاعلية</li>
+            <li class="editable-area editable-block" contenteditable="true">تنمية مهارات التفكير والتأمل من خلال أنشطة تفاعلية مدعومة بالتقنية</li>
             <li class="editable-area editable-block" contenteditable="true">تعزيز المشاركة الفاعلة للطلاب وتحفيزهم على طرح الأسئلة والاستكشاف</li>
         </ul>
-        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
         <ul class="content-list">
             <li class="editable-area editable-block" contenteditable="true">في إطار التحول الرقمي وتعزيز التعليم الإلكتروني، وظفت المعلمة التقنيات والوسائل التعليمية المتنوعة بفعالية عالية.</li>
             <li class="editable-area editable-block" contenteditable="true">استخدام منصة Microsoft Teams بكفاءة لإدارة الحصص الافتراضية، وطرح الواجبات، وإجراء الاختبارات التفاعلية، مما ساهم في استمرار التواصل الفعال مع الطالبات.</li>
-            <li class="editable-area editable-block" contenteditable="true">دعم الشرح بالعروض التقديمية الإلكترونية (PowerPoint) التي تتضمن خرائط وصوراً توضيحية (كما في درس جبال الحجاز)، مما سهل استيعاب الطالبات للخصائص الجغرافية وجعل بيئة التعلم أكثر جاذبية وتفاعلاً.</li>
+            <li class="editable-area editable-block" contenteditable="true">دعم الشرح بالعروض التقديمية الإلكترونية (PowerPoint) التي تتضمن خرائط وصوراً توضيحية، مما سهل استيعاب الطالبات وجعل بيئة التعلم أكثر جاذبية وتفاعلاً.</li>
         </ul>
-        <div class="sub-heading editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
+        <div class="sub-heading green editable-area" contenteditable="true">📝 تقرير توظيف التقنية (منصة Wordwall)</div>
         <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #f0fdf4; border-right: 4px solid var(--success-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">في إطار توظيف التقنيات الحديثة، استخدمت المعلمة منصة Wordwall لتحويل مراجعة درس 'مظاهر السطح' إلى لعبة تفاعلية تنافسية. ساهمت هذه الأداة الرقمية في رفع مستوى الدافعية لدى الطالبات وجذبهن للمشاركة الفعالة، كما وفرت للمعلمة تغذية راجعة فورية (Feedback) عن مستوى استيعاب الطالبات للمفاهيم، مما جعل بيئة التعلم تفاعلية ومحفزة وتحقق متعة التعلم.</p>
         <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
         <ul class="pros-list">
             <li class="editable-area editable-block" contenteditable="true">جذب انتباه الطلاب وتشويقهم لمفاهيم المادة التعليمية</li>
-            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل الصور التوضيحية والأسئلة الذكية</li>
+            <li class="editable-area editable-block" contenteditable="true">تحسين الفهم بفضل العروض التقديمية والصور التوضيحية والأسئلة التفاعلية</li>
             <li class="editable-area editable-block" contenteditable="true">تحفيز الطلاب على المشاركة وطرح الأسئلة</li>
         </ul>
         <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
         <ul class="cons-list">
-            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام أدوات الذكاء الاصطناعي التعليمية بفعالية</li>
-            <li class="editable-area editable-block" contenteditable="true">توظيف الذكاء الاصطناعي في دروس إضافية تعزز استيعاب الدرس</li>
-            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى المولد مع القيم الإسلامية والمناهج الرسمية</li>
+            <li class="editable-area editable-block" contenteditable="true">تدريب المعلمين على استخدام الأدوات الرقمية والذكاء الاصطناعي التعليمية بفعالية</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف التقنية الحديثة في دروس إضافية تعزز استيعاب الدرس</li>
+            <li class="editable-area editable-block" contenteditable="true">التأكد من توافق المحتوى الرقمي مع القيم الإسلامية والمناهج الرسمية</li>
         </ul>
-        <div class="sub-heading pink editable-area" contenteditable="true">📸 الشواهد (البيئة الفصلية وتوظيف التقنية)</div>
-        <div class="evidence-grid"></div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد (البيئة الفصلية وتوظيف التقنية)</div>
+        <div class="evidence-grid" data-cols="3" data-images='["https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0047.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0049.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0055.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261102-WA0060.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261108-WA0006.jpg","https://raw.githubusercontent.com/anwer1230/Powerpoint/main/IMG-20261108-WA0011.jpg"]'></div>
         <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
         <div class="signatures">
             <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
@@ -1743,10 +2134,10 @@
         </div>
     </div>
 
-    <!-- تقرير 24 -->
+    <!-- تقرير 25 -->
     <div class="report fade-in">
-        <div class="report-title pink">
-            <div class="num">24</div>
+        <div class="report-title orange">
+            <div class="num">25</div>
             <div class="editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</div>
         </div>
         <table class="info-table">
@@ -1756,31 +2147,31 @@
             <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تعزيز الانضباط المدرسي وبناء بيئة تعليمية محفزة ومستقرة</td></tr>
             <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
         </table>
-        <div class="sub-heading pink editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
         <ul class="goals-list">
             <li class="editable-area editable-block" contenteditable="true">تعزيز قيم الانضباط والالتزام بالمواعيد المدرسية لدى الطلاب والطالبات</li>
             <li class="editable-area editable-block" contenteditable="true">تكامل الجهود بين الكادر التعليمي والإداري والأسر لدعم الانضباط المدرسي</li>
             <li class="editable-area editable-block" contenteditable="true">تفعيل المجالس الطلابية لتكون شريكاً فاعلاً في غرس السلوك الإيجابي</li>
             <li class="editable-area editable-block" contenteditable="true">تقدير وتكريم الفصول الأكثر التزاماً والمعلمين المتميزين في تعزيز الانضباط</li>
         </ul>
-        <div class="sub-heading pink editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
-        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #fdf2f8; border-right: 4px solid var(--pink-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; line-height: 1.8;">
-            تم تنفيذ هذه المبادرة ككادر تعليمي متكامل في المدرسة، حيث تضمنت توزيع الأدوار والمسؤوليات على فريق العمل (المدير، الوكيل، الموجه الطلابي، كادر المدرسة، ومجلس الطلاب) لضمان تكامل الجهود. وشملت المبادرة تعزيز التواصل بين المدرسة والأسرة لدعم الانضباط، وتفعيل المجالس الطلابية، وتخصيص شعار لفظي مميز يعزز القيمة، بالإضافة إلى تكريم الفصول الأكثر التزاماً والمعلمين المتميزين في تعزيز الانضباط المدرسي. وكانت الفترة من تاريخ ٧/١١/٢٠٢٦ ولمدة اسبوعين.
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 ما تم تنفيذه</div>
+        <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #fffbeb; border-right: 4px solid var(--accent-light); border-radius: 8px; margin: 10px 0; font-size: 1.05em; line-height: 1.8;">
+            تم تنفيذ هذه المبادرة ككادر تعليمي متكامل في المدرسة، حيث تضمنت توزيع الأدوار والمسؤوليات على فريق العمل (المدير، الوكيل، الموجه الطلابي، كادر المدرسة، ومجلس الطلاب) لضمان تكامل الجهود. وشملت المبادرة تعزيز التواصل بين المدرسة والأسرة لدعم الانضباط، وتفعيل المجالس الطلابية، وتخصيص شعار لفظي مميز يعزز القيمة، بالإضافة إلى تكريم الفصول الأكثر التزاماً والمعلمين المتميزين في تعزيز الانضباط المدرسي. وكانت الفترة من تاريخ ٧/١١/٢٠٢٦ ولمدة أسبوعين.
         </p>
-        <div class="sub-heading pink editable-area" contenteditable="true">📝 تقرير تنفيذ فرصة تطوعية</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 تقرير تنفيذ فرصة تطوعية</div>
         <p class="editable-area editable-block" contenteditable="true" style="padding: 15px; background: #e0f2fe; border-right: 4px solid #3b82f6; border-radius: 8px; margin: 10px 0; font-size: 1.05em; text-align: justify;">
             في إطار حرص المعلمة على تفعيل المسؤولية المجتمعية والتحول الرقمي، قامت بتصميم وإطلاق فرصة تطوعية رقمية (عن بُعد) بعنوان "وعي رقمي"؛ وتهدف إلى تصميم منشورات ومقاطع فيديو توعوية قصيرة لتوعية الطالبات وأولياء الأمور بأهمية المواطنة الرقمية والاستخدام الآمن للإنترنت، وحماية الطالبات من المخاطر الإلكترونية. وقد لاقت هذه الفرصة تفاعلاً إيجابياً وموافقة من قبل أولياء الأمور، مما يعكس الشراكة الفاعلة بين المدرسة والأسرة. (من 15/11 إلى 19/11).
         </p>
-        <div class="sub-heading pink editable-area" contenteditable="true">📋 عناصر التقييم المناسبة للمبادرة</div>
+        <div class="sub-heading orange editable-area" contenteditable="true">📋 عناصر التقييم المناسبة للمبادرة</div>
         <table class="eval-table">
             <thead><tr><th>عنصر التقييم</th><th>متحقق</th><th>متحقق جزئياً</th><th>غير متحقق</th></tr></thead>
             <tbody>
-                <tr><td class="editable-area" contenteditable="true">توزيع الأدوار والمسؤوليات بوضوح على فريق العمل</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
-                <tr><td class="editable-area" contenteditable="true">فعالية الشراكة والتواصل المستمر مع الأسرة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
-                <tr><td class="editable-area" contenteditable="true">تفعيل المجالس الطلابية بفاعلية داخل المدرسة</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
-                <tr><td class="editable-area" contenteditable="true">نجاح تخصيص الشعار اللفظي المميز لتعزيز الانضباط</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
-                <tr><td class="editable-area" contenteditable="true">تحقيق الأثر الملموس في التزام الفصول الدراسية</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
-                <tr><td class="editable-area" contenteditable="true">تكريم الفصول والمعلمين المتميزين في الوقت المحدد</td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">توزيع الأدوار والمسؤوليات بوضوح على فريق العمل</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">فعالية الشراكة والتواصل المستمر مع الأسرة</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تفعيل المجالس الطلابية بفاعلية داخل المدرسة</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">نجاح تخصيص الشعار اللفظي المميز لتعزيز الانضباط</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تحقيق الأثر الملموس في التزام الفصول الدراسية</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
+                <tr><td class="editable-area" contenteditable="true">تكريم الفصول والمعلمين المتميزين في الوقت المحدد</td><td class="check-cell"><input type="checkbox" checked="checked"></td><td class="check-cell"><input type="checkbox"></td><td class="check-cell"><input type="checkbox"></td></tr>
             </tbody>
         </table>
         <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
@@ -1802,13 +2193,118 @@
         </div>
     </div>
 
+    <!-- تقرير 26 -->
+    <div class="report fade-in">
+        <div class="report-title orange">
+            <div class="num">26</div>
+            <div class="editable-area" contenteditable="true">تقرير تنفيذ ورشة عمل</div>
+        </div>
+        <table class="info-table">
+            <tr><th>عنوان الورشة</th><td class="editable-area" contenteditable="true">تطوير المهارات التدريسية وتبادل الخبرات التربوية</td></tr>
+            <tr><th>اليوم والتاريخ</th><td class="editable-area" contenteditable="true">/ /1448هـ</td></tr>
+            <tr><th>مدة التنفيذ</th><td class="editable-area" contenteditable="true">ساعتان تدريبيتان</td></tr>
+            <tr><th>مكان التنفيذ</th><td class="editable-area" contenteditable="true">قاعة المصادر / المدرسة</td></tr>
+            <tr><th>الفئة المستهدفة</th><td class="editable-area" contenteditable="true">الهيئة التعليمية والتربوية</td></tr>
+            <tr><th>عدد المستفيدين</th><td class="editable-area" contenteditable="true"></td></tr>
+            <tr><th>الهدف العام</th><td class="editable-area" contenteditable="true">تبادل الخبرات التربوية وتطوير الممارسات التدريسية بما يسهم في رفع جودة التعليم وتحسين نواتج التعلم</td></tr>
+            <tr><th>مقدمة الورشة</th><td class="editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</td></tr>
+            <tr><th>نسبة تحقق الهدف</th><td><span class="percentage-box">✅ <span class="value editable-area" contenteditable="true">100%</span></span></td></tr>
+        </table>
+        <div class="sub-heading orange editable-area" contenteditable="true">🎯 الأهـــــــــــداف</div>
+        <ul class="goals-list">
+            <li class="editable-area editable-block" contenteditable="true">تنمية الكفايات المهنية والتربوية لدى المعلمات في أساليب التدريس الحديثة</li>
+            <li class="editable-area editable-block" contenteditable="true">تطبيق استراتيجيات التعلم النشط والتقويم البنائي عملياً داخل مجموعات العمل</li>
+            <li class="editable-area editable-block" contenteditable="true">تبادل الخبرات والتجارب الناجحة في معالجة الفاقد التعليمي</li>
+            <li class="editable-area editable-block" contenteditable="true">توظيف الأدوات الرقمية الداعمة للتفاعل الصفي وإثراء الموقف التعليمي</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📝 محاور الورشة وما تم تنفيذه</div>
+        <ul class="content-list">
+            <li class="editable-area editable-block" contenteditable="true">استعراض الإطار النظري والعملي لأحدث استراتيجيات التعلم النشط المناسبة للمرحلة الابتدائية.</li>
+            <li class="editable-area editable-block" contenteditable="true">تقسيم المشاركات إلى مجموعات عمل لتصميم أنشطة صفية وتقويمية تطبيقية.</li>
+            <li class="editable-area editable-block" contenteditable="true">عرض نماذج تطبيقية ناجحة ومناقشة آليات التغلب على التحديات الصفية.</li>
+            <li class="editable-area editable-block" contenteditable="true">تقييم الورشة واستخلاص التوصيات الختامية لتطبيقها في الميدان التعليمي.</li>
+        </ul>
+        <div class="sub-heading green editable-area" contenteditable="true">👍 الإيجابيات</div>
+        <ul class="pros-list">
+            <li class="editable-area editable-block" contenteditable="true">تفاعل إيجابي ومثمر بين المشاركات وتبادل نوعي للخبرات الميدانية</li>
+            <li class="editable-area editable-block" contenteditable="true">إنتاج نماذج وأفكار تعليمية قابلة للتطبيق الفوري داخل الفصول</li>
+            <li class="editable-area editable-block" contenteditable="true">وضوح المادة التدريبية وتنوع الأنشطة العملية المصاحبة للورشة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">💡 التوصيات</div>
+        <ul class="cons-list">
+            <li class="editable-area editable-block" contenteditable="true">استمرار عقد ورش العمل التطويرية والتطبيقية بشكل دوري خلال العام الدراسي</li>
+            <li class="editable-area editable-block" contenteditable="true">متابعة أثر مخرجات الورشة في الممارسات الصفية وتحسين أداء الطالبات</li>
+            <li class="editable-area editable-block" contenteditable="true">توثيق ونشر الممارسات التدريسية المتميزة بين منسوبات المدرسة</li>
+        </ul>
+        <div class="sub-heading orange editable-area" contenteditable="true">📸 الشواهد</div>
+        <div class="evidence-grid" data-cols="3">
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 1 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 2 (اضغط لإضافة صورة)</div></div>
+            <div class="evidence-box evidence-placeholder" onclick="openWitnessModal(this)"><div class="icon">📷</div><div class="label editable-area" contenteditable="true">صورة شاهد 3 (اضغط لإضافة صورة)</div></div>
+        </div>
+        <div class="witness-actions edit-only"><button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button></div>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">معلم/ة المادة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع</div></div>
+            <div class="signature-box"><div class="label">مدير/ة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== الاعتماد النهائي وقائمة التحقق ==================== -->
+    <div class="footer-section">
+        <h2 class="editable-area" contenteditable="true">✅ قائمة التحقق والاعتماد النهائي (26 تقريراً)</h2>
+        <p class="editable-area editable-block" contenteditable="true" style="background: #ffffff; padding: 18px 22px; border-radius: 10px; border-right: 5px solid var(--primary); margin-bottom: 22px; font-size: 1.05em; line-height: 1.85; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">
+            تم استيفاء ومراجعة كافة تقارير البرامج التربوية والأنشطة المدرسية والمبادرات والشواهد التوثيقية للعام الدراسي 1448هـ وفق الضوابط التنظيمية المعتمدة، والتأكد من اكتمال النماذج وتوثيقها وإرفاق شواهدها.
+        </p>
+        <table class="checklist-table">
+            <thead>
+                <tr>
+                    <th style="width: 65px;">م</th>
+                    <th>اسم التقرير / البرنامج</th>
+                    <th style="width: 140px;">حالة التوثيق</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td class="editable-area" contenteditable="true">تقرير تنفيذ برنامج الأسبوع التمهيدي</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>2</td><td class="editable-area" contenteditable="true">تقرير تنفيذ برنامج اليوم الوطني 95</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>3</td><td class="editable-area" contenteditable="true">تقرير تفعيل يوم المعلم</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>4</td><td class="editable-area" contenteditable="true">تقرير تنفيذ برنامج أسبوع الفضاء</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>5</td><td class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية البطاقات الملونة</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>6</td><td class="editable-area" contenteditable="true">تقرير استخدام استراتيجية العصف الذهني</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>7</td><td class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية الدقيقة الواحدة</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>8</td><td class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية مختصرة (بطاقة الخروج 3-2-1 والتفكير العليا والربط بالوطن)</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>9</td><td class="editable-area" contenteditable="true">تقرير تنفيذ استراتيجية 1-2-3 (أو 3-2-1)</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>10</td><td class="editable-area" contenteditable="true">تقرير تفعيل برنامج التسامح (كوكبنا يزهر بالتسامح)</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>11</td><td class="editable-area" contenteditable="true">تقرير تنفيذ برنامج STEAM (سر الصحراء المذهل)</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>12</td><td class="editable-area" contenteditable="true">تقرير تفعيل القوانين الصفية والانضباط</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>13</td><td class="editable-area" contenteditable="true">تقرير استخدام الذكاء الاصطناعي</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>14</td><td class="editable-area" contenteditable="true">تقرير تبادل الزيارات</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>15</td><td class="editable-area" contenteditable="true">تقرير الخطة العلاجية للضعاف</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>16</td><td class="editable-area" contenteditable="true">تقرير الخطة الإثرائية للمتفوقين</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>17</td><td class="editable-area" contenteditable="true">تقرير برنامج تحسين نتائج أداء المتعلمين</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>18</td><td class="editable-area" contenteditable="true">تقرير تكريم الطالبات في اختبار الفترة</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>19</td><td class="editable-area" contenteditable="true">تقرير متابعة البرامج العلاجية</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>20</td><td class="editable-area" contenteditable="true">تقرير تفعيل حصة الانتظار</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>21</td><td class="editable-area" contenteditable="true">تقرير تفعيل السلوك الإيجابي</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>22</td><td class="editable-area" contenteditable="true">تقرير تنفيذ برنامج إدارة الصف والأنشطة الصفية والإثرائية</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>23</td><td class="editable-area" contenteditable="true">تقرير تصنيف الطلاب وفق أنماط التعلم</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>24</td><td class="editable-area" contenteditable="true">تقرير استخدام التقنية في التعليم</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>25</td><td class="editable-area" contenteditable="true">تقرير تنفيذ مبادرة الانضباط المدرسي</td><td><input type="checkbox" checked="checked"></td></tr>
+                <tr><td>26</td><td class="editable-area" contenteditable="true">تقرير تنفيذ ورشة عمل</td><td><input type="checkbox" checked="checked"></td></tr>
+            </tbody>
+        </table>
+        <div class="signatures">
+            <div class="signature-box"><div class="label">إعداد المعلمة</div><div class="name editable-area" contenteditable="true">أ/ أسماء ياسين الخيري</div><div class="line">التوقيع والاعتماد</div></div>
+            <div class="signature-box"><div class="label">اعتماد مديرة المدرسة</div><div class="name editable-area" contenteditable="true">أ. البتول ال دويس</div><div class="line">التوقيع والختم</div></div>
+        </div>
+    </div>
+
 </div><!-- /container -->
 
 <script>
 /* ==================================================
-   تطبيق المحرر التفاعلي لملف التقارير والشواهد المدرسية
+   تطبيق المحرر التفاعلي لملف التقارير والبرامج التربوية والأنشطة المدرسية
 ================================================== */
-const STORAGE_KEY = 'edu_reports_full';
+const STORAGE_KEY = 'edu_reports_v4_26';
 let activeEditable = null;
 let currentWitnessContainer = null;
 let currentImages = [];
@@ -2014,13 +2510,14 @@ function getManagedBlocks() {
             child.remove();
         }
     });
-    return Array.from(container.querySelectorAll(':scope > .cover, :scope > .single-page-report, :scope > .index-section, :scope > .section-header, :scope > .report'));
+    return Array.from(container.querySelectorAll(':scope > .cover, :scope > .single-page-report, :scope > .index-section, :scope > .section-header, :scope > .report, :scope > .footer-section'));
 }
 
 function getBlockLabel(el, idx) {
     if (el.classList.contains('cover')) return 'صفحة الغلاف';
     if (el.classList.contains('index-section')) return 'صفحة الفهرس';
     if (el.classList.contains('section-header')) return 'عنوان قسم';
+    if (el.classList.contains('footer-section')) return 'قائمة التحقق والاعتماد';
     if (el.classList.contains('single-page-report')) {
         const titleEl = el.querySelector('.report-title');
         return titleEl ? titleEl.textContent.trim().slice(0, 38) : `صفحة #${idx + 1}`;
@@ -2033,7 +2530,7 @@ function getBlockLabel(el, idx) {
 }
 
 function deleteBlockConfirm(btn) {
-    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report');
+    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report, .footer-section');
     if (!block) return;
     const allBlocks = getManagedBlocks();
     if (allBlocks.length <= 1) {
@@ -2049,7 +2546,7 @@ function deleteBlockConfirm(btn) {
 }
 
 function addPageAfterBtn(btn) {
-    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report');
+    const block = btn.closest('.cover, .single-page-report, .index-section, .section-header, .report, .footer-section');
     addNewPage(block);
 }
 
@@ -2398,7 +2895,17 @@ function compressImageDataUrl(dataUrl, maxDim = 1200, quality = 0.84) {
 
 function handleImageUpload(event) {
     const files = Array.from(event.target.files || []);
+    event.target.value = '';
     if (!files.length) return;
+    if (window.EduImageCropper) {
+        EduImageCropper.openQueue(files, async (croppedUrl) => {
+            const optimized = await compressImageDataUrl(croppedUrl);
+            currentImages.push(optimized);
+            renderPreviews();
+            setStatus('✅ تم قص وتجهيز الصورة للشاهد');
+        });
+        return;
+    }
     setStatus('⏳ جاري تجهيز الصور...');
     Promise.all(files.map(file => new Promise((resolve) => {
         const reader = new FileReader();
@@ -2413,7 +2920,16 @@ function handleImageUpload(event) {
         renderPreviews();
         setStatus(`✅ تم تجهيز ${files.length} صورة للشاهد`);
     });
-    event.target.value = '';
+}
+
+function cropExistingReportImage(idx) {
+    const src = currentImages[idx];
+    if (!src || !window.EduImageCropper) return;
+    EduImageCropper.cropExisting(src, async (croppedUrl) => {
+        currentImages[idx] = await compressImageDataUrl(croppedUrl);
+        renderPreviews();
+        setStatus('✅ تم تحديث الجزء المقصوص من الصورة');
+    });
 }
 
 function renderPreviews() {
@@ -2425,12 +2941,23 @@ function renderPreviews() {
         const imgEl = document.createElement('img');
         imgEl.src = img;
         imgEl.alt = 'معاينة';
+
+        const cropBtn = document.createElement('button');
+        cropBtn.type = 'button';
+        cropBtn.className = 'remove-img';
+        cropBtn.style.cssText = 'right:auto;left:3px;background:#2563eb;';
+        cropBtn.title = 'قص الصورة';
+        cropBtn.textContent = '✂️';
+        cropBtn.onclick = () => cropExistingReportImage(idx);
+
         const rmBtn = document.createElement('button');
         rmBtn.type = 'button';
         rmBtn.className = 'remove-img';
         rmBtn.textContent = '✕';
         rmBtn.onclick = () => removeImage(idx);
+
         item.appendChild(imgEl);
+        item.appendChild(cropBtn);
         item.appendChild(rmBtn);
         grid.appendChild(item);
     });
@@ -2550,9 +3077,15 @@ function renderWitnesses(container) {
     try { images = JSON.parse(container.dataset.images || '[]'); } catch (e) { images = []; }
     try { links = JSON.parse(container.dataset.links || '[]'); } catch (e) { links = []; }
     const cfg = getReportWitnessCfg(container);
+    if (!container.dataset.cols && images.length > 0 && images.length !== 4) {
+        cfg.cols = 3;
+    }
     container.style.setProperty('--ev-cols', String(cfg.cols));
     container.style.setProperty('--ev-img-h', cfg.imgHeight === 'auto' ? 'auto' : `${cfg.imgHeight}px`);
     container.style.setProperty('--ev-img-fit', cfg.fit);
+
+    const staticCards = Array.from(container.querySelectorAll(':scope > .evidence-static-card'));
+    const placeholders = Array.from(container.querySelectorAll(':scope > .evidence-placeholder'));
     container.innerHTML = '';
 
     images.forEach((imgSrc, idx) => {
@@ -2563,10 +3096,19 @@ function renderWitnesses(container) {
 
         const img = document.createElement('img');
         img.className = 'witness-photo';
+        img.crossOrigin = 'anonymous';
         img.src = imgSrc;
         img.alt = 'صورة شاهد';
         img.title = 'اضغط لتكبير الصورة';
         img.onclick = () => viewImage(imgSrc);
+        img.onerror = function() {
+            this.onerror = null;
+            this.style.display = 'none';
+            const fb = document.createElement('div');
+            fb.className = 'witness-fallback';
+            fb.innerHTML = '<div class="icon">🖼️</div><div class="label">تعذر تحميل الصورة — اضغط زر الشواهد لرفع بديل</div>';
+            box.appendChild(fb);
+        };
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
@@ -2582,6 +3124,12 @@ function renderWitnesses(container) {
         box.appendChild(delBtn);
         container.appendChild(box);
     });
+
+    if (placeholders.length && (images.length === 0 || container.dataset.keepPlaceholders === '1')) {
+        placeholders.forEach(ph => container.appendChild(ph));
+    }
+
+    staticCards.forEach(card => container.appendChild(card));
 
     refreshWitnessInlineBars(container);
 
@@ -2635,7 +3183,7 @@ function renderWitnesses(container) {
 
 function renderAllWitnesses() {
     document.querySelectorAll('#mainContainer .evidence-grid').forEach(grid => {
-        if (grid.dataset.images || grid.dataset.links) {
+        if (grid.dataset.images || grid.dataset.links || grid.querySelector('.evidence-static-card, .evidence-placeholder')) {
             renderWitnesses(grid);
         }
     });
@@ -2687,6 +3235,7 @@ function restoreSavedData() {
     document.getElementById('mainContainer').innerHTML = saved;
     initPageControls();
     renderAllWitnesses();
+    window.dispatchEvent(new CustomEvent('eduCanvaReapply'));
     setStatus('✅ تم استرجاع البيانات المحفوظة');
 }
 
@@ -2986,7 +3535,7 @@ async function exportPDF() {
         if (fillEl) fillEl.style.width = '100%';
         if (pctEl) pctEl.textContent = '100%';
 
-        const filename = 'ملف_التقارير_والشواهد_المدرسية.pdf';
+        const filename = 'ملف_التقارير_والبرامج_التربوية_والأنشطة_المدرسية.pdf';
         const pdfBlob = pdf.output('blob');
         if (lastPdfBlobUrl) {
             try { URL.revokeObjectURL(lastPdfBlobUrl); } catch (e) {}
@@ -3058,6 +3607,13 @@ window.addEventListener('load', () => {
         });
     }
 });
+</script>
+<script src="/static/js/edu_image_cropper.js"></script>
+<script src="/static/js/edu_canva_studio.js"></script>
+<script>
+window.openEduCanvaStudio = function() {
+    if (window.EduCanvaStudio) window.EduCanvaStudio.open('reports');
+};
 </script>
 
 </body>

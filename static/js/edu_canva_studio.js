@@ -2,11 +2,10 @@
 (function (global) {
   'use strict';
 
-  const MODAL_ID = 'eduCanvaStudioModal';
+  const MODAL_ID = 'eduCanvaStudioInline';
   const PRINT_ROOT_ID = 'eduCanvaPrintRoot';
   let initialized = false;
-  let currentMode = 'portfolio'; // 'portfolio' | 'witnesses' | 'reports' | 'hub'
-  let hubPreviewTarget = 'portfolio'; // Target doc previewed when in 'hub' mode
+  let currentMode = 'portfolio'; // 'portfolio' | 'witnesses' | 'reports'
   let catalogTemplates = [];
   let fetchedTemplates = [];
   let selectedIds = new Set();
@@ -16,6 +15,7 @@
   let activeTab = 'browse'; // 'browse' | 'fetched' | 'preview'
   let previewZoom = 'fit';
   let isExportingCanvaPdf = false;
+  let isLivePreviewUnsaved = false;
 
   const TARGET_LABELS = {
     portfolio: 'ملف الأداء الوظيفي',
@@ -28,7 +28,7 @@
     if (p.includes('performance_portfolio')) return 'portfolio';
     if (p.includes('performance_witnesses')) return 'witnesses';
     if (p.includes('school_reports')) return 'reports';
-    return 'hub';
+    return null;
   }
 
   function escHtml(str) {
@@ -62,30 +62,47 @@
     return tpl.fallback_preview_data_url || tpl.safe_preview_data_url || '';
   }
 
-  function injectStylesAndModal() {
-    if (initialized) return;
-    initialized = true;
-
+  function ensureStylesInjected() {
+    if (document.getElementById('eduCanvaStudioStyles')) return;
     const style = document.createElement('style');
     style.id = 'eduCanvaStudioStyles';
     style.textContent = `
-      #${MODAL_ID} {
-        display: none; position: fixed; inset: 0; z-index: 240000;
-        background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(4px);
-        align-items: center; justify-content: center; padding: 12px;
-        direction: rtl; font-family: 'Cairo', sans-serif;
+      #ecsInlineDock {
+        width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 12px;
+        direction: rtl; font-family: 'Cairo', sans-serif; box-sizing: border-box;
       }
-      #${MODAL_ID}.show { display: flex; }
+      #ecsInlineDock.has-content.dock-below-fixed {
+        margin-top: 72px; margin-bottom: -48px;
+      }
+      #ecsInlineDock.has-content.dock-reports {
+        margin-top: 4px; margin-bottom: 14px;
+      }
+      #${MODAL_ID} {
+        display: none; width: 100%; margin: 10px auto 14px auto;
+        direction: rtl; font-family: 'Cairo', sans-serif; z-index: 50; position: relative;
+      }
+      #${MODAL_ID}.show { display: block; }
+      @media print {
+        #ecsInlineDock, #${MODAL_ID}, #ecsMergedStatusBanner { display: none !important; }
+      }
+      body.pdf-exporting #ecsInlineDock,
+      body.print-preview-mode #ecsInlineDock,
+      body.pdf-exporting #${MODAL_ID},
+      body.print-preview-mode #${MODAL_ID},
+      body.pdf-exporting #ecsMergedStatusBanner,
+      body.print-preview-mode #ecsMergedStatusBanner {
+        display: none !important;
+      }
       #${MODAL_ID} .ecs-shell {
-        background: #f8fafc; border-radius: 18px; width: 100%; max-width: 1180px;
-        height: 92vh; display: flex; flex-direction: column; overflow: hidden;
-        box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+        background: #f8fafc; border-radius: 16px; width: 100%;
+        display: flex; flex-direction: column; overflow: hidden;
+        border: 2px solid #0f766e; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
       }
       #${MODAL_ID} .ecs-header {
         background: linear-gradient(135deg, #0f766e, #1e3a8a); color: #fff;
-        padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 11px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
       }
-      #${MODAL_ID} .ecs-title { font-size: 17px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+      #${MODAL_ID} .ecs-title { font-size: 15.5px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
       #${MODAL_ID} .ecs-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
       #${MODAL_ID} .ecs-tab-btn {
         background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,0.28);
@@ -93,15 +110,15 @@
       }
       #${MODAL_ID} .ecs-tab-btn.active { background: #ffffff; color: #0f172a; }
       #${MODAL_ID} .ecs-close-btn {
-        background: #ef4444; color: #fff; border: none; width: 34px; height: 34px;
-        border-radius: 50%; font-size: 17px; font-weight: 900; cursor: pointer;
+        background: rgba(239,68,68,0.92); color: #fff; border: none; padding: 6px 12px;
+        border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit;
       }
       #${MODAL_ID} .ecs-status {
         background: #e0f2fe; color: #0c4a6e; padding: 7px 16px; font-size: 13px; font-weight: 700;
         border-bottom: 1px solid #bae6fd; display: none;
       }
       #${MODAL_ID} .ecs-status.show { display: block; }
-      #${MODAL_ID} .ecs-body { flex: 1; overflow-y: auto; padding: 16px; }
+      #${MODAL_ID} .ecs-body { max-height: 74vh; overflow-y: auto; padding: 14px; }
       #${MODAL_ID} .ecs-panel { display: none; }
       #${MODAL_ID} .ecs-panel.active { display: block; }
       #${MODAL_ID} .ecs-bar {
@@ -288,19 +305,27 @@
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function injectStylesAndModal() {
+    if (initialized) return;
+    initialized = true;
+    ensureStylesInjected();
 
     const modal = document.createElement('div');
     modal.id = MODAL_ID;
+    modal.className = 'no-print edit-only';
+    const modeLabel = TARGET_LABELS[detectPageMode() || currentMode] || 'الملف الحالي';
     modal.innerHTML = `
       <div class="ecs-shell" onclick="event.stopPropagation()">
         <div class="ecs-header">
-          <div class="ecs-title">🎨 متصفح واستوديو قوالب كانفا الداخلي</div>
+          <div class="ecs-title">🎨 قوالب كانفا داخل واجهة: ${escHtml(modeLabel)}</div>
           <div class="ecs-tabs">
-            <button type="button" class="ecs-tab-btn active" data-ecs-tab="browse">1. تصفح وتحديد من كانفا</button>
+            <button type="button" class="ecs-tab-btn active" data-ecs-tab="browse">1. جلب واستعراض قوالب كانفا</button>
             <button type="button" class="ecs-tab-btn" data-ecs-tab="fetched">2. القوالب المجلوبة (<span id="ecsFetchedBadge">0</span>)</button>
-            <button type="button" class="ecs-tab-btn" data-ecs-tab="preview">3. معاينة التطبيق والطباعة (<span id="ecsPreviewBadge">0</span>)</button>
+            <button type="button" class="ecs-tab-btn" data-ecs-tab="preview">3. معاينة التطبيق والدمج A4 (<span id="ecsPreviewBadge">0</span>)</button>
           </div>
-          <button type="button" class="ecs-close-btn" id="ecsCloseBtn" title="إغلاق">✕</button>
+          <button type="button" class="ecs-close-btn" id="ecsCloseBtn" title="طي وإخفاء لوحة كانفا">▲ إخفاء</button>
         </div>
         <div class="ecs-status" id="ecsStatusBar"></div>
         <div class="ecs-body">
@@ -399,25 +424,11 @@
               </div>
               <span style="font-size:11.5px;font-weight:700;color:#0e7490;">يتم تحويل القالب تلقائياً إلى صور A4 وملف PDF متوافق قبل التضمين</span>
             </div>
-            <div id="ecsHubMergeBar" class="ecs-bar" style="display:none;background:#f0fdfa;border:1.5px solid #5eead4;justify-content:space-between;">
-              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-                <span style="font-size:13px;font-weight:900;color:#0f766e;">📌 معاينة القالب على:</span>
-                <button type="button" class="ecs-btn outline active" data-ecs-hub-preview="portfolio">📋 ملف الأداء الوظيفي</button>
-                <button type="button" class="ecs-btn outline" data-ecs-hub-preview="witnesses">🏆 ملف شواهد الأداء</button>
-                <button type="button" class="ecs-btn outline" data-ecs-hub-preview="reports">📚 التقارير والبرامج والأنشطة</button>
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-                <span style="font-size:12.5px;font-weight:900;color:#0f172a;">معالجة (PNG/PDF) ودمج مباشر في:</span>
-                <button type="button" class="ecs-btn teal" onclick="EduCanvaStudio.mergeActiveToTarget('portfolio', true)">📋 ملف الأداء الوظيفي</button>
-                <button type="button" class="ecs-btn" style="background:#6d5ca0;" onclick="EduCanvaStudio.mergeActiveToTarget('witnesses', true)">🏆 شواهد الأداء</button>
-                <button type="button" class="ecs-btn" style="background:#1e3a8a;" onclick="EduCanvaStudio.mergeActiveToTarget('reports', true)">📚 التقارير والبرامج والأنشطة</button>
-                <button type="button" class="ecs-btn green" onclick="EduCanvaStudio.mergeActiveToTarget('all', false)">✨ دمج بالملفات الثلاثة</button>
-              </div>
-            </div>
             <div class="ecs-bar" style="justify-content:space-between;background:#f1f5f9;">
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
                 <button type="button" class="ecs-btn green" id="ecsPrintActiveBtn">🖨️ طباعة هذا القالب</button>
                 <button type="button" class="ecs-btn amber" id="ecsPdfActiveBtn">📄 تصدير هذا القالب PDF</button>
+                <button type="button" class="ecs-btn outline" id="ecsLivePreviewDocBtn">👁️ معاينة حية على صفحات الملف</button>
                 <button type="button" class="ecs-btn teal" id="ecsApplyThemeToDocBtn">✅ معالجة (PNG/PDF) ودمج مباشر في الملف</button>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
@@ -431,7 +442,8 @@
         </div>
       </div>
     `;
-    document.body.appendChild(modal);
+    const dock = getOrCreateInlineDock(detectPageMode() || currentMode);
+    dock.appendChild(modal);
 
     let printRoot = document.getElementById(PRINT_ROOT_ID);
     if (!printRoot) {
@@ -479,20 +491,13 @@
     modal.querySelector('#ecsApplyAllFetchedBtn').onclick = () => applyContentToTemplates(fetchedTemplates);
     modal.querySelector('#ecsPrintActiveBtn').onclick = printActivePreview;
     modal.querySelector('#ecsPdfActiveBtn').onclick = exportActivePreviewPdf;
+    modal.querySelector('#ecsLivePreviewDocBtn').onclick = () => {
+      const item = appliedPreviews.find(x => x.template.id === activeAppliedId);
+      if (item && item.template) livePreviewOnDoc(item.template.id);
+    };
     modal.querySelector('#ecsApplyThemeToDocBtn').onclick = applyActiveThemeToDocument;
     modal.querySelector('#ecsZoomFitBtn').onclick = () => setZoom('fit');
     modal.querySelector('#ecsZoomFullBtn').onclick = () => setZoom('full');
-
-    modal.querySelectorAll('[data-ecs-hub-preview]').forEach(btn => {
-      btn.onclick = () => {
-        hubPreviewTarget = btn.dataset.ecsHubPreview || 'portfolio';
-        modal.querySelectorAll('[data-ecs-hub-preview]').forEach(b => b.classList.toggle('active', b === btn));
-        if (appliedPreviews.length) {
-          const list = appliedPreviews.map(x => x.template);
-          applyContentToTemplates(list);
-        }
-      };
-    });
 
     window.addEventListener('resize', () => {
       if (activeTab === 'preview' && document.getElementById(MODAL_ID)?.classList.contains('show')) {
@@ -682,9 +687,10 @@
               <input type="checkbox" ${isSel ? 'checked' : ''} onchange="EduCanvaStudio.toggleSelect('${escHtml(t.id)}', this.checked)">
               <span>تحديد للجلب</span>
             </label>
-            <div style="display:flex;gap:4px;">
-              <button type="button" class="ecs-btn outline" style="padding:5px 8px;font-size:11px;" onclick="EduCanvaStudio.openInternalViewer('${escHtml(t.id)}')">👁️ فتح</button>
-              <button type="button" class="ecs-btn" style="padding:5px 10px;font-size:11px;" onclick="EduCanvaStudio.fetchSingleAndApply('${escHtml(t.id)}')">⚡ جلب ومعاينة</button>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button type="button" class="ecs-btn outline" style="padding:5px 8px;font-size:11px;" onclick="EduCanvaStudio.openInternalViewer('${escHtml(t.id)}')">👁️ معاينة</button>
+              <button type="button" class="ecs-btn amber" style="padding:5px 8px;font-size:11px;" onclick="EduCanvaStudio.livePreviewOnDoc('${escHtml(t.id)}')">🖥️ معاينة بالملف</button>
+              <button type="button" class="ecs-btn teal" style="padding:5px 9px;font-size:11px;" onclick="EduCanvaStudio.mergeDirectToCurrentDoc('${escHtml(t.id)}')">✅ تطبيق</button>
             </div>
           </div>
         </div>
@@ -754,20 +760,13 @@
           <span style="width:20px;height:20px;border-radius:50%;background:${s};border:1px solid #cbd5e1;" title="الثانوي"></span>
           <span style="width:20px;height:20px;border-radius:50%;background:${a};border:1px solid #cbd5e1;" title="المميز"></span>
         </div>
-        ${currentMode === 'hub' ? `
-          <div style="padding-top:6px;border-top:1px dashed #cbd5e1;display:flex;flex-direction:column;gap:6px;">
-            <div style="font-size:12px;font-weight:900;color:#0f766e;">📌 اختيار ملف لدمج هذا القالب فيه مباشرة:</div>
+        <div style="padding-top:6px;border-top:1px dashed #cbd5e1;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:11.5px;color:#0f766e;font-weight:800;">🔒 يتم تحويل القالب إلى صورة A4 وملف PDF متوافق وتضمينه في الصفحات المخصصة للملف مباشرة.</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              <button type="button" class="ecs-btn teal" style="font-size:11.5px;padding:6px 10px;" onclick="EduCanvaStudio.mergeTemplateToTarget('${escHtml(t.id)}','portfolio',true)">📋 دمج في ملف الأداء الوظيفي</button>
-              <button type="button" class="ecs-btn" style="background:#6d5ca0;font-size:11.5px;padding:6px 10px;" onclick="EduCanvaStudio.mergeTemplateToTarget('${escHtml(t.id)}','witnesses',true)">🏆 دمج في شواهد الأداء</button>
-              <button type="button" class="ecs-btn" style="background:#1e3a8a;font-size:11.5px;padding:6px 10px;" onclick="EduCanvaStudio.mergeTemplateToTarget('${escHtml(t.id)}','reports',true)">📚 دمج في التقارير والبرامج والأنشطة</button>
-              <button type="button" class="ecs-btn green" style="font-size:11.5px;padding:6px 10px;" onclick="EduCanvaStudio.mergeTemplateToTarget('${escHtml(t.id)}','all',false)">✨ دمج بالثلاثة معاً</button>
+              <button type="button" class="ecs-btn amber" style="flex:1;font-size:12px;padding:7px 10px;justify-content:center;" onclick="EduCanvaStudio.livePreviewOnDoc('${escHtml(t.id)}')">👁️ معاينة فورية على صفحات الملف بالأسفل</button>
+              <button type="button" class="ecs-btn teal" style="flex:1;font-size:12px;padding:7px 10px;justify-content:center;" onclick="EduCanvaStudio.mergeDirectToCurrentDoc('${escHtml(t.id)}')">✅ تثبيت ودمج نهائي بالملف</button>
             </div>
           </div>
-        ` : `<div style="padding-top:6px;border-top:1px dashed #cbd5e1;display:flex;flex-direction:column;gap:6px;">
-            <div style="font-size:11.5px;color:#0f766e;font-weight:800;">🔒 يتم تحويل القالب إلى صورة A4 وملف PDF متوافق وتضمينه في الصفحات المخصصة للملف مباشرة.</div>
-            <button type="button" class="ecs-btn teal" style="font-size:12px;padding:7px 12px;justify-content:center;" onclick="EduCanvaStudio.mergeDirectToCurrentDoc('${escHtml(t.id)}')">⚡ معالجة (PNG/PDF) وتضمين مباشر في ${escHtml(TARGET_LABELS[currentMode] || 'الملف')}</button>
-          </div>`}
       </div>
     </div>`;
 
@@ -783,7 +782,7 @@
       toggleSelect(t.id);
       refreshViewerSelBtn();
     };
-    fetchBtn.textContent = currentMode === 'hub' ? '✨ جلب ومعاينة على الملفات' : '⚡ جلب ودمج بالملف الحالي';
+    fetchBtn.textContent = '⚡ معاينة A4 بمحتوى الملف';
     fetchBtn.onclick = () => fetchSingleAndApply(t.id);
 
     viewer.style.display = 'block';
@@ -917,68 +916,11 @@
     updateCounts();
   }
 
-  /* ───── استخراج المحتوى الفعلي من كل أداة من الأدوات الثلاث ───── */
-  function extractHubSampleData(target) {
-    if (target === 'reports') {
-      return {
-        docTitle: 'ملف التقارير والبرامج التربوية والأنشطة المدرسية',
-        subtitle: 'الإدارة العامة للتعليم • نموذج معاينة الدمج المباشر',
-        coverLines: ['المملكة العربية السعودية — وزارة التعليم', 'ملف التقارير والبرامج التربوية والأنشطة المدرسية', 'توثيق البرامج والفعاليات والأنشطة المدرسية', 'الفصل الدراسي الحالي'],
-        reports: [
-          {
-            title: 'تقرير تنفيذ برنامج الانضباط المدرسي والتحفيز',
-            tableRows: [
-              ['البرنامج', 'الجهة المنفذة', 'عدد المستفيدين', 'تاريخ التنفيذ'],
-              ['أسبوع الانضباط الإيجابي', 'التوجيه الطلابي', '240 طالباً', 'الأسبوع الثالث'],
-            ],
-            paragraphs: ['تم تنفيذ البرنامج وفق الخطة المعتمدة بمشاركة الكادر التعليمي وأولياء الأمور وتوثيق الشواهد.'],
-            images: [],
-            qrUrls: [],
-          },
-        ],
-      };
-    }
-    if (target === 'witnesses') {
-      return {
-        docTitle: 'سجل شواهد الأداء الوظيفي',
-        subtitle: 'المملكة العربية السعودية • وزارة التعليم • توثيق المعايير',
-        coverLines: ['المملكة العربية السعودية — وزارة التعليم', 'سجل شواهد الأداء الوظيفي للمعلم', 'معايير التقييم المهني والشواهد الرقمية', 'العام الدراسي الحالي'],
-        sections: [
-          {
-            kind: 'witness-table',
-            title: 'الشاهد الأول: أداء الواجبات الوظيفية وتنويع استراتيجيات التدريس',
-            weight: 'الوزن النسبي: 20%',
-            rows: [
-              { itemText: 'الالتزام بالدوام الرسمي وتنفيذ حصص الانتظار والأنشطة اللاصفية', witness: {} },
-              { itemText: 'تطبيق استراتيجيات التعلم النشط والتفكير الإبداعي في الحصص', witness: {} },
-            ],
-          },
-        ],
-      };
-    }
-    return {
-      docTitle: 'ملف الأداء الوظيفي المهني',
-      subtitle: 'المملكة العربية السعودية • وزارة التعليم • سجل الإنجاز المهني',
-      coverLines: ['المملكة العربية السعودية — وزارة التعليم', 'ملف الأداء الوظيفي', 'السيرة المهنية والميثاق الأخلاقي وشواهد الأداء', 'العام الدراسي الحالي'],
-      sections: [
-        {
-          kind: 'table',
-          title: 'البيانات الأساسية والخبرة المهنية',
-          headers: ['البيان', 'التفاصيل'],
-          rows: [
-            ['المسمى الوظيفي', 'معلم / ممارس تربوي'],
-            ['المرحلة التعليمية', 'التعليم العام — المملكة العربية السعودية'],
-            ['نطاق التوثيق', 'ملف الأداء الوظيفي الشامل'],
-          ],
-        },
-      ],
-    };
-  }
-
+  /* ───── استخراج المحتوى الفعلي من واجهة الوظيفة الحالية ───── */
   function extractDocumentData() {
-    if (currentMode === 'hub') return extractHubSampleData(hubPreviewTarget);
-    if (currentMode === 'portfolio') return extractPortfolioData();
-    if (currentMode === 'witnesses') return extractWitnessesData();
+    const mode = detectPageMode() || currentMode;
+    if (mode === 'portfolio') return extractPortfolioData();
+    if (mode === 'witnesses') return extractWitnessesData();
     return extractReportsData();
   }
 
@@ -1255,7 +1197,7 @@
     const styleVars = buildSheetStyleVars(tpl);
     const layoutClass = 'layout-' + (tpl.layout || 'gradient_arch');
     let html = renderCoverSheet(tpl, docData);
-    const effectiveMode = currentMode === 'hub' ? hubPreviewTarget : currentMode;
+    const effectiveMode = detectPageMode() || currentMode;
 
     if (effectiveMode === 'portfolio' || effectiveMode === 'witnesses') {
       const secs = docData.sections || [];
@@ -1743,21 +1685,52 @@
     return pagesList.length;
   }
 
+  function getOrCreateInlineDock(mode) {
+    ensureStylesInjected();
+    const resolvedMode = mode || detectPageMode() || currentMode;
+    let dock = document.getElementById('ecsInlineDock');
+    if (!dock) {
+      dock = document.createElement('div');
+      dock.id = 'ecsInlineDock';
+      dock.className = 'no-print edit-only ' + (resolvedMode === 'reports' ? 'dock-reports' : 'dock-below-fixed');
+      const anchorTarget = document.getElementById('pagesWrap') || document.getElementById('mainContainer');
+      if (anchorTarget && anchorTarget.parentNode) {
+        anchorTarget.parentNode.insertBefore(dock, anchorTarget);
+      } else {
+        document.body.insertBefore(dock, document.body.firstChild);
+      }
+    }
+    return dock;
+  }
+
+  function syncDockVisibility() {
+    const dock = document.getElementById('ecsInlineDock');
+    if (!dock) return;
+    const modalVisible = Boolean(document.getElementById(MODAL_ID)?.classList.contains('show'));
+    const hasBanner = Boolean(document.getElementById('ecsMergedStatusBanner'));
+    dock.classList.toggle('has-content', modalVisible || hasBanner);
+  }
+
+  let currentMergedTpl = null;
+
   function renderMergedStatusBanner(tpl) {
     const mode = detectPageMode();
-    if (mode === 'hub') return;
+    if (!mode) return;
     let banner = document.getElementById('ecsMergedStatusBanner');
     if (!tpl) {
       if (banner) banner.remove();
+      syncDockVisibility();
       return;
     }
     if (!banner) {
+      const dock = getOrCreateInlineDock(mode);
       banner = document.createElement('div');
       banner.id = 'ecsMergedStatusBanner';
-      banner.className = 'no-print';
-      banner.style.cssText = 'position:sticky;top:0;z-index:9500;direction:rtl;font-family:"Cairo",sans-serif;padding:8px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 3px 12px rgba(0,0,0,0.14);border-bottom:2px solid rgba(255,255,255,0.28);';
-      document.body.insertBefore(banner, document.body.firstChild);
+      banner.className = 'no-print edit-only';
+      banner.style.cssText = 'position:relative;z-index:60;direction:rtl;font-family:"Cairo",sans-serif;padding:9px 14px;border-radius:12px;margin-bottom:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.16);border:1.5px solid rgba(255,255,255,0.32);';
+      dock.insertBefore(banner, dock.firstChild);
     }
+    syncDockVisibility();
     const c = tpl.colors || {};
     const p = safeHex(c.primary, '#0f766e');
     const s = safeHex(c.secondary, '#1e3a8a');
@@ -1771,9 +1744,9 @@
     banner.style.color = '#ffffff';
     banner.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="background:rgba(255,255,255,0.22);padding:3px 9px;border-radius:6px;font-size:12px;font-weight:900;">🎨 قالب كانفا المدمج</span>
+        <span style="background:rgba(255,255,255,0.22);padding:3px 9px;border-radius:6px;font-size:12px;font-weight:900;">${isLivePreviewUnsaved ? '👁️ معاينة حية لقالب كانفا' : '🎨 قالب كانفا المدمج'}</span>
         <strong style="font-size:13.5px;">${escHtml(tpl.name)}</strong>
-        <span style="background:#10b981;color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;">✅ ${escHtml(fmtLabel)} • ${pgCount} صفحة</span>
+        <span style="background:${isLivePreviewUnsaved ? '#f59e0b' : '#10b981'};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;">${isLivePreviewUnsaved ? '⏳ معاينة غير مثبتة' : `✅ ${escHtml(fmtLabel)} • ${pgCount} صفحة`}</span>
         <select id="ecsBannerMergeMode" style="background:rgba(255,255,255,0.95);color:#0f172a;border:none;border-radius:6px;padding:3px 7px;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;">
           <option value="dedicated_and_theme" ${curMode === 'dedicated_and_theme' ? 'selected' : ''}>صفحات القالب + الألوان</option>
           <option value="embedded_pages_only" ${curMode === 'embedded_pages_only' ? 'selected' : ''}>صفحات القالب فقط</option>
@@ -1787,21 +1760,25 @@
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        ${isLivePreviewUnsaved ? `<button type="button" id="ecsBannerConfirmSave" style="background:#22c55e;color:#fff;border:none;padding:5px 12px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:900;cursor:pointer;">✅ تثبيت وحفظ الدمج بالملف</button>` : ''}
         ${tpl.processed_pdf_url ? `<a href="${escHtml(tpl.processed_pdf_url)}?download=1" download style="background:${a};color:#fff;text-decoration:none;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:800;">📥 القالب PDF</a>` : ''}
         <button type="button" id="ecsBannerExportFullPdf" style="background:#ffffff;color:#0f172a;border:none;padding:5px 11px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;">📄 تصدير الملف المدمج PDF</button>
         <button type="button" onclick="EduCanvaStudio.previewMergedDocument()" style="background:rgba(255,255,255,0.22);color:#fff;border:1px solid rgba(255,255,255,0.45);padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">🖨️ معاينة قالب A4</button>
-        <button type="button" onclick="EduCanvaStudio.open('${mode}')" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">🔄 تغيير القالب</button>
+        <button type="button" onclick="EduCanvaStudio.open('${mode}')" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">🔄 اختيار قالب آخر</button>
         <button type="button" onclick="EduCanvaStudio.clearMergedTemplate()" style="background:#ef4444;color:#fff;border:none;padding:5px 10px;border-radius:7px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">✖ إلغاء الدمج</button>
       </div>
     `;
 
     banner.querySelector('#ecsBannerMergeMode')?.addEventListener('change', (e) => {
       const updated = { ...tpl, merge_mode: e.target.value };
-      applyMergedTemplate(updated, true);
+      applyMergedTemplate(updated, !isLivePreviewUnsaved);
     });
     banner.querySelector('#ecsBannerEmbedPos')?.addEventListener('change', (e) => {
       const updated = { ...tpl, embed_position: e.target.value };
-      applyMergedTemplate(updated, true);
+      applyMergedTemplate(updated, !isLivePreviewUnsaved);
+    });
+    banner.querySelector('#ecsBannerConfirmSave')?.addEventListener('click', () => {
+      persistCurrentMergedTemplate();
     });
     banner.querySelector('#ecsBannerExportFullPdf')?.addEventListener('click', () => {
       if (typeof global.exportPDF === 'function') global.exportPDF();
@@ -1809,16 +1786,19 @@
     });
   }
 
-  async function applyMergedTemplate(tpl, persist = true) {
+  async function applyMergedTemplate(tpl, persist = true, options = {}) {
     if (!tpl) return;
     const mode = detectPageMode();
-    if (mode === 'hub') return;
+    if (!mode) return;
+
+    isLivePreviewUnsaved = Boolean(options.previewOnly);
 
     // التأكد من وجود النسخة المعالجة (PNG + PDF) إذا لم تكن موجودة في البيانات
     let readyTpl = tpl;
     if (!readyTpl.processed || !Array.isArray(readyTpl.processed_pages) || !readyTpl.processed_pages.length) {
       readyTpl = await processTemplateForMerge(readyTpl);
     }
+    currentMergedTpl = readyTpl;
 
     const mergeMode = readyTpl.merge_mode || 'dedicated_and_theme';
     const c = readyTpl.colors || {};
@@ -1881,7 +1861,7 @@
         z-index: 2;
       }
       @media print {
-        #ecsMergedStatusBanner, .canva-embedded-controls { display: none !important; }
+        #ecsMergedStatusBanner, #${MODAL_ID}, .canva-embedded-controls { display: none !important; }
         .page.canva-embedded-page, .single-page-report.canva-embedded-page {
           width: 210mm !important; height: 297mm !important; padding: 0 !important;
           margin: 0 !important; box-shadow: none !important; page-break-after: always; break-after: page;
@@ -1916,107 +1896,90 @@
     renderMergedStatusBanner(readyTpl);
 
     if (persist) {
+      isLivePreviewUnsaved = false;
       try {
         localStorage.setItem('ecs_merged_template_' + mode, JSON.stringify(stripForStorage(readyTpl)));
       } catch (_) {}
+      renderMergedStatusBanner(readyTpl);
+    }
+  }
+
+  function persistCurrentMergedTemplate() {
+    const mode = detectPageMode();
+    if (!mode || !currentMergedTpl) return;
+    isLivePreviewUnsaved = false;
+    try {
+      localStorage.setItem('ecs_merged_template_' + mode, JSON.stringify(stripForStorage(currentMergedTpl)));
+    } catch (_) {}
+    renderMergedStatusBanner(currentMergedTpl);
+    closeStudio();
+    if (typeof global.setStatus === 'function') {
+      global.setStatus(`✅ تم تثبيت ودمج قالب "${currentMergedTpl.name}" في الملف`);
     }
   }
 
   function clearMergedTemplate() {
     const mode = detectPageMode();
+    currentMergedTpl = null;
+    isLivePreviewUnsaved = false;
     removeInjectedCanvaPages();
     document.getElementById('ecsMergedThemeCss')?.remove();
     document.getElementById('ecsMergedStatusBanner')?.remove();
+    syncDockVisibility();
     const vars = [
       '--primary', '--primary-teal', '--purple', '--border', '--border-color',
       '--dark', '--dark-teal', '--primary-dark', '--secondary',
       '--accent', '--accent-light', '--light', '--light-teal', '--lavender',
     ];
     vars.forEach(v => document.documentElement.style.removeProperty(v));
-    try {
-      localStorage.removeItem('ecs_merged_template_' + mode);
-      localStorage.removeItem('ecs_pending_merge_' + mode);
-    } catch (_) {}
+    if (mode) {
+      try {
+        localStorage.removeItem('ecs_merged_template_' + mode);
+        localStorage.removeItem('ecs_pending_merge_' + mode);
+      } catch (_) {}
+    }
   }
 
   function previewMergedDocument() {
     const mode = detectPageMode();
-    if (mode === 'hub') return;
-    let tpl = null;
-    try {
-      tpl = JSON.parse(localStorage.getItem('ecs_merged_template_' + mode) || 'null');
-    } catch (_) {}
+    if (!mode) return;
+    let tpl = currentMergedTpl;
+    if (!tpl) {
+      try {
+        tpl = JSON.parse(localStorage.getItem('ecs_merged_template_' + mode) || 'null');
+      } catch (_) {}
+    }
     openStudio(mode);
     if (tpl) {
       applyContentToTemplates([tpl]);
     }
   }
 
-  async function mergeTemplateToTarget(idOrTpl, target, shouldOpenTarget = false, customOpts = null) {
-    let tpl = typeof idOrTpl === 'object' ? idOrTpl : (catalogTemplates.find(x => x.id === idOrTpl) || fetchedTemplates.find(x => x.id === idOrTpl) || appliedPreviews.find(x => x.template.id === idOrTpl)?.template);
+  async function livePreviewOnDoc(id) {
+    const mode = detectPageMode();
+    if (!mode) return;
+    const tpl = catalogTemplates.find(x => x.id === id) || fetchedTemplates.find(x => x.id === id) || appliedPreviews.find(x => x.template.id === id)?.template;
     if (!tpl) return;
-
-    const opts = customOpts || getSelectedMergeOptions();
-    const targets = target === 'all' ? ['portfolio', 'witnesses', 'reports'] : [target];
-    showStatus(`⏳ جاري معالجة قالب "${tpl.name}" وتحويله إلى صيغة متوافقة (صور PNG A4 + ملف PDF) للدمج...`);
-
-    const processedTpl = await processTemplateForMerge(tpl);
-    tpl = {
-      ...processedTpl,
+    const opts = getSelectedMergeOptions();
+    showStatus(`⏳ جاري تجهيز معاينة القالب "${tpl.name}" على صفحات ${TARGET_LABELS[mode] || 'الملف'}...`);
+    const processed = await processTemplateForMerge(tpl);
+    const enriched = {
+      ...processed,
       merge_mode: opts.merge_mode || 'dedicated_and_theme',
       embed_position: opts.embed_position || 'after_cover',
     };
-
-    try {
-      const token = (document.getElementById('ecsCanvaTokenInput')?.value || '').trim();
-      const res = await fetch('/api/edu/canva/fetch_selected', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: [stripHeavyFields(tpl)], canva_token: token }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.fetched) {
-        fetchedTemplates = data.fetched;
-        renderFetchedGrid();
-        updateCounts();
-      }
-    } catch (_) {}
-
-    const light = stripForStorage(tpl);
-    targets.forEach(tg => {
-      try {
-        localStorage.setItem('ecs_merged_template_' + tg, JSON.stringify(light));
-        localStorage.setItem('ecs_pending_merge_' + tg, JSON.stringify({ template: light, ts: Date.now() }));
-      } catch (_) {}
-    });
-
-    if (typeof global.onEduCanvaMergedToTarget === 'function') {
-      global.onEduCanvaMergedToTarget(target, light, shouldOpenTarget);
+    await applyMergedTemplate(enriched, false, { previewOnly: true });
+    showStatus(`👁️ تمت المعاينة الحية للقالب "${tpl.name}" على صفحات الملف بالأسفل — اضغط "✅ تثبيت وحفظ الدمج" لاعتماده.`);
+    const targetDoc = document.getElementById('pagesWrap') || document.getElementById('mainContainer');
+    if (targetDoc) {
+      targetDoc.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    const pgCount = light.processed_page_count || (light.processed_pages || []).length || 1;
-    if (shouldOpenTarget && target !== 'all') {
-      closeStudio();
-      showStatus(`✅ تم تحويل القالب (${pgCount} صفحة PNG + PDF) ودمجه في ${TARGET_LABELS[target] || target} وجارٍ فتحه...`);
-    } else {
-      showStatus(`✅ تمت معالجة القالب (${pgCount} صفحة PNG + PDF) ودمجه بنجاح في ${target === 'all' ? 'جميع الملفات التعليمية الثلاثة' : (TARGET_LABELS[target] || target)}!`);
-    }
-  }
-
-  function mergeActiveToTarget(target, shouldOpenTarget) {
-    const item = appliedPreviews.find(x => x.template.id === activeAppliedId);
-    if (!item) return;
-    mergeTemplateToTarget(item.template, target, shouldOpenTarget);
   }
 
   async function applyActiveThemeToDocument() {
     const item = appliedPreviews.find(x => x.template.id === activeAppliedId);
     if (!item) return;
     const opts = getSelectedMergeOptions();
-    if (currentMode === 'hub') {
-      await mergeTemplateToTarget(item.template, hubPreviewTarget || 'portfolio', true, opts);
-      return;
-    }
     showStatus(`⏳ جاري معالجة القالب "${item.template.name}" وتحويله إلى (PNG A4 + PDF) وتضمينه بالملف...`);
     const processed = await processTemplateForMerge(item.template);
     const enriched = {
@@ -2032,7 +1995,7 @@
 
   function checkPendingMerge() {
     const mode = detectPageMode();
-    if (mode === 'hub') return;
+    if (!mode) return;
     let applied = false;
     try {
       const pendRaw = localStorage.getItem('ecs_pending_merge_' + mode);
@@ -2057,18 +2020,8 @@
   function populateReportsScopeSelector() {
     const area = document.getElementById('ecsDocScopeArea');
     if (!area) return;
-    if (currentMode === 'hub') {
-      area.innerHTML = `<span style="font-size:13px;font-weight:800;color:#0f766e;">📌 معاينة قوالب كانفا المجلوبة لاختيار دمجه في:</span>
-        <select id="ecsHubTargetSelect" class="ecs-input" style="max-width:250px;">
-          <option value="portfolio" ${hubPreviewTarget === 'portfolio' ? 'selected' : ''}>📋 ملف الأداء الوظيفي</option>
-          <option value="witnesses" ${hubPreviewTarget === 'witnesses' ? 'selected' : ''}>🏆 ملف شواهد الأداء</option>
-          <option value="reports" ${hubPreviewTarget === 'reports' ? 'selected' : ''}>📚 ملف التقارير والبرامج التربوية والأنشطة المدرسية</option>
-        </select>`;
-      const sel = document.getElementById('ecsHubTargetSelect');
-      if (sel) sel.onchange = () => { hubPreviewTarget = sel.value; };
-      return;
-    }
-    if (currentMode !== 'reports') {
+    const mode = detectPageMode() || currentMode;
+    if (mode !== 'reports') {
       area.innerHTML = '<span style="font-size:13px;font-weight:800;color:#334155;">📋 المحتوى المستخرج من ملفك الحالي جاهز للتطبيق والدمج تلقائياً.</span>';
       return;
     }
@@ -2085,16 +2038,17 @@
   }
 
   function openStudio(mode) {
-    currentMode = mode || detectPageMode();
+    const detected = mode || detectPageMode();
+    if (!detected) return;
+    currentMode = detected;
     injectStylesAndModal();
-    const hubBar = document.getElementById('ecsHubMergeBar');
-    if (hubBar) hubBar.style.display = currentMode === 'hub' ? 'flex' : 'none';
-    const docApplyBtn = document.getElementById('ecsApplyThemeToDocBtn');
-    if (docApplyBtn) {
-      docApplyBtn.textContent = currentMode === 'hub' ? '✨ معالجة ودمج في الملف المعروض وفتحه' : '✅ معالجة (PNG/PDF) ودمج مباشر في الملف';
-    }
     populateReportsScopeSelector();
-    document.getElementById(MODAL_ID)?.classList.add('show');
+    const dock = document.getElementById(MODAL_ID);
+    if (dock) {
+      dock.classList.add('show');
+      syncDockVisibility();
+      dock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     switchTab('browse');
     if (!catalogTemplates.length) {
       loadCatalog(false);
@@ -2107,6 +2061,16 @@
 
   function closeStudio() {
     document.getElementById(MODAL_ID)?.classList.remove('show');
+    syncDockVisibility();
+  }
+
+  function toggleStudio(mode) {
+    const dock = document.getElementById(MODAL_ID);
+    if (dock && dock.classList.contains('show')) {
+      closeStudio();
+    } else {
+      openStudio(mode);
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -2118,8 +2082,8 @@
 
   async function mergeDirectToCurrentDoc(id) {
     const mode = detectPageMode();
-    if (mode === 'hub') return;
-    const tpl = catalogTemplates.find(x => x.id === id) || fetchedTemplates.find(x => x.id === id);
+    if (!mode) return;
+    const tpl = catalogTemplates.find(x => x.id === id) || fetchedTemplates.find(x => x.id === id) || appliedPreviews.find(x => x.template.id === id)?.template;
     if (!tpl) return;
     const opts = getSelectedMergeOptions();
     showStatus(`⏳ جاري معالجة قالب "${tpl.name}" وتحويله إلى (PNG A4 + PDF) وتضمينه بالملف...`);
@@ -2137,6 +2101,7 @@
 
   global.EduCanvaStudio = {
     open: openStudio,
+    toggle: toggleStudio,
     close: closeStudio,
     toggleSelect,
     openInternalViewer,
@@ -2145,9 +2110,9 @@
     applySingle,
     removeFetched,
     selectApplied,
-    mergeTemplateToTarget,
-    mergeActiveToTarget,
+    livePreviewOnDoc,
     mergeDirectToCurrentDoc,
+    persistCurrentMergedTemplate,
     processTemplateForMerge,
     applyMergedTemplate,
     clearMergedTemplate,
@@ -2155,4 +2120,3 @@
     previewMergedDocument,
   };
 })(window);
-

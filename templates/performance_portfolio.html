@@ -80,7 +80,7 @@
         td.action-cell { display: none !important; }
         .add-page-bar { display: none !important; }
         .fmt-bar { display: none !important; }
-        .witness-actions, .witness-quick-bar, .witness-modal, .witness-below-hint, .witness-thumb .remove-thumb, .witness-info .link-count, .img-lightbox { display: none !important; }
+        .witness-actions, .witness-quick-bar, .witness-modal, .witness-below-hint, .witness-thumb .remove-thumb, .witness-thumb .move-thumb, .free-witness-block .fwb-tools, .witness-info .link-count, .img-lightbox { display: none !important; }
         .witness-qr { display: block !important; }
         .page.has-overflow-witness { height: auto !important; min-height: 297mm !important; overflow: visible !important; }
     }
@@ -118,6 +118,8 @@
     body.print-preview-mode .witness-modal,
     body.print-preview-mode .witness-below-hint,
     body.print-preview-mode .witness-thumb .remove-thumb,
+    body.print-preview-mode .witness-thumb .move-thumb,
+    body.print-preview-mode .free-witness-block .fwb-tools,
     body.print-preview-mode .witness-info .link-count { display: none !important; }
     body.print-preview-mode .witness-qr { display: block !important; }
     body.print-preview-mode .page.has-overflow-witness { height: auto !important; min-height: 1123px !important; overflow: visible !important; }
@@ -174,6 +176,8 @@
     body.pdf-exporting .witness-modal,
     body.pdf-exporting .witness-below-hint,
     body.pdf-exporting .witness-thumb .remove-thumb,
+    body.pdf-exporting .witness-thumb .move-thumb,
+    body.pdf-exporting .free-witness-block .fwb-tools,
     body.pdf-exporting .witness-info .link-count,
     body.pdf-exporting .preview-page-badge { display: none !important; }
     body.pdf-exporting .witness-qr { display: block !important; }
@@ -374,6 +378,35 @@
         border: none; width: 20px; height: 20px; border-radius: 50%; font-size: 11px;
         cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 3;
     }
+    .witness-thumb .move-thumb {
+        position: absolute; top: 4px; left: 4px; background: rgba(13,148,136,0.94); color: #fff;
+        border: none; height: 20px; padding: 0 6px; border-radius: 6px; font-size: 10px; font-weight: 800;
+        cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 3; font-family: inherit;
+    }
+    .witness-thumb .move-thumb:hover { background: #0f766e; }
+    .free-witness-block {
+        margin: 12px 0; padding: 12px 14px; border: 1.5px solid var(--border-color);
+        border-radius: 10px; background: #ffffff; text-align: right; position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); page-break-inside: avoid;
+    }
+    .free-witness-block .fwb-header {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+        margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1.5px dashed #cbd5e1;
+    }
+    .free-witness-block .fwb-title {
+        font-family: var(--font-academic); font-size: 16px; font-weight: 800; color: var(--dark-teal);
+    }
+    .free-witness-block .fwb-tools { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .free-witness-block .fwb-tools button {
+        background: #475569; color: #fff; border: none; padding: 3px 8px; border-radius: 5px;
+        font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .free-witness-block .fwb-tools button.fwb-move { background: #0d9488; }
+    .free-witness-block .fwb-tools button.fwb-del { background: #c0392b; }
+    .witness-moved-flash {
+        box-shadow: 0 0 0 4px rgba(13,148,136,0.45) !important;
+        transition: box-shadow 0.4s ease;
+    }
     td.col-item { vertical-align: top; }
     .witness-below-container {
         margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(59,105,120,0.4);
@@ -482,7 +515,7 @@
     <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
     <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
     <button type="button" onclick="exportPDF()" class="gold">📄 تصدير PDF</button>
-    <button type="button" onclick="EduCanvaStudio.open('portfolio')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
+    <button type="button" onclick="EduCanvaStudio.toggle('portfolio')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
     <button type="button" onclick="loadData()">🔄 استرجاع</button>
     <button type="button" onclick="addNewPage()">➕ صفحة جديدة</button>
     <button type="button" onclick="printDocument()">🖨️ طباعة</button>
@@ -602,6 +635,43 @@
                 <div style="margin-top:4px;padding-top:8px;border-top:1px dashed #cbd5e1;display:flex;justify-content:flex-start;">
                     <button type="button" onclick="applyModalStyleToAll()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">📌 تطبيق نفس الحجم والموضع على جميع الشواهد</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="witness-modal-section" id="ppWitnessMoveSection" style="background:#f0fdfa;border:1.5px solid #5eead4;">
+            <h4>🚚 نقل وتحريك الشواهد إلى أي قسم أو صف أو صفحة أخرى</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">1️⃣ الشاهد / العناصر المراد نقلها:</label>
+                    <select id="ppMoveScopeSelect" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;"></select>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">2️⃣ القسم / الصفحة الهدف:</label>
+                    <select id="ppMoveTargetPageSelect" onchange="populatePortfolioTargetRows()" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;"></select>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">3️⃣ الصف أو الموضع داخل القسم الهدف:</label>
+                    <select id="ppMoveTargetRowSelect" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;"></select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">4️⃣ موضع العرض بالوجهة:</label>
+                        <select id="ppMovePlacementSelect" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;">
+                            <option value="keep">نفس الإعداد الحالي</option>
+                            <option value="below">⬇ تحت اسم العنصر</option>
+                            <option value="opposite">↔ مقابل اسم العنصر</option>
+                            <option value="full-row">⬛ أسفل العنصر بعرض الجدول</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">5️⃣ نوع الإجراء:</label>
+                        <select id="ppMoveActionMode" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;">
+                            <option value="move">🚚 نقل فعلي (إزالة من المصدر)</option>
+                            <option value="copy">📋 نسخ (إبقاء نسخة بالمصدر)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" onclick="executePortfolioWitnessTransfer()" style="background:linear-gradient(135deg,#0f766e,#1e3a8a);color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:800;">✅ تنفيذ نقل / تحريك الشواهد الآن</button>
             </div>
         </div>
 
@@ -1732,8 +1802,253 @@ function applyModalStyleToAll() {
     setStatus(`✅ تم تطبيق الحجم والموضع على ${count} صف`);
 }
 
-function openWitnessModal(typeCell) {
-    currentWitnessCell = typeCell;
+function persistPortfolioSilent() {
+    try {
+        localStorage.setItem('perf_form_data', JSON.stringify(getState()));
+    } catch (e) {}
+}
+
+function getPortfolioPageTitle(pg, idx) {
+    if (!pg) return `صفحة #${idx + 1}`;
+    const el = pg.querySelector('.table-title, .banner, .prayer-title, .conclusion-title, .text-page-header h2, .section-title, h1, h2');
+    const t = el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+    return t ? t.slice(0, 48) : `صفحة #${idx + 1}`;
+}
+
+function getPortfolioPagesList() {
+    return Array.from(document.querySelectorAll('#pagesWrap > .page:not(.canva-embedded-page)'));
+}
+
+function populatePortfolioMoveSelectors(preselectScope = 'all') {
+    const scopeSel = document.getElementById('ppMoveScopeSelect');
+    const pageSel = document.getElementById('ppMoveTargetPageSelect');
+    if (!scopeSel || !pageSel) return;
+
+    let scopeHtml = `<option value="all">📦 جميع الشواهد (${currentImages.length} صورة، ${currentLinks.length} رابط)</option>`;
+    currentImages.forEach((_, i) => {
+        scopeHtml += `<option value="image:${i}">📷 صورة شاهد #${i + 1}</option>`;
+    });
+    currentLinks.forEach((lk, i) => {
+        const lbl = (lk.title || lk.url || `رابط #${i + 1}`).slice(0, 42);
+        scopeHtml += `<option value="link:${i}">🔗 باركود #${i + 1}: ${lbl}</option>`;
+    });
+    scopeSel.innerHTML = scopeHtml;
+    if (Array.from(scopeSel.options).some(o => o.value === preselectScope)) {
+        scopeSel.value = preselectScope;
+    }
+
+    const pages = getPortfolioPagesList();
+    const srcPage = currentWitnessCell ? currentWitnessCell.closest('.page') : null;
+    pageSel.innerHTML = pages.map((pg, i) => {
+        const mark = pg === srcPage ? ' (القسم الحالي)' : '';
+        return `<option value="${i}">${i + 1}. ${getPortfolioPageTitle(pg, i)}${mark}</option>`;
+    }).join('');
+    const srcIdx = pages.indexOf(srcPage);
+    if (srcIdx >= 0) pageSel.value = String(srcIdx);
+
+    populatePortfolioTargetRows();
+}
+
+function populatePortfolioTargetRows() {
+    const pageSel = document.getElementById('ppMoveTargetPageSelect');
+    const rowSel = document.getElementById('ppMoveTargetRowSelect');
+    if (!pageSel || !rowSel) return;
+    const pages = getPortfolioPagesList();
+    const targetPage = pages[parseInt(pageSel.value, 10)];
+    if (!targetPage) {
+        rowSel.innerHTML = '<option value="free:bottom">أسفل الصفحة</option>';
+        return;
+    }
+
+    const opts = [];
+    const witnessCells = Array.from(targetPage.querySelectorAll('td.col-type'));
+    witnessCells.forEach((td, rIdx) => {
+        const tr = td.closest('tr');
+        const itemTxt = tr?.querySelector('td.col-item')?.textContent.replace(/\s+/g, ' ').trim() || `صف #${rIdx + 1}`;
+        const curMark = td === currentWitnessCell ? ' (الصف الحالي)' : '';
+        opts.push({ val: `row:${rIdx}`, label: `📋 صف #${rIdx + 1}: ${itemTxt.slice(0, 46)}${curMark}` });
+    });
+
+    if (targetPage.querySelector('table') && witnessCells.length) {
+        opts.push({ val: 'new-row', label: '➕ إضافة صف شواهد جديد في هذا القسم' });
+    }
+    opts.push({ val: 'free:top', label: '📌 وضع ككتلة شواهد حرة أعلى الصفحة' });
+    opts.push({ val: 'free:bottom', label: '📌 وضع ككتلة شواهد حرة أسفل الصفحة' });
+
+    const targetRoot = targetPage.querySelector('.table-page, .text-page-box, .new-page-content, .cover-page, .quote-page, .conclusion-page') || targetPage;
+    Array.from(targetRoot.children).forEach((ch, cIdx) => {
+        if (ch.classList.contains('table-controls') || ch.classList.contains('free-witness-block')) return;
+        const txt = ch.textContent.replace(/\s+/g, ' ').trim();
+        const lbl = txt ? txt.slice(0, 34) : `عنصر #${cIdx + 1}`;
+        opts.push({ val: `after-el:${cIdx}`, label: `↳ بعد: ${lbl}` });
+    });
+
+    rowSel.innerHTML = opts.map(o => `<option value="${o.val}">${o.label}</option>`).join('');
+}
+
+function createFreeWitnessBlock(data, titleText) {
+    const blk = document.createElement('div');
+    blk.className = 'free-witness-block';
+    blk.dataset.witness = JSON.stringify(normalizeWitnessData(data));
+    blk.dataset.fwbTitle = titleText || '📸 شاهد منقول';
+    return blk;
+}
+
+function nudgeFreeWitnessBlock(btn, dir) {
+    const blk = btn.closest('.free-witness-block');
+    if (!blk || !blk.parentNode) return;
+    const p = blk.parentNode;
+    if (dir < 0 && blk.previousElementSibling) {
+        p.insertBefore(blk, blk.previousElementSibling);
+        persistPortfolioSilent();
+        setStatus('⬆️ تم تحريك كتلة الشواهد للأعلى');
+    } else if (dir > 0 && blk.nextElementSibling) {
+        p.insertBefore(blk, blk.nextElementSibling.nextSibling);
+        persistPortfolioSilent();
+        setStatus('⬇️ تم تحريك كتلة الشواهد للأسفل');
+    }
+}
+
+function removeFreeWitnessBlock(btn) {
+    const blk = btn.closest('.free-witness-block');
+    if (!blk) return;
+    blk.remove();
+    persistPortfolioSilent();
+    setStatus('🗑️ تم حذف كتلة الشواهد');
+}
+
+function executePortfolioWitnessTransfer() {
+    if (!currentWitnessCell) return;
+    const scopeVal = document.getElementById('ppMoveScopeSelect')?.value || 'all';
+    const pages = getPortfolioPagesList();
+    const targetPageIdx = parseInt(document.getElementById('ppMoveTargetPageSelect')?.value || '0', 10);
+    const targetPage = pages[targetPageIdx];
+    const targetDest = document.getElementById('ppMoveTargetRowSelect')?.value || 'free:bottom';
+    const placementMode = document.getElementById('ppMovePlacementSelect')?.value || 'keep';
+    const isCopy = (document.getElementById('ppMoveActionMode')?.value || 'move') === 'copy';
+
+    if (!targetPage) {
+        setStatus('❌ تعذر تحديد الصفحة الهدف');
+        return;
+    }
+
+    let movedImgs = [];
+    let movedLinks = [];
+    if (scopeVal === 'all') {
+        movedImgs = currentImages.slice();
+        movedLinks = currentLinks.slice();
+    } else if (scopeVal.startsWith('image:')) {
+        const idx = parseInt(scopeVal.split(':')[1], 10);
+        if (currentImages[idx]) movedImgs = [currentImages[idx]];
+    } else if (scopeVal.startsWith('link:')) {
+        const idx = parseInt(scopeVal.split(':')[1], 10);
+        if (currentLinks[idx]) movedLinks = [currentLinks[idx]];
+    }
+
+    if (!movedImgs.length && !movedLinks.length) {
+        setStatus('⚠️ لا توجد صور أو روابط لنقلها');
+        return;
+    }
+
+    // تحديد الوجهة
+    let targetEl = null;
+    const srcRow = currentWitnessCell.closest('tr');
+    const srcItemText = srcRow?.querySelector('td.col-item')?.textContent.replace(/\s+/g, ' ').trim()
+        || currentWitnessCell.dataset.fwbTitle
+        || 'شاهد منقول';
+
+    if (targetDest.startsWith('row:')) {
+        const rIdx = parseInt(targetDest.split(':')[1], 10);
+        targetEl = targetPage.querySelectorAll('td.col-type')[rIdx] || null;
+        if (targetEl === currentWitnessCell && !isCopy) {
+            setStatus('⚠️ الشاهد موجود بالفعل في نفس الصف المختار');
+            return;
+        }
+    } else if (targetDest === 'new-row') {
+        const tbl = targetPage.querySelector('table');
+        const tbody = tbl?.querySelector('tbody');
+        if (tbody) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="col-type check-cell" onclick="toggleRowCell(this, event)"><div class="cell-content" contenteditable="true"></div></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-empty check-cell" onclick="toggleCheck(this)"></td>
+                <td class="col-item"><div class="cell-content" contenteditable="true" style="text-align:right;font-weight:900;font-size:16px;">${srcItemText}</div></td>
+                <td class="action-cell edit-only"><button class="row-del-btn" onclick="delRow(this)">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+            targetEl = tr.querySelector('td.col-type');
+        }
+    }
+
+    if (!targetEl) {
+        const targetRoot = targetPage.querySelector('.table-page, .text-page-box, .new-page-content, .cover-page, .quote-page, .conclusion-page') || targetPage;
+        const freshData = normalizeWitnessData({
+            ...currentWitnessSettings,
+            images: [],
+            links: [],
+            placement: placementMode === 'keep' ? currentWitnessSettings.placement : placementMode
+        });
+        targetEl = createFreeWitnessBlock(freshData, `📸 ${srcItemText.slice(0, 60)}`);
+        if (targetDest === 'free:top') {
+            targetRoot.insertBefore(targetEl, targetRoot.firstChild);
+        } else if (targetDest.startsWith('after-el:')) {
+            const cIdx = parseInt(targetDest.split(':')[1], 10);
+            const nonHelperChildren = Array.from(targetRoot.children).filter(ch => !ch.classList.contains('table-controls') && !ch.classList.contains('free-witness-block'));
+            const ref = nonHelperChildren[cIdx];
+            if (ref && ref.parentNode === targetRoot) {
+                targetRoot.insertBefore(targetEl, ref.nextSibling);
+            } else {
+                targetRoot.appendChild(targetEl);
+            }
+        } else {
+            targetRoot.appendChild(targetEl);
+        }
+    }
+
+    // إزالة من المصدر إذا كان النقل فعلياً
+    if (!isCopy) {
+        if (scopeVal === 'all') {
+            currentImages = [];
+            currentLinks = [];
+        } else if (scopeVal.startsWith('image:')) {
+            currentImages.splice(parseInt(scopeVal.split(':')[1], 10), 1);
+        } else if (scopeVal.startsWith('link:')) {
+            currentLinks.splice(parseInt(scopeVal.split(':')[1], 10), 1);
+        }
+    }
+
+    const srcData = normalizeWitnessData({
+        images: currentImages,
+        links: currentLinks,
+        ...currentWitnessSettings
+    });
+    currentWitnessCell.dataset.witness = JSON.stringify(srcData);
+
+    const tgtData = getWitnessData(targetEl);
+    tgtData.images = (tgtData.images || []).concat(movedImgs);
+    tgtData.links = (tgtData.links || []).concat(movedLinks);
+    if (placementMode !== 'keep') tgtData.placement = placementMode;
+    targetEl.dataset.witness = JSON.stringify(normalizeWitnessData(tgtData));
+
+    const srcCellRef = currentWitnessCell;
+    renderWitnesses(srcCellRef);
+    if (srcCellRef.classList.contains('free-witness-block') && !srcData.images.length && !srcData.links.length) {
+        srcCellRef.remove();
+    }
+    renderWitnesses(targetEl);
+    closeWitnessModal();
+    persistPortfolioSilent();
+
+    targetEl.classList.add('witness-moved-flash');
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => targetEl.classList.remove('witness-moved-flash'), 1800);
+    setStatus(`✅ تم ${isCopy ? 'نسخ' : 'نقل'} الشواهد إلى "${getPortfolioPageTitle(targetPage, targetPageIdx)}" وحفظ التغيير`);
+}
+
+function openWitnessModal(typeCellOrBlock, opts = {}) {
+    currentWitnessCell = typeCellOrBlock;
+    if (!currentWitnessCell) return;
     currentImages = [];
     currentLinks = [];
     document.getElementById('imagePreviewGrid').innerHTML = '';
@@ -1742,7 +2057,7 @@ function openWitnessModal(typeCell) {
     document.getElementById('linkInput').value = '';
     document.getElementById('linkTitleInput').value = '';
 
-    const data = getWitnessData(typeCell);
+    const data = getWitnessData(currentWitnessCell);
     currentImages = data.images.slice();
     currentLinks = data.links.slice();
     currentWitnessSettings = {
@@ -1755,9 +2070,15 @@ function openWitnessModal(typeCell) {
     renderImagePreviews();
     renderLinkList();
     syncModalSettingsUI();
+    populatePortfolioMoveSelectors(opts.preselectScope || 'all');
 
-    document.getElementById('witnessModalTitle').textContent = 'إضافة وتخصيص الشواهد';
+    document.getElementById('witnessModalTitle').textContent = 'إضافة وتخصيص ونقل الشواهد';
     document.getElementById('witnessModal').classList.add('show');
+    if (opts.focusMove) {
+        setTimeout(() => {
+            document.getElementById('ppWitnessMoveSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+    }
 }
 
 function closeWitnessModal() {
@@ -1859,6 +2180,7 @@ function saveWitness() {
     currentWitnessCell.dataset.witness = JSON.stringify(data);
     renderWitnesses(currentWitnessCell);
     closeWitnessModal();
+    persistPortfolioSilent();
     setStatus('✅ تم حفظ الشواهد وإعدادات العرض');
 }
 
@@ -1885,6 +2207,7 @@ function buildThumbnailsMarkup(cell, data) {
             : thumbWidth;
         html += `<div class="witness-thumb${fitClass}" style="width:${finalWidth};" onclick="event.stopPropagation();viewImage(this.querySelector('img').src)">
             <img src="${img}" alt="شاهد">
+            <button type="button" class="move-thumb edit-only" onclick="event.stopPropagation();openWitnessModal(findEvidenceCellFromEl(this),{focusMove:true,preselectScope:'image:${idx}'})" title="نقل هذه الصورة لقسم أو مكان آخر">⇄</button>
             <button type="button" class="remove-thumb edit-only" onclick="event.stopPropagation();removeImageFromWitness(this, ${idx})" title="حذف الصورة">✕</button>
         </div>`;
     });
@@ -1904,11 +2227,14 @@ function buildQuickControlsMarkup(data) {
         <span class="size-tag">${sizeText}</span>
         <button type="button" onclick="adjustWitnessSize(this, 30)" title="تكبير الصورة">➕</button>
         <button type="button" onclick="cycleWitnessPlacement(this)" title="تغيير موضع الصورة">${placeLabels[data.placement] || '⬇ تحت العنصر'}</button>
+        <button type="button" style="background:#0d9488;" onclick="openWitnessModal(findEvidenceCellFromEl(this),{focusMove:true})" title="نقل الشاهد إلى أي قسم أو صف آخر">⇄ نقل</button>
         <button type="button" onclick="openWitnessModal(findEvidenceCellFromEl(this))" title="خيارات متقدمة">⚙️</button>
     </div>`;
 }
 
 function findEvidenceCellFromEl(el) {
+    const freeBlk = el.closest('.free-witness-block');
+    if (freeBlk) return freeBlk;
     const directTd = el.closest('td.col-type');
     if (directTd) return directTd;
     const row = el.closest('tr');
@@ -1939,6 +2265,7 @@ function adjustWitnessSize(btn, delta) {
     }
     cell.dataset.witness = JSON.stringify(data);
     renderWitnesses(cell);
+    persistPortfolioSilent();
 }
 
 function cycleWitnessPlacement(btn) {
@@ -1950,6 +2277,7 @@ function cycleWitnessPlacement(btn) {
     data.placement = order[(idx + 1) % order.length];
     cell.dataset.witness = JSON.stringify(data);
     renderWitnesses(cell);
+    persistPortfolioSilent();
 }
 
 function removeImageFromWitness(btn, idx) {
@@ -1959,6 +2287,10 @@ function removeImageFromWitness(btn, idx) {
     data.images.splice(idx, 1);
     cell.dataset.witness = JSON.stringify(data);
     renderWitnesses(cell);
+    if (cell.classList.contains('free-witness-block') && !data.images.length && !data.links.length) {
+        cell.remove();
+    }
+    persistPortfolioSilent();
 }
 
 function updatePageOverflowFlag(el) {
@@ -1967,8 +2299,53 @@ function updatePageOverflowFlag(el) {
     page.classList.toggle('has-overflow-witness', page.scrollHeight > 1130);
 }
 
+function renderFreeWitnessBlock(blk) {
+    const data = getWitnessData(blk);
+    const hasImages = data.images && data.images.length > 0;
+    const hasLinks = data.links && data.links.length > 0;
+    const titleEl = blk.querySelector('.fwb-title');
+    const titleText = titleEl ? titleEl.textContent.trim() : (blk.dataset.fwbTitle || '📸 شاهد مرفق');
+    blk.dataset.fwbTitle = titleText;
+
+    let html = `<div class="fwb-header">
+        <div class="fwb-title editable-area" contenteditable="true">${titleText}</div>
+        <div class="fwb-tools edit-only">
+            <button type="button" onclick="openWitnessModal(this.closest('.free-witness-block'))">📎 تعديل</button>
+            <button type="button" class="fwb-move" onclick="openWitnessModal(this.closest('.free-witness-block'),{focusMove:true})">⇄ نقل</button>
+            <button type="button" onclick="nudgeFreeWitnessBlock(this, -1)" title="تحريك للأعلى">⬆️</button>
+            <button type="button" onclick="nudgeFreeWitnessBlock(this, 1)" title="تحريك للأسفل">⬇️</button>
+            <button type="button" class="fwb-del" onclick="removeFreeWitnessBlock(this)" title="حذف">✕</button>
+        </div>
+    </div>`;
+    if (hasImages) {
+        html += buildThumbnailsMarkup(blk, data) + buildQuickControlsMarkup(data);
+    }
+    if (hasLinks) {
+        html += `<div class="witness-info"><span class="link-count">🔗 ${data.links.length} رابط</span></div><div class="witness-qr">`;
+        data.links.forEach((link) => {
+            html += `<div class="qr-container" data-url="${link.url}" style="margin:3px auto;"></div><div class="qr-url">${link.url.substring(0, 30)}...</div>`;
+        });
+        html += '</div>';
+    }
+    blk.innerHTML = html;
+    if (hasLinks) {
+        blk.querySelectorAll('.qr-container').forEach(el => {
+            const url = el.dataset.url;
+            el.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(el, { text: url, width: 60, height: 60, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L });
+            }
+        });
+    }
+    updatePageOverflowFlag(blk);
+}
+
 function renderWitnesses(cell) {
     if (!cell) return;
+    if (cell.classList.contains('free-witness-block')) {
+        renderFreeWitnessBlock(cell);
+        return;
+    }
     const data = getWitnessData(cell);
     const hasImages = data.images && data.images.length > 0;
     const hasLinks = data.links && data.links.length > 0;
@@ -1998,6 +2375,7 @@ function renderWitnesses(cell) {
     holder.className = 'witness-evidence-cell';
     let html = `<div class="witness-actions edit-only">
         <button type="button" onclick="event.stopPropagation();openWitnessModal(this.closest('td.col-type'))" title="إضافة/تعديل الشواهد والصور">📎 شواهد</button>
+        ${(hasImages || hasLinks) ? `<button type="button" style="background:#0d9488;" onclick="event.stopPropagation();openWitnessModal(this.closest('td.col-type'),{focusMove:true})" title="نقل هذا الشاهد لقسم أو موضع آخر">⇄ نقل</button>` : ''}
     </div>`;
 
     if (hasImages && data.placement === 'opposite') {
@@ -2059,7 +2437,7 @@ function renderWitnesses(cell) {
 }
 
 function renderAllWitnesses() {
-    document.querySelectorAll('#pagesWrap td.col-type').forEach(cell => {
+    document.querySelectorAll('#pagesWrap td.col-type, #pagesWrap .free-witness-block').forEach(cell => {
         if (cell.dataset.witness) renderWitnesses(cell);
     });
 }
@@ -2070,6 +2448,9 @@ function initWitnessCells() {
             cell.setAttribute('onclick', 'toggleRowCell(this, event)');
         }
         renderWitnesses(cell);
+    });
+    document.querySelectorAll('#pagesWrap .free-witness-block').forEach(blk => {
+        renderFreeWitnessBlock(blk);
     });
 }
 
@@ -2546,7 +2927,7 @@ window.addEventListener('load', () => {
 <script src="/static/js/edu_canva_studio.js"></script>
 <script>
 window.openEduCanvaStudio = function() {
-    if (window.EduCanvaStudio) window.EduCanvaStudio.open('portfolio');
+    if (window.EduCanvaStudio) window.EduCanvaStudio.toggle('portfolio');
 };
 </script>
 

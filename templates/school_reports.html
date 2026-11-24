@@ -97,6 +97,7 @@
     body.print-preview-mode .edit-only,
     body.print-preview-mode .fmt-bar,
     body.print-preview-mode .witness-actions,
+    body.print-preview-mode .witness-box-tools,
     body.print-preview-mode .page-ctrl-bar,
     body.print-preview-mode .witness-del-btn { display: none !important; }
     body.print-preview-mode .editable-area {
@@ -432,6 +433,23 @@
         width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
         font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center;
     }
+    .witness-box-tools {
+        position: absolute; top: 6px; right: 6px; z-index: 5;
+        display: flex; gap: 3px; align-items: center;
+    }
+    .witness-box-tools button {
+        background: rgba(15, 23, 42, 0.84); color: #fff; border: none;
+        height: 24px; padding: 0 7px; border-radius: 6px; cursor: pointer;
+        font-size: 11px; font-weight: 800; font-family: inherit;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .witness-box-tools button:hover { background: #0f766e; }
+    .witness-box-tools button.move-btn { background: #0d9488; }
+    .witness-moved-flash {
+        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.45) !important;
+        border-radius: 10px;
+        transition: box-shadow 0.4s ease;
+    }
 
     /* ==================== معرض الصور ==================== */
     .image-gallery {
@@ -580,6 +598,7 @@
     body.pdf-exporting .fmt-bar,
     body.pdf-exporting .modal-overlay,
     body.pdf-exporting .witness-actions,
+    body.pdf-exporting .witness-box-tools,
     body.pdf-exporting .page-ctrl-bar,
     body.pdf-exporting .witness-del-btn,
     body.pdf-exporting .edit-only { display: none !important; }
@@ -599,7 +618,7 @@
             -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
         }
         .container { box-shadow: none !important; width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
-        .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
+        .toolbar, .preview-bar, .fmt-bar, .modal-overlay, .witness-actions, .witness-box-tools, .page-ctrl-bar, .witness-del-btn, .print-btn-container, .no-print, .edit-only, .pdf-overlay, .pdf-ready-banner, .img-lightbox { display: none !important; }
         .cover { width: 100% !important; height: 297mm !important; min-height: 297mm !important; margin: 0; border-radius: 0; page-break-after: always; }
         .cover::before { display: none; }
         .single-page-report { height: auto; min-height: 297mm; page-break-after: always; page-break-inside: avoid; margin: 0; padding: 40px; justify-content: flex-start; overflow: visible; }
@@ -629,7 +648,7 @@
     <button type="button" onclick="saveData()" class="success">💾 حفظ</button>
     <button type="button" id="btnPreviewToggle" class="preview-btn" onclick="togglePrintPreview(true)">👁️ معاينة قبل الطباعة</button>
     <button type="button" onclick="exportPDF()" class="warning">📄 تصدير PDF</button>
-    <button type="button" onclick="EduCanvaStudio.open('reports')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
+    <button type="button" onclick="EduCanvaStudio.toggle('reports')" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">🎨 قوالب كانفا</button>
     <button type="button" onclick="loadData()">🔄 استرجاع</button>
     <button type="button" onclick="addNewPage()" class="teal-btn">➕ إضافة صفحة</button>
     <button type="button" onclick="addNewSection()">➕ إضافة قسم/تقرير</button>
@@ -757,6 +776,33 @@
                 <div style="padding-top:6px;border-top:1px dashed #cbd5e1;">
                     <button type="button" onclick="applyReportWitnessStyleToAll()" style="background:#0f766e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">📌 تطبيق نفس الحجم على جميع التقارير</button>
                 </div>
+            </div>
+        </div>
+        <div class="modal-section" id="srWitnessMoveSection" style="background:#f0fdfa;border:1.5px solid #5eead4;">
+            <h4>🚚 نقل وتحريك الشواهد إلى أي قسم أو مكان آخر</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">1️⃣ الشاهد / العناصر المراد نقلها:</label>
+                    <select id="srMoveScopeSelect" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;"></select>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">2️⃣ القسم / التقرير / الصفحة الهدف:</label>
+                    <select id="srMoveTargetBlockSelect" onchange="populateReportTargetPositions()" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;"></select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">3️⃣ الموضع الدقيق داخل القسم:</label>
+                        <select id="srMoveTargetPosSelect" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;"></select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;font-weight:800;color:#0f766e;margin-bottom:3px;">4️⃣ نوع الإجراء:</label>
+                        <select id="srMoveActionMode" style="width:100%;padding:7px 10px;border:1.5px solid #99f6e4;border-radius:7px;font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;">
+                            <option value="move">🚚 نقل فعلي (إزالة من المصدر)</option>
+                            <option value="copy">📋 نسخ (إبقاء نسخة بالمصدر)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" onclick="executeReportWitnessTransfer()" style="background:linear-gradient(135deg,#0f766e,#1e3a8a);color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:800;">✅ تنفيذ نقل / تحريك الشواهد الآن</button>
             </div>
         </div>
         <div class="modal-section">
@@ -2675,7 +2721,7 @@ function applyReportWitnessStyleToAll() {
 
 function getWitnessSectionNodes(grid) {
     if (!grid) return null;
-    const parent = grid.closest('.report, .single-page-report');
+    const parent = grid.closest('.report, .single-page-report, .cover, .footer-section');
     if (!parent) return null;
     let heading = grid.previousElementSibling;
     if (!heading || !heading.classList.contains('sub-heading')) heading = null;
@@ -2684,30 +2730,85 @@ function getWitnessSectionNodes(grid) {
     return { parent, heading, grid, actions };
 }
 
+function persistReportsSilent() {
+    try {
+        localStorage.setItem(STORAGE_KEY, getSerializedContainerHTML());
+    } catch (e) {}
+}
+
+function insertNodesAtBlockPos(targetBlock, nodesToInsert, posVal) {
+    const cleanNodes = nodesToInsert.filter(Boolean);
+    if (!targetBlock || !cleanNodes.length) return;
+
+    if (posVal === 'top') {
+        const titleEl = targetBlock.querySelector(':scope > .report-title, :scope > h2');
+        const anchor = titleEl ? titleEl.nextSibling : (() => {
+            const pCtrl = targetBlock.querySelector(':scope > .page-ctrl-bar');
+            return pCtrl ? pCtrl.nextSibling : targetBlock.firstChild;
+        })();
+        cleanNodes.forEach(n => targetBlock.insertBefore(n, anchor));
+    } else if (posVal === 'after-table') {
+        const tbl = targetBlock.querySelector(':scope > .info-table, :scope > table');
+        const titleEl = targetBlock.querySelector(':scope > .report-title, :scope > h2');
+        const anchor = tbl ? tbl.nextSibling : (titleEl ? titleEl.nextSibling : targetBlock.firstChild);
+        cleanNodes.forEach(n => targetBlock.insertBefore(n, anchor));
+    } else if (posVal === 'bottom') {
+        const sigs = targetBlock.querySelector(':scope > .signatures');
+        cleanNodes.forEach(n => targetBlock.insertBefore(n, sigs || null));
+    } else if (posVal === 'after-end') {
+        cleanNodes.forEach(n => targetBlock.appendChild(n));
+    } else if (String(posVal || '').startsWith('child:')) {
+        const cIdx = parseInt(String(posVal).split(':')[1], 10);
+        const children = getTargetBlockChildrenForAnchor(targetBlock);
+        const refEl = children[cIdx];
+        if (refEl && refEl.parentNode === targetBlock) {
+            const anchor = refEl.nextSibling;
+            cleanNodes.forEach(n => targetBlock.insertBefore(n, anchor));
+        } else {
+            cleanNodes.forEach(n => targetBlock.appendChild(n));
+        }
+    } else {
+        const sigs = targetBlock.querySelector(':scope > .signatures');
+        cleanNodes.forEach(n => targetBlock.insertBefore(n, sigs || null));
+    }
+}
+
+function getTargetBlockChildrenForAnchor(block) {
+    if (!block) return [];
+    return Array.from(block.children).filter(ch => !ch.classList.contains('page-ctrl-bar') && !ch.classList.contains('witness-actions'));
+}
+
+function getChildElementLabel(el, idx) {
+    if (!el) return `عنصر #${idx + 1}`;
+    if (el.classList.contains('report-title')) return '📌 عنوان القسم/التقرير';
+    if (el.classList.contains('info-table')) return '📋 جدول البيانات التعريفية';
+    if (el.tagName === 'TABLE') return '📊 جدول';
+    if (el.classList.contains('sub-heading')) return '🏷️ ' + el.textContent.replace(/\s+/g, ' ').trim().slice(0, 34);
+    if (el.classList.contains('evidence-grid')) return '📸 كتلة الشواهد';
+    if (el.classList.contains('signatures')) return '✍️ قسم التوقيعات';
+    if (el.tagName === 'UL') return '📝 قائمة نقاط (' + el.querySelectorAll('li').length + ')';
+    const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    return txt ? '📄 ' + txt.slice(0, 32) : `عنصر #${idx + 1}`;
+}
+
+function getReportTargetableBlocks() {
+    const container = document.getElementById('mainContainer');
+    if (!container) return [];
+    return Array.from(container.querySelectorAll(':scope > .cover, :scope > .single-page-report, :scope > .report, :scope > .footer-section'));
+}
+
 function moveWitnessBlockTo(targetPos, gridOverride) {
     const grid = gridOverride || currentWitnessContainer;
     const nodes = getWitnessSectionNodes(grid);
     if (!nodes) return;
     const { parent, heading, actions } = nodes;
     const items = [heading, grid, actions].filter(Boolean);
-
-    let anchor = null;
-    if (targetPos === 'top') {
-        const titleEl = parent.querySelector('.report-title');
-        anchor = titleEl ? titleEl.nextSibling : parent.firstChild;
-        items.forEach(n => parent.insertBefore(n, anchor));
-        setStatus('⬆️ تم نقل الشواهد تحت عنوان التقرير مباشرة');
-    } else if (targetPos === 'after-table') {
-        const tbl = parent.querySelector('.info-table, table');
-        anchor = tbl ? tbl.nextSibling : (parent.querySelector('.report-title')?.nextSibling || null);
-        items.forEach(n => parent.insertBefore(n, anchor));
-        setStatus('📋 تم نقل الشواهد بعد جدول البيانات مباشرة');
-    } else if (targetPos === 'bottom') {
-        const sigs = parent.querySelector('.signatures');
-        items.forEach(n => parent.insertBefore(n, sigs || null));
-        setStatus('⬇️ تم نقل الشواهد لأسفل التقرير');
-    }
+    insertNodesAtBlockPos(parent, items, targetPos);
     refreshWitnessInlineBars(grid);
+    persistReportsSilent();
+    if (targetPos === 'top') setStatus('⬆️ تم نقل الشواهد تحت عنوان التقرير مباشرة');
+    else if (targetPos === 'after-table') setStatus('📋 تم نقل الشواهد بعد جدول البيانات مباشرة');
+    else setStatus('⬇️ تم نقل الشواهد لأسفل التقرير');
 }
 
 function nudgeWitnessBlock(btn, dir) {
@@ -2721,21 +2822,22 @@ function nudgeWitnessBlock(btn, dir) {
 
     if (dir < 0) {
         let prev = firstNode.previousElementSibling;
-        while (prev && (prev.classList.contains('page-ctrl-bar') || prev.classList.contains('report-title'))) {
-            if (prev.classList.contains('report-title')) { prev = null; break; }
+        while (prev && prev.classList.contains('page-ctrl-bar')) {
             prev = prev.previousElementSibling;
         }
-        if (!prev) { setStatus('وصل قسم الشواهد إلى أعلى التقرير'); return; }
+        if (!prev) { setStatus('وصل قسم الشواهد إلى أعلى القسم'); return; }
         items.forEach(n => parent.insertBefore(n, prev));
+        persistReportsSilent();
         setStatus('⬆️ تم تقديم الشواهد خطوة للأعلى');
     } else {
         let next = lastNode.nextElementSibling;
-        if (!next || next.classList.contains('signatures')) {
-            setStatus('وصل قسم الشواهد إلى أسفل التقرير');
+        if (!next) {
+            setStatus('وصل قسم الشواهد إلى نهاية القسم');
             return;
         }
         const afterNext = next.nextSibling;
         items.forEach(n => parent.insertBefore(n, afterNext));
+        persistReportsSilent();
         setStatus('⬇️ تم تأخير الشواهد خطوة للأسفل');
     }
 }
@@ -2749,6 +2851,7 @@ function quickResizeReportWitness(btn, delta) {
     grid.dataset.imgHeight = String(nextH);
     if (nextH >= 320 && cfg.cols === 3) grid.dataset.cols = '1';
     renderWitnesses(grid);
+    persistReportsSilent();
 }
 
 function quickCycleReportCols(btn) {
@@ -2761,6 +2864,7 @@ function quickCycleReportCols(btn) {
         grid.dataset.imgHeight = '340';
     }
     renderWitnesses(grid);
+    persistReportsSilent();
 }
 
 function refreshWitnessInlineBars(grid) {
@@ -2768,37 +2872,25 @@ function refreshWitnessInlineBars(grid) {
     const actionsDiv = grid.nextElementSibling;
     if (!actionsDiv || !actionsDiv.classList.contains('witness-actions')) return;
     const cfg = getReportWitnessCfg(grid);
-    const hasPhotos = (() => {
-        try { return JSON.parse(grid.dataset.images || '[]').length > 0; } catch (e) { return false; }
+    const imgs = (() => {
+        try { return JSON.parse(grid.dataset.images || '[]'); } catch (e) { return []; }
     })();
+    const lks = (() => {
+        try { return JSON.parse(grid.dataset.links || '[]'); } catch (e) { return []; }
+    })();
+    const hasPhotos = imgs.length > 0;
+    const hasAny = hasPhotos || lks.length > 0;
 
     actionsDiv.querySelectorAll('.wa-dyn').forEach(el => el.remove());
-    if (!hasPhotos) return;
 
-    const sizeBadge = document.createElement('span');
-    sizeBadge.className = 'wa-size-badge wa-dyn';
-    sizeBadge.textContent = `${cfg.imgHeight === 'auto' ? 'كامل' : cfg.imgHeight + 'px'} · ${cfg.cols} بالصف`;
-
-    const btnMinus = document.createElement('button');
-    btnMinus.type = 'button';
-    btnMinus.className = 'wa-mini-btn wa-dyn';
-    btnMinus.title = 'تصغير الصور';
-    btnMinus.textContent = '➖ تصغير';
-    btnMinus.onclick = function() { quickResizeReportWitness(this, -40); };
-
-    const btnPlus = document.createElement('button');
-    btnPlus.type = 'button';
-    btnPlus.className = 'wa-mini-btn wa-dyn';
-    btnPlus.title = 'تكبير الصور';
-    btnPlus.textContent = '➕ تكبير';
-    btnPlus.onclick = function() { quickResizeReportWitness(this, 40); };
-
-    const btnCols = document.createElement('button');
-    btnCols.type = 'button';
-    btnCols.className = 'wa-mini-btn wa-dyn';
-    btnCols.title = 'تغيير عدد الصور في الصف';
-    btnCols.textContent = `⊞ ${cfg.cols} بالصف`;
-    btnCols.onclick = function() { quickCycleReportCols(this); };
+    const moveAllBtn = document.createElement('button');
+    moveAllBtn.type = 'button';
+    moveAllBtn.className = 'wa-dyn';
+    moveAllBtn.style.background = '#0f766e';
+    moveAllBtn.title = 'نقل شواهد هذا القسم إلى أي قسم أو مكان آخر';
+    moveAllBtn.textContent = hasAny ? '⇄ نقل لمكان/قسم آخر' : '⇄ نقل الموضع';
+    moveAllBtn.onclick = function() { openWitnessModal(this, { focusMove: true }); };
+    actionsDiv.appendChild(moveAllBtn);
 
     const btnUp = document.createElement('button');
     btnUp.type = 'button';
@@ -2814,16 +2906,279 @@ function refreshWitnessInlineBars(grid) {
     btnDown.textContent = '⬇️ لأسفل';
     btnDown.onclick = function() { nudgeWitnessBlock(this, 1); };
 
-    actionsDiv.appendChild(btnPlus);
-    actionsDiv.appendChild(btnMinus);
-    actionsDiv.appendChild(sizeBadge);
-    actionsDiv.appendChild(btnCols);
+    if (hasPhotos) {
+        const sizeBadge = document.createElement('span');
+        sizeBadge.className = 'wa-size-badge wa-dyn';
+        sizeBadge.textContent = `${cfg.imgHeight === 'auto' ? 'كامل' : cfg.imgHeight + 'px'} · ${cfg.cols} بالصف`;
+
+        const btnMinus = document.createElement('button');
+        btnMinus.type = 'button';
+        btnMinus.className = 'wa-mini-btn wa-dyn';
+        btnMinus.title = 'تصغير الصور';
+        btnMinus.textContent = '➖ تصغير';
+        btnMinus.onclick = function() { quickResizeReportWitness(this, -40); };
+
+        const btnPlus = document.createElement('button');
+        btnPlus.type = 'button';
+        btnPlus.className = 'wa-mini-btn wa-dyn';
+        btnPlus.title = 'تكبير الصور';
+        btnPlus.textContent = '➕ تكبير';
+        btnPlus.onclick = function() { quickResizeReportWitness(this, 40); };
+
+        const btnCols = document.createElement('button');
+        btnCols.type = 'button';
+        btnCols.className = 'wa-mini-btn wa-dyn';
+        btnCols.title = 'تغيير عدد الصور في الصف';
+        btnCols.textContent = `⊞ ${cfg.cols} بالصف`;
+        btnCols.onclick = function() { quickCycleReportCols(this); };
+
+        actionsDiv.appendChild(btnPlus);
+        actionsDiv.appendChild(btnMinus);
+        actionsDiv.appendChild(sizeBadge);
+        actionsDiv.appendChild(btnCols);
+    }
+
     actionsDiv.appendChild(btnUp);
     actionsDiv.appendChild(btnDown);
 }
 
-function openWitnessModal(btn) {
-    currentWitnessContainer = resolveEvidenceGrid(btn);
+function populateReportMoveSelectors(preselectScope = 'all') {
+    const scopeSel = document.getElementById('srMoveScopeSelect');
+    const blockSel = document.getElementById('srMoveTargetBlockSelect');
+    if (!scopeSel || !blockSel) return;
+
+    const totalCount = currentImages.length + currentLinks.length;
+    let scopeHtml = `<option value="all">📦 جميع شواهد هذا القسم (${currentImages.length} صورة، ${currentLinks.length} رابط)</option>`;
+    currentImages.forEach((_, i) => {
+        scopeHtml += `<option value="image:${i}">📷 صورة شاهد #${i + 1}</option>`;
+    });
+    currentLinks.forEach((lk, i) => {
+        const lbl = (lk.title || lk.url || `رابط #${i + 1}`).slice(0, 42);
+        scopeHtml += `<option value="link:${i}">🔗 باركود #${i + 1}: ${lbl}</option>`;
+    });
+    if (!totalCount) {
+        scopeHtml = `<option value="block-only">📍 نقل كتلة الشواهد نفسها (حتى لو فارغة)</option>`;
+    }
+    scopeSel.innerHTML = scopeHtml;
+    if (Array.from(scopeSel.options).some(o => o.value === preselectScope)) {
+        scopeSel.value = preselectScope;
+    }
+
+    const blocks = getReportTargetableBlocks();
+    const srcBlock = currentWitnessContainer?.closest('.report, .single-page-report, .cover, .footer-section');
+    blockSel.innerHTML = blocks.map((blk, i) => {
+        const label = getBlockLabel(blk, i);
+        const curMark = blk === srcBlock ? ' (القسم الحالي)' : '';
+        return `<option value="${i}">${i + 1}. ${label}${curMark}</option>`;
+    }).join('');
+    const srcIdx = blocks.indexOf(srcBlock);
+    if (srcIdx >= 0) blockSel.value = String(srcIdx);
+
+    populateReportTargetPositions();
+}
+
+function populateReportTargetPositions() {
+    const blockSel = document.getElementById('srMoveTargetBlockSelect');
+    const posSel = document.getElementById('srMoveTargetPosSelect');
+    if (!blockSel || !posSel) return;
+    const blocks = getReportTargetableBlocks();
+    const targetBlock = blocks[parseInt(blockSel.value, 10)];
+    if (!targetBlock) {
+        posSel.innerHTML = '<option value="bottom">نهاية القسم</option>';
+        return;
+    }
+    const srcBlock = currentWitnessContainer?.closest('.report, .single-page-report, .cover, .footer-section');
+    const existingGrid = targetBlock.querySelector('.evidence-grid');
+    let opts = [];
+    if (existingGrid && targetBlock !== srcBlock) {
+        opts.push({ val: 'merge-existing', label: '📌 دمج مع شواهد القسم الهدف الموجودة' });
+    }
+    opts.push({ val: 'top', label: '⬆️ أعلى القسم (تحت العنوان مباشرة)' });
+    if (targetBlock.querySelector(':scope > .info-table, :scope > table')) {
+        opts.push({ val: 'after-table', label: '📋 بعد جدول البيانات مباشرة' });
+    }
+    opts.push({ val: 'bottom', label: '⬇️ أسفل القسم (قبل التوقيعات)' });
+    opts.push({ val: 'after-end', label: '⏬ نهاية القسم بالكامل' });
+
+    const children = getTargetBlockChildrenForAnchor(targetBlock);
+    children.forEach((ch, idx) => {
+        opts.push({ val: `child:${idx}`, label: `↳ بعد: ${getChildElementLabel(ch, idx)}` });
+    });
+
+    posSel.innerHTML = opts.map(o => `<option value="${o.val}">${o.label}</option>`).join('');
+}
+
+function createExtraWitnessBlock(cfg) {
+    const heading = document.createElement('div');
+    heading.className = 'sub-heading editable-area';
+    heading.contentEditable = 'true';
+    heading.textContent = '📸 الشواهد';
+
+    const grid = document.createElement('div');
+    grid.className = 'evidence-grid';
+    grid.dataset.extraWitnessBlock = '1';
+    grid.dataset.cols = String(cfg?.cols || 2);
+    grid.dataset.imgHeight = String(cfg?.imgHeight || 240);
+    grid.dataset.imgFit = cfg?.fit || 'contain';
+
+    const actions = document.createElement('div');
+    actions.className = 'witness-actions edit-only';
+    actions.innerHTML = '<button type="button" onclick="openWitnessModal(this)" title="إضافة صور/روابط">📎 إضافة صور / روابط باركود</button>';
+
+    return { heading, grid, actions };
+}
+
+function cleanupIfEmptyExtraBlock(grid) {
+    if (!grid || grid.dataset.extraWitnessBlock !== '1') return;
+    let imgs = [], lks = [];
+    try { imgs = JSON.parse(grid.dataset.images || '[]'); } catch (_) {}
+    try { lks = JSON.parse(grid.dataset.links || '[]'); } catch (_) {}
+    if (!imgs.length && !lks.length && !grid.querySelector('.evidence-static-card, .evidence-placeholder')) {
+        const nodes = getWitnessSectionNodes(grid);
+        if (nodes) {
+            nodes.heading?.remove();
+            nodes.actions?.remove();
+        }
+        grid.remove();
+    }
+}
+
+function executeReportWitnessTransfer() {
+    if (!currentWitnessContainer) return;
+    const pendingUrl = document.getElementById('linkInput')?.value.trim();
+    if (pendingUrl) addLink(true);
+
+    const scopeVal = document.getElementById('srMoveScopeSelect')?.value || 'all';
+    const blocks = getReportTargetableBlocks();
+    const targetIdx = parseInt(document.getElementById('srMoveTargetBlockSelect')?.value || '0', 10);
+    const targetBlock = blocks[targetIdx];
+    const targetPos = document.getElementById('srMoveTargetPosSelect')?.value || 'bottom';
+    const actionMode = document.getElementById('srMoveActionMode')?.value || 'move';
+    const isCopy = actionMode === 'copy';
+
+    if (!targetBlock) {
+        setStatus('❌ تعذر تحديد القسم الهدف');
+        return;
+    }
+
+    const srcGrid = currentWitnessContainer;
+    const srcBlock = srcGrid.closest('.report, .single-page-report, .cover, .footer-section');
+
+    // حالة نقل كتلة الشواهد كاملة في موضع محدد
+    if (scopeVal === 'block-only' || (scopeVal === 'all' && targetBlock === srcBlock && !isCopy && targetPos !== 'merge-existing')) {
+        srcGrid.dataset.images = JSON.stringify(currentImages);
+        srcGrid.dataset.links = JSON.stringify(currentLinks);
+        srcGrid.dataset.imgHeight = String(currentReportWitnessCfg.imgHeight);
+        srcGrid.dataset.cols = String(currentReportWitnessCfg.cols);
+        srcGrid.dataset.imgFit = currentReportWitnessCfg.fit;
+        const nodes = getWitnessSectionNodes(srcGrid);
+        if (nodes) {
+            const items = [nodes.heading, srcGrid, nodes.actions].filter(Boolean);
+            insertNodesAtBlockPos(targetBlock, items, targetPos);
+        }
+        renderWitnesses(srcGrid);
+        closeWitnessModal();
+        persistReportsSilent();
+        srcGrid.classList.add('witness-moved-flash');
+        srcGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => srcGrid.classList.remove('witness-moved-flash'), 1800);
+        setStatus('✅ تم تحريك كتلة الشواهد للموضع المحدد');
+        return;
+    }
+
+    let movedImgs = [];
+    let movedLinks = [];
+
+    if (scopeVal === 'all') {
+        movedImgs = currentImages.slice();
+        movedLinks = currentLinks.slice();
+        if (!movedImgs.length && !movedLinks.length) {
+            setStatus('⚠️ لا توجد صور أو روابط شواهد لنقلها');
+            return;
+        }
+        if (!isCopy) {
+            currentImages = [];
+            currentLinks = [];
+        }
+    } else if (scopeVal.startsWith('image:')) {
+        const idx = parseInt(scopeVal.split(':')[1], 10);
+        if (currentImages[idx]) {
+            movedImgs = [currentImages[idx]];
+            if (!isCopy) currentImages.splice(idx, 1);
+        }
+    } else if (scopeVal.startsWith('link:')) {
+        const idx = parseInt(scopeVal.split(':')[1], 10);
+        if (currentLinks[idx]) {
+            movedLinks = [currentLinks[idx]];
+            if (!isCopy) currentLinks.splice(idx, 1);
+        }
+    }
+
+    if (!movedImgs.length && !movedLinks.length) {
+        setStatus('⚠️ لم يتم تحديد عناصر صالحة للنقل');
+        return;
+    }
+
+    // حفظ الحالة المحدثة في المصدر أولاً
+    srcGrid.dataset.images = JSON.stringify(currentImages);
+    srcGrid.dataset.links = JSON.stringify(currentLinks);
+    srcGrid.dataset.imgHeight = String(currentReportWitnessCfg.imgHeight);
+    srcGrid.dataset.cols = String(currentReportWitnessCfg.cols);
+    srcGrid.dataset.imgFit = currentReportWitnessCfg.fit;
+
+    let targetGrid = null;
+    if (targetPos === 'merge-existing') {
+        targetGrid = targetBlock.querySelector('.evidence-grid');
+    }
+    if (!targetGrid) {
+        const fresh = createExtraWitnessBlock(currentReportWitnessCfg);
+        insertNodesAtBlockPos(targetBlock, [fresh.heading, fresh.grid, fresh.actions], targetPos === 'merge-existing' ? 'bottom' : targetPos);
+        targetGrid = fresh.grid;
+    }
+
+    let tImgs = [], tLinks = [];
+    try { tImgs = JSON.parse(targetGrid.dataset.images || '[]'); } catch (_) {}
+    try { tLinks = JSON.parse(targetGrid.dataset.links || '[]'); } catch (_) {}
+    tImgs = tImgs.concat(movedImgs);
+    tLinks = tLinks.concat(movedLinks);
+    targetGrid.dataset.images = JSON.stringify(tImgs);
+    targetGrid.dataset.links = JSON.stringify(tLinks);
+    if (!targetGrid.dataset.imgHeight) targetGrid.dataset.imgHeight = String(currentReportWitnessCfg.imgHeight);
+    if (!targetGrid.dataset.cols) targetGrid.dataset.cols = String(currentReportWitnessCfg.cols);
+    if (!targetGrid.dataset.imgFit) targetGrid.dataset.imgFit = currentReportWitnessCfg.fit;
+
+    renderWitnesses(srcGrid);
+    cleanupIfEmptyExtraBlock(srcGrid);
+    renderWitnesses(targetGrid);
+    closeWitnessModal();
+    persistReportsSilent();
+
+    targetGrid.classList.add('witness-moved-flash');
+    targetGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => targetGrid.classList.remove('witness-moved-flash'), 1800);
+    const tLabel = getBlockLabel(targetBlock, targetIdx);
+    setStatus(`✅ تم ${isCopy ? 'نسخ' : 'نقل'} الشواهد إلى "${tLabel}" وحفظ التغيير`);
+}
+
+function reorderSingleWitness(grid, type, idx, dir) {
+    let arr = [];
+    const key = type === 'image' ? 'images' : 'links';
+    try { arr = JSON.parse(grid.dataset[key] || '[]'); } catch (_) { arr = []; }
+    const nextIdx = idx + dir;
+    if (nextIdx < 0 || nextIdx >= arr.length) return;
+    const tmp = arr[idx];
+    arr[idx] = arr[nextIdx];
+    arr[nextIdx] = tmp;
+    grid.dataset[key] = JSON.stringify(arr);
+    renderWitnesses(grid);
+    persistReportsSilent();
+    setStatus('✅ تم تغيير ترتيب الشاهد');
+}
+
+function openWitnessModal(btnOrGrid, opts = {}) {
+    currentWitnessContainer = (btnOrGrid && btnOrGrid.classList && btnOrGrid.classList.contains('evidence-grid'))
+        ? btnOrGrid
+        : resolveEvidenceGrid(btnOrGrid);
     if (!currentWitnessContainer) {
         setStatus('❌ تعذر تحديد حاوية الشواهد');
         return;
@@ -2853,8 +3208,14 @@ function openWitnessModal(btn) {
     renderPreviews();
     renderLinkList();
     syncReportModalUI();
+    populateReportMoveSelectors(opts.preselectScope || 'all');
 
     document.getElementById('witnessModal').classList.add('show');
+    if (opts.focusMove) {
+        setTimeout(() => {
+            document.getElementById('srWitnessMoveSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
+    }
 }
 
 function closeWitnessModal() {
@@ -3054,6 +3415,7 @@ function saveWitness() {
     currentWitnessContainer.dataset.imgFit = currentReportWitnessCfg.fit;
     renderWitnesses(currentWitnessContainer);
     closeWitnessModal();
+    persistReportsSilent();
     setStatus('✅ تم حفظ الشواهد وإعدادات الحجم والموضع');
 }
 
@@ -3067,6 +3429,8 @@ function deleteSingleWitness(grid, type, idx) {
     grid.dataset.images = JSON.stringify(images);
     grid.dataset.links = JSON.stringify(links);
     renderWitnesses(grid);
+    cleanupIfEmptyExtraBlock(grid);
+    persistReportsSilent();
     setStatus('🗑️ تم حذف الشاهد');
 }
 
@@ -3110,6 +3474,35 @@ function renderWitnesses(container) {
             box.appendChild(fb);
         };
 
+        const tools = document.createElement('div');
+        tools.className = 'witness-box-tools edit-only';
+        if (idx > 0) {
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.title = 'تقديم الشاهد';
+            prevBtn.textContent = '▶';
+            prevBtn.onclick = (e) => { e.stopPropagation(); reorderSingleWitness(container, 'image', idx, -1); };
+            tools.appendChild(prevBtn);
+        }
+        if (idx < images.length - 1) {
+            const nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.title = 'تأخير الشاهد';
+            nextBtn.textContent = '◀';
+            nextBtn.onclick = (e) => { e.stopPropagation(); reorderSingleWitness(container, 'image', idx, 1); };
+            tools.appendChild(nextBtn);
+        }
+        const moveBtn = document.createElement('button');
+        moveBtn.type = 'button';
+        moveBtn.className = 'move-btn';
+        moveBtn.title = 'نقل هذه الصورة إلى قسم أو موضع آخر';
+        moveBtn.textContent = '⇄ نقل';
+        moveBtn.onclick = (e) => {
+            e.stopPropagation();
+            openWitnessModal(container, { focusMove: true, preselectScope: `image:${idx}` });
+        };
+        tools.appendChild(moveBtn);
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'witness-del-btn edit-only';
@@ -3121,6 +3514,7 @@ function renderWitnesses(container) {
         };
 
         box.appendChild(img);
+        box.appendChild(tools);
         box.appendChild(delBtn);
         container.appendChild(box);
     });
@@ -3152,6 +3546,35 @@ function renderWitnesses(container) {
         urlAnchor.rel = 'noopener noreferrer';
         urlAnchor.textContent = '🔗 فتح الرابط';
 
+        const tools = document.createElement('div');
+        tools.className = 'witness-box-tools edit-only';
+        if (idx > 0) {
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.title = 'تقديم الرابط';
+            prevBtn.textContent = '▶';
+            prevBtn.onclick = (e) => { e.stopPropagation(); reorderSingleWitness(container, 'link', idx, -1); };
+            tools.appendChild(prevBtn);
+        }
+        if (idx < links.length - 1) {
+            const nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.title = 'تأخير الرابط';
+            nextBtn.textContent = '◀';
+            nextBtn.onclick = (e) => { e.stopPropagation(); reorderSingleWitness(container, 'link', idx, 1); };
+            tools.appendChild(nextBtn);
+        }
+        const moveBtn = document.createElement('button');
+        moveBtn.type = 'button';
+        moveBtn.className = 'move-btn';
+        moveBtn.title = 'نقل هذا الرابط إلى قسم أو موضع آخر';
+        moveBtn.textContent = '⇄ نقل';
+        moveBtn.onclick = (e) => {
+            e.stopPropagation();
+            openWitnessModal(container, { focusMove: true, preselectScope: `link:${idx}` });
+        };
+        tools.appendChild(moveBtn);
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'witness-del-btn edit-only';
@@ -3165,6 +3588,7 @@ function renderWitnesses(container) {
         box.appendChild(qrDiv);
         box.appendChild(titleEl);
         box.appendChild(urlAnchor);
+        box.appendChild(tools);
         box.appendChild(delBtn);
         container.appendChild(box);
 
@@ -3183,7 +3607,7 @@ function renderWitnesses(container) {
 
 function renderAllWitnesses() {
     document.querySelectorAll('#mainContainer .evidence-grid').forEach(grid => {
-        if (grid.dataset.images || grid.dataset.links || grid.querySelector('.evidence-static-card, .evidence-placeholder')) {
+        if (grid.dataset.images || grid.dataset.links || grid.querySelector('.evidence-static-card, .evidence-placeholder') || grid.nextElementSibling?.classList.contains('witness-actions')) {
             renderWitnesses(grid);
         }
     });
@@ -3612,7 +4036,7 @@ window.addEventListener('load', () => {
 <script src="/static/js/edu_canva_studio.js"></script>
 <script>
 window.openEduCanvaStudio = function() {
-    if (window.EduCanvaStudio) window.EduCanvaStudio.open('reports');
+    if (window.EduCanvaStudio) window.EduCanvaStudio.toggle('reports');
 };
 </script>
 

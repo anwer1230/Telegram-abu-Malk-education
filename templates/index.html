@@ -5041,28 +5041,6 @@
             <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
           </div>
           <div class="modal-body p-4 bg-light">
-            <!-- شريط استوديو قوالب كانفا داخل قسم الخدمات التعليمية -->
-            <div class="bg-white rounded-3 shadow-sm border p-3 mb-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"
-                 style="border-color:#0f766e !important;background:linear-gradient(135deg,#f0fdfa 0%,#eef2ff 100%) !important;">
-              <div class="d-flex align-items-start gap-3">
-                <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                      style="width:52px;height:52px;background:linear-gradient(135deg,#00c4cc,#7c3aed);color:#fff;">
-                  <i class="fas fa-palette fa-lg"></i>
-                </span>
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">🎨 جلب واستعراض ومعاينة قوالب كانفا (داخل الأداة)</h6>
-                  <p class="text-muted small mb-0">تصفح قوالب كانفا التعليمية ومعاينتها داخلياً، ثم اختر القالب لدمجه مباشرة في ملف الأداء الوظيفي أو شواهد الأداء أو ملف التقارير والبرامج التربوية والأنشطة المدرسية.</p>
-                </div>
-              </div>
-              <div class="d-flex flex-wrap gap-2 flex-shrink-0">
-                <button type="button" id="btnOpenEduCanvaHub" onclick="openEduCanvaHub()"
-                        class="btn btn-sm fw-bold text-white px-3 py-2 shadow-sm"
-                        style="background:linear-gradient(135deg,#0f766e,#1e3a8a);border-radius:10px;">
-                  <i class="fas fa-magic me-1"></i> فتح استوديو قوالب كانفا واختيار الدمج
-                </button>
-              </div>
-            </div>
-
             <div class="row g-3">
               <div class="col-12 col-md-4">
                 <button type="button" id="btnOpenPerformancePortfolio"
@@ -5119,9 +5097,6 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#3b6978,#62929e);">
             <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
-                <i class="fas fa-palette me-1"></i> قوالب كانفا
-              </button>
               <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5153,9 +5128,6 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
             <h5 class="modal-title mb-0"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
-                <i class="fas fa-palette me-1"></i> قوالب كانفا
-              </button>
               <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل السجل قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5186,9 +5158,6 @@
           <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
             <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','openEduCanvaStudio')" class="btn btn-sm fw-bold text-white" style="background:linear-gradient(135deg,#00c4cc,#7c3aed);" title="فتح قوالب كانفا داخل الواجهة">
-                <i class="fas fa-palette me-1"></i> قوالب كانفا
-              </button>
               <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
                 <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
               </button>
@@ -5292,12 +5261,6 @@
         return false;
       }
 
-      function openEduCanvaHub() {
-        if (window.EduCanvaStudio) {
-          window.EduCanvaStudio.open('hub');
-        }
-      }
-
       function refreshEduCanvaMergedBadges() {
         const map = [
           { key: 'portfolio', elId: 'eduBadgePortfolio' },
@@ -5311,7 +5274,7 @@
             const raw = localStorage.getItem('ecs_merged_template_' + key);
             const tpl = raw ? JSON.parse(raw) : null;
             if (tpl && tpl.name) {
-              el.textContent = '🎨 مدمج: ' + tpl.name;
+              el.textContent = '🎨 قالب مدمج: ' + tpl.name;
               el.classList.remove('d-none');
             } else {
               el.textContent = '';
@@ -5321,34 +5284,9 @@
         });
       }
 
-      window.onEduCanvaMergedToTarget = function(target, tpl, shouldOpenTarget) {
-        refreshEduCanvaMergedBadges();
-        const frameMap = {
-          portfolio: 'performancePortfolioFrame',
-          witnesses: 'performanceWitnessesFrame',
-          reports: 'schoolReportsFrame',
-        };
-        const targets = target === 'all' ? ['portfolio', 'witnesses', 'reports'] : [target];
-        targets.forEach(tg => {
-          const fid = frameMap[tg];
-          const frame = fid ? document.getElementById(fid) : null;
-          if (frame && frame.contentWindow && frame.contentWindow.EduCanvaStudio) {
-            try {
-              frame.contentWindow.EduCanvaStudio.applyMergedTemplate(tpl, true);
-            } catch (_) {}
-          }
-        });
-        if (shouldOpenTarget) {
-          if (target === 'portfolio') openPerformancePortfolio();
-          else if (target === 'witnesses') openPerformanceWitnesses();
-          else if (target === 'reports') openSchoolReports();
-        }
-      };
-
       document.getElementById('eduServicesModal')?.addEventListener('show.bs.modal', refreshEduCanvaMergedBadges);
       document.addEventListener('DOMContentLoaded', refreshEduCanvaMergedBadges);
     </script>
-    <script src="/static/js/edu_canva_studio.js"></script>
 
 
     <!-- ===== مودال استوديو العروض والمستندات الموحد (PowerPoint + Word + Excel + Canva + AI) ===== -->

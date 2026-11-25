@@ -55,10 +55,13 @@
     /* ==================== شريط الأدوات ==================== */
     .toolbar {
         position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-        background: #1f2937; color: white; padding: 10px 16px;
-        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        background: #1f2937; color: white; padding: 8px 14px;
+        display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 13px;
     }
+    html.edu-embedded-mode .toolbar { display: none !important; }
+    html.edu-embedded-mode body { padding-top: 12px !important; }
+    html.edu-embedded-mode body.print-preview-mode { padding-top: 58px !important; }
     .toolbar .brand { font-weight: 900; color: #fbbf24; margin-left: 10px; font-size: 15px; }
     .toolbar button {
         background: #3b82f6; color: white; border: none; padding: 7px 12px;
@@ -649,6 +652,13 @@
 </style>
 </head>
 <body>
+<script>
+try {
+    if (window.self !== window.top && new URLSearchParams(window.location.search).get('standalone') !== '1') {
+        document.documentElement.classList.add('edu-embedded-mode');
+    }
+} catch (e) {}
+</script>
 
 <!-- ==================== شريط الأدوات ==================== -->
 <div class="toolbar">
@@ -4159,9 +4169,20 @@ function goBackToDashboard() {
 
 function setStatus(msg) {
     const el = document.getElementById('statusMsg');
-    if (!el) return;
-    el.textContent = msg;
-    setTimeout(() => { el.textContent = 'جاهز للتعديل المباشر'; }, 5000);
+    if (el) el.textContent = msg;
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.setEduModalStatus === 'function') {
+            window.parent.setEduModalStatus(msg);
+        }
+    } catch (e) {}
+    setTimeout(() => {
+        if (el) el.textContent = 'جاهز للتعديل المباشر';
+        try {
+            if (window.parent && window.parent !== window && typeof window.parent.setEduModalStatus === 'function') {
+                window.parent.setEduModalStatus('جاهز للتعديل المباشر');
+            }
+        } catch (e) {}
+    }, 5000);
 }
 
 /* ============ حفظ تلقائي كل 30 ثانية ============ */

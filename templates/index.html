@@ -5090,25 +5090,115 @@
       </div>
     </div>
 
+    <style>
+      .edu-modal-hdr {
+        padding: 6px 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 5px !important;
+      }
+      .edu-hdr-top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 28px;
+      }
+      .edu-hdr-top .modal-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .edu-hdr-status {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(15, 23, 42, 0.38);
+        color: #fde68a;
+        padding: 2px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+        max-width: 210px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .edu-hdr-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+      }
+      .edu-hdr-tools.collapsed {
+        display: none !important;
+      }
+      .edu-hdr-btn {
+        border: none;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 11.5px;
+        font-weight: 700;
+        line-height: 1.25;
+        cursor: pointer;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #fff;
+        transition: opacity 0.15s, transform 0.15s;
+      }
+      .edu-hdr-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+      .edu-hdr-btn.save { background: #16a34a; }
+      .edu-hdr-btn.preview { background: #f59e0b; color: #1e293b; }
+      .edu-hdr-btn.pdf { background: #ea580c; }
+      .edu-hdr-btn.canva { background: linear-gradient(135deg, #00c4cc, #7c3aed); }
+      .edu-hdr-btn.load { background: #2563eb; }
+      .edu-hdr-btn.add { background: #0d9488; }
+      .edu-hdr-btn.sec { background: #0284c7; }
+      .edu-hdr-btn.print { background: #475569; }
+      .edu-hdr-btn.reset { background: #dc2626; }
+      .edu-hdr-mini {
+        background: rgba(255,255,255,0.16);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .edu-hdr-mini:hover { background: rgba(255,255,255,0.28); color: #fff; }
+    </style>
+
     <!-- ===== مودال ملف الأداء الوظيفي (الواجهة الكاملة) ===== -->
     <div class="modal fade" id="performancePortfolioModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#3b6978,#62929e);">
-            <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-2"></i>ملف الأداء الوظيفي</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/performance_portfolio?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/performance_portfolio', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="modal-header text-white flex-shrink-0 edu-modal-hdr" style="background:linear-gradient(135deg,#243b53,#3b6978);">
+            <div class="edu-hdr-top">
+              <h5 class="modal-title mb-0"><i class="fas fa-clipboard-list me-1"></i>ملف الأداء الوظيفي</h5>
+              <span class="edu-hdr-status d-none d-sm-inline-block" id="eduModalStatus_portfolio">جاهز للتعديل</span>
+              <div class="ms-auto d-flex align-items-center gap-1">
+                <button type="button" class="edu-hdr-mini" onclick="toggleEduHeaderTools(this)" title="إظهار / إخفاء شريط الأدوات لتوسيع مساحة العمل">⏶ الشريط</button>
+                <a href="/performance_portfolio?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/performance_portfolio', event)"
+                   class="edu-hdr-mini" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.75rem;" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-hdr-tools">
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','saveData')" class="edu-hdr-btn save">💾 حفظ</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','togglePrintPreview')" class="edu-hdr-btn preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','exportPDF')" class="edu-hdr-btn pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','openEduCanvaStudio')" class="edu-hdr-btn canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','loadData')" class="edu-hdr-btn load">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','addNewPage')" class="edu-hdr-btn add">➕ صفحة جديدة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','printDocument')" class="edu-hdr-btn print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('performancePortfolioFrame','resetAll')" class="edu-hdr-btn reset">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5125,21 +5215,29 @@
     <div class="modal fade" id="performanceWitnessesModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#6d5ca0,#8b7cb5);">
-            <h5 class="modal-title mb-0"><i class="fas fa-award me-2"></i>شواهد الأداء</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل السجل قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/performance_witnesses?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/performance_witnesses', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="modal-header text-white flex-shrink-0 edu-modal-hdr" style="background:linear-gradient(135deg,#4c3f78,#6d5ca0);">
+            <div class="edu-hdr-top">
+              <h5 class="modal-title mb-0"><i class="fas fa-award me-1"></i>شواهد الأداء الوظيفي</h5>
+              <span class="edu-hdr-status d-none d-sm-inline-block" id="eduModalStatus_witnesses">جاهز للتعديل</span>
+              <div class="ms-auto d-flex align-items-center gap-1">
+                <button type="button" class="edu-hdr-mini" onclick="toggleEduHeaderTools(this)" title="إظهار / إخفاء شريط الأدوات لتوسيع مساحة العمل">⏶ الشريط</button>
+                <a href="/performance_witnesses?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/performance_witnesses', event)"
+                   class="edu-hdr-mini" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.75rem;" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-hdr-tools">
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','saveData')" class="edu-hdr-btn save">💾 حفظ</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','togglePrintPreview')" class="edu-hdr-btn preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','exportPDF')" class="edu-hdr-btn pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','openEduCanvaStudio')" class="edu-hdr-btn canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','loadData')" class="edu-hdr-btn load">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','addNewPage')" class="edu-hdr-btn add">➕ صفحة جديدة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','printDocument')" class="edu-hdr-btn print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('performanceWitnessesFrame','resetAll')" class="edu-hdr-btn reset">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5151,25 +5249,35 @@
         </div>
       </div>
     </div>
+
     <!-- ===== مودال ملف التقارير والبرامج التربوية والأنشطة المدرسية (الواجهة الكاملة) ===== -->
     <div class="modal fade" id="schoolReportsModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-fullscreen">
         <div class="modal-content" style="display:flex;flex-direction:column;">
-          <div class="modal-header text-white py-2 flex-shrink-0 flex-wrap gap-2" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
-            <h5 class="modal-title mb-0"><i class="fas fa-book-open me-2"></i>ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
-            <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="btn btn-sm btn-warning fw-bold" title="معاينة كل الملف قبل الطباعة">
-                <i class="fas fa-eye me-1"></i> معاينة قبل الطباعة
-              </button>
-              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','exportPDF')" class="btn btn-sm btn-success fw-bold" title="تصدير كملف PDF">
-                <i class="fas fa-file-pdf me-1"></i> تصدير PDF
-              </button>
-              <a href="/school_reports?standalone=1" target="_blank" rel="noopener noreferrer"
-                 onclick="return openEduStandalone('/school_reports', event)"
-                 class="btn btn-sm btn-light fw-bold" title="فتح في تبويب مستقل">
-                <i class="fas fa-external-link-alt me-1"></i> فتح في تبويب مستقل
-              </a>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          <div class="modal-header text-white flex-shrink-0 edu-modal-hdr" style="background:linear-gradient(135deg,#1e3a8a,#0f766e);">
+            <div class="edu-hdr-top">
+              <h5 class="modal-title mb-0"><i class="fas fa-book-open me-1"></i>ملف التقارير والبرامج التربوية والأنشطة المدرسية</h5>
+              <span class="edu-hdr-status d-none d-sm-inline-block" id="eduModalStatus_reports">جاهز للتعديل</span>
+              <div class="ms-auto d-flex align-items-center gap-1">
+                <button type="button" class="edu-hdr-mini" onclick="toggleEduHeaderTools(this)" title="إظهار / إخفاء شريط الأدوات لتوسيع مساحة العمل">⏶ الشريط</button>
+                <a href="/school_reports?standalone=1" target="_blank" rel="noopener noreferrer"
+                   onclick="return openEduStandalone('/school_reports', event)"
+                   class="edu-hdr-mini" title="فتح في تبويب مستقل">
+                  <i class="fas fa-external-link-alt"></i> مستقل
+                </a>
+                <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.75rem;" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+              </div>
+            </div>
+            <div class="edu-hdr-tools">
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','saveData')" class="edu-hdr-btn save">💾 حفظ</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','togglePrintPreview')" class="edu-hdr-btn preview">👁️ معاينة قبل الطباعة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','exportPDF')" class="edu-hdr-btn pdf">📄 تصدير PDF</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','openEduCanvaStudio')" class="edu-hdr-btn canva">🎨 قوالب كانفا</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','loadData')" class="edu-hdr-btn load">🔄 استرجاع</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','addNewPage')" class="edu-hdr-btn add">➕ إضافة صفحة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','addNewSection')" class="edu-hdr-btn sec">➕ قسم/تقرير</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','printDocument')" class="edu-hdr-btn print">🖨️ طباعة</button>
+              <button type="button" onclick="callEduFrameAction('schoolReportsFrame','resetAll')" class="edu-hdr-btn reset">🗑️ إعادة تعيين</button>
             </div>
           </div>
           <div class="modal-body p-0 flex-grow-1" style="overflow:hidden;min-height:0;">
@@ -5227,12 +5335,26 @@
           bootstrap.Modal.getOrCreateInstance(repEl).show();
         }
       }
+      function toggleEduHeaderTools(btn) {
+        const hdr = btn ? btn.closest('.edu-modal-hdr') : null;
+        const tools = hdr ? hdr.querySelector('.edu-hdr-tools') : null;
+        if (!tools) return;
+        const collapsed = tools.classList.toggle('collapsed');
+        btn.textContent = collapsed ? '⏷ الأدوات' : '⏶ الشريط';
+      }
+      function setEduModalStatus(msg) {
+        document.querySelectorAll('.edu-hdr-status').forEach(el => {
+          el.textContent = msg || 'جاهز للتعديل';
+        });
+      }
       function callEduFrameAction(frameId, fnName) {
         const frame = document.getElementById(frameId);
         if (!frame || !frame.contentWindow) return;
         try {
           if (typeof frame.contentWindow[fnName] === 'function') {
             frame.contentWindow[fnName]();
+          } else {
+            setEduModalStatus('⏳ جاري تجهيز المحرر...');
           }
         } catch (e) {}
       }

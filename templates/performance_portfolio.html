@@ -44,6 +44,9 @@
     .toolbar button.success { background: #27ae60; }
     .toolbar button.success:hover { background: #2ecc71; }
     .toolbar .status { margin-right: auto; font-size: 12px; color: #bdc3c7; }
+    html.edu-embedded-mode .toolbar { display: none !important; }
+    html.edu-embedded-mode .pages-wrap { margin-top: 10px !important; }
+    html.edu-embedded-mode body.print-preview-mode .pages-wrap { margin-top: 58px !important; }
 
     .pages-wrap { margin-top: 70px; }
 
@@ -507,6 +510,13 @@
 </style>
 </head>
 <body>
+<script>
+try {
+    if (window.self !== window.top && new URLSearchParams(window.location.search).get('standalone') !== '1') {
+        document.documentElement.classList.add('edu-embedded-mode');
+    }
+} catch (e) {}
+</script>
 
 <!-- شريط الأدوات الرئيسي -->
 <div class="toolbar">
@@ -2949,9 +2959,20 @@ function goBackToDashboard() {
 /* ============ حالة الشريط ============ */
 function setStatus(msg) {
     const el = document.getElementById('statusMsg');
-    if (!el) return;
-    el.textContent = msg;
-    setTimeout(() => { el.textContent = 'جاهز للتعديل'; }, 5000);
+    if (el) el.textContent = msg;
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.setEduModalStatus === 'function') {
+            window.parent.setEduModalStatus(msg);
+        }
+    } catch (e) {}
+    setTimeout(() => {
+        if (el) el.textContent = 'جاهز للتعديل';
+        try {
+            if (window.parent && window.parent !== window && typeof window.parent.setEduModalStatus === 'function') {
+                window.parent.setEduModalStatus('جاهز للتعديل');
+            }
+        } catch (e) {}
+    }, 5000);
 }
 
 /* ============ حفظ تلقائي كل 30 ثانية ============ */

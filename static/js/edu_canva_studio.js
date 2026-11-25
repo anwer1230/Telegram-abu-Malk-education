@@ -74,6 +74,9 @@
       #ecsInlineDock.has-content.dock-below-fixed {
         margin-top: 72px; margin-bottom: -48px;
       }
+      html.edu-embedded-mode #ecsInlineDock.has-content.dock-below-fixed {
+        margin-top: 10px; margin-bottom: 10px;
+      }
       #ecsInlineDock.has-content.dock-reports {
         margin-top: 4px; margin-bottom: 14px;
       }
